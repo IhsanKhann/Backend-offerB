@@ -17,6 +17,8 @@ yarn.lock
 .env.production
 .env.development
 .env.test
+frontend/.env
+backend/.env
 
 # ==========================
 # Build / Distribution
@@ -61,24 +63,3 @@ coverage/
 *.swp
 *.swo
 *.bak
-
-# ==========================
-# Miscellaneous
-# ==========================
-yarn-error.log
-.pnp.*
-.pnp.js
-
-# ==========================
-# Optional: Frontend specific
-# ==========================
-frontend/node_modules/
-frontend/build/
-frontend/.env
-
-# ==========================
-# Optional: Backend specific
-# ==========================
-backend/node_modules/
-backend/build/
-backend/.env
