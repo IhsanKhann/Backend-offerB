@@ -35,33 +35,6 @@ export default function EmployeeRegistrationForm() {
 
   const nextStep = () => step < totalSteps && setStep(step + 1);
   const prevStep = () => step > 1 && setStep(step - 1);
-
-  // ✅ Submit Handler
-  // const OnSubmit = async (data) => {
-  //   try {
-
-  //     const res = await fetch("http://localhost:3000/api/employees/register", {
-  //       method: "POST",
-  //       body: formData,
-  //     });
-
-  //     if (!res.ok) {
-  //       const err = await res.json();
-  //       throw new Error(`Server error: ${JSON.stringify(err)}`);
-  //     }
-
-  //     const result = await res.json();
-  //     console.log("✅ Employee registered:", result);
-  //     alert("Employee registered successfully!");
-
-  //     // ✅ Navigate only after success
-  //     const FakeId = result._id || "68a1a9f2c6a85aefe42ff276";
-  //     navigate(`/assign-roles/${FakeId}`);
-  //   } catch (error) {
-  //     console.log("❌ Error submitting form:", error);
-  //     alert(error.message);
-  //   }
-  // };
   
 const currentFormData = useSelector(getEmployeeFormData);
 

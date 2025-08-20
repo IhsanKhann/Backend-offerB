@@ -62,10 +62,12 @@ const sliceDraft = createSlice({
       }
     },
 
+    // to study.
     startEditDraft: (state, action) => {
       const draftId = action.payload.id;
       const draft = state.drafts.find(d => d.draftId === draftId);
       
+      // if draft found..
       if (draft) {
         state.editingDraft = { ...draft };
         state.employeeData = draft.employee;
@@ -73,6 +75,7 @@ const sliceDraft = createSlice({
         state.currentDraftId = draftId;
       }
     },
+
 
     updateDraft: (state, action) => {
       const { draftId, employee, roles } = action.payload;

@@ -1,28 +1,16 @@
-
 import mongoose from "mongoose";
 
 const roleSchema = new mongoose.Schema(
   {
-    employee: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Employee",
+    employeeId: {
+      type: String, // or ObjectId if referencing Employee collection
       required: true,
     },
-    division: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Division",
-    },
-    department: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
-    },
-    group: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Group",
-    },
-    cell: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Cell",
+    role: {
+      division: { type: String, required: true },
+      department: { type: String, required: true },
+      group: { type: String, required: true },
+      cell: { type: String, required: true },
     },
   },
   {

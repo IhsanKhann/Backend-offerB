@@ -125,35 +125,36 @@ export const RegisterEmployee = async (req, res) => {
     }
 
     // parse & normalize nested payloads
-    const parsedAddress = safeParse(address, "address") || {};
-    const parsedSalary = normalizeSalary(safeParse(salary, "salary") || {});
-    const parsedTenure = normalizeTenure(safeParse(tenure, "tenure") || {});
-    const parsedTransfers = normalizeTransfers(safeParse(transfers, "transfers"));
-    const parsedChangeOfStatus = normalizeChangeOfStatus(safeParse(changeOfStatus, "changeOfStatus") || {});
-    const parsedHistory = normalizeEmploymentHistory(safeParse(employmentHistory, "employmentHistory") || {});
 
-    // build doc
+    const parsedAddress = typeof address === "string" ? safeParse(address, "address") : address || {};
+    const parsedSalary  = typeof salary  === "string" ? normalizeSalary(safeParse(salary, "salary") || {}) : normalizeSalary(salary || {});
+    const parsedTenure  = typeof tenure  === "string" ? normalizeTenure(safeParse(tenure, "tenure") || {}) : normalizeTenure(tenure || {});
+    const parsedTransfers = normalizeTransfers(typeof transfers === "string" ? safeParse(transfers, "transfers") : transfers);
+    const parsedChangeOfStatus = normalizeChangeOfStatus(typeof changeOfStatus === "string" ? safeParse(changeOfStatus, "changeOfStatus") : changeOfStatus || {});
+    const parsedHistory = normalizeEmploymentHistory(typeof employmentHistory === "string" ? safeParse(employmentHistory, "employmentHistory") : employmentHistory || {});
+        // build doc
     const employeeData = {
-      individualName,
-      fatherName,
-      qualification,
-      dob: toDate(dob),
-      govtId,
-      passportNo,
-      alienRegNo,
-      officialEmail,
-      personalEmail,
-      previousOrgEmail,
-      address: parsedAddress,
-      employmentHistory: parsedHistory,
-      employmentStatus,
-      role,
-      tenure: parsedTenure,
-      salary: parsedSalary,
-      changeOfStatus: parsedChangeOfStatus,
-      transfers: parsedTransfers,
-      profileSubmission: { submitted: true, passwordCreated: false, emailSent: false },
-    };
+  individualName,
+  fatherName,
+  qualification,
+  dob: toDate(dob),
+  govtId,
+  passportNo,
+  alienRegNo,
+  officialEmail,
+  personalEmail,
+  previousOrgEmail,
+  address: parsedAddress,
+  employmentHistory: parsedHistory,
+  employmentStatus,
+  role,
+  tenure: parsedTenure,
+  salary: parsedSalary,
+  changeOfStatus: parsedChangeOfStatus,
+  transfers: parsedTransfers,
+  profileSubmission: { submitted: true, passwordCreated: false, emailSent: false },
+  ...(uploadedImage && { avatar: { url: uploadedImage.secure_url, public_id: uploadedImage.public_id } }),
+};
 
     // Add avatar only if upload succeeded
     if (uploadedImage) {
@@ -265,47 +266,44 @@ export const RejectedEmployee = async (req, res) => {
 export const AssignEmployeeRole = async (req, res) => {
   try {
     console.log("📝 AssignEmployeeRole received body:", req.body);
-    
+
     const { employeeId, role } = req.body;
     const { division, department, group, cell } = role || {};
 
     console.log("📝 Parsed values:", { employeeId, division, department, group, cell });
 
+    // Validate employeeId
     if (!employeeId) {
       return res.status(400).json({ success: false, message: "Employee ID is required" });
     }
-    
-    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
-      return res.status(400).json({ success: false, message: "Invalid Employee ID format" });
-    }
-    
+
+    // Validate role fields
     if (!division && !department && !group && !cell) {
       return res.status(400).json({ success: false, message: "At least one role field is required" });
     }
 
+    // Check if employee exists
     const employee = await EmployeeModel.findById(employeeId);
     if (!employee) {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
-    // Allow multiple roles but prevent exact duplicates (same combination)
+    // Prevent exact duplicate role assignments
     const existing = await RoleModel.findOne({
-      employee: employeeId,
-      division: division || null,
-      department: department || null,
-      group: group || null,
-      cell: cell || null,
+      employeeId,
+      "role.division": division || null,
+      "role.department": department || null,
+      "role.group": group || null,
+      "role.cell": cell || null,
     });
     if (existing) {
       return res.status(400).json({ success: false, message: "This exact role is already assigned" });
     }
 
+    // Create new role document
     const newRole = new RoleModel({
-      employee: employeeId,
-      division,
-      department,
-      group,
-      cell,
+      employeeId,
+      role: { division, department, group, cell },
     });
 
     await newRole.save();

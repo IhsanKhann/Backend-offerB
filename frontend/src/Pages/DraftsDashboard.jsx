@@ -51,6 +51,7 @@ const DraftDashboard = () => {
     }
   };
 
+  // if drafts not found...navigate to the employee Registration form to create  draft.
   if (drafts.length === 0) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -73,6 +74,7 @@ const DraftDashboard = () => {
     );
   }
 
+  // if drafts are not zero.
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -236,7 +238,7 @@ const DraftDashboard = () => {
                 {/* Roles Information */}
                 {draft.roles && Object.keys(draft.roles).length > 0 && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Roles:</h4>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Post Assigned</h4>
                     <div className="space-y-1">
                       {draft.roles.role?.division && (
                         <div className="flex justify-between text-xs">

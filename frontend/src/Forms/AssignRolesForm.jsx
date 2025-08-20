@@ -25,16 +25,14 @@ const AssignRolesForm = () => {
 
   const isEditing = !!editingDraft;
 
-  // Fetch hierarchy
+  // Fetch hierarchy safely
   useEffect(() => {
     const fetchHierarchy = async () => {
       try {
         setLoading(true);
         const res = await axios.get("http://localhost:3000/api/hierarchy/get-hierarchy");
-        setHierarchy(res.data?.data?.divisions || []);
-        console.log(hierarchy);
-        console.log(hierarchy.data);
-        console.log(hierarchy.data.divisions);
+        console.log("API Response:", res.data);
+        setHierarchy(res.data?.divisions || []);
       } catch (err) {
         console.error("Error fetching hierarchy:", err);
         setHierarchy([]);
@@ -42,6 +40,7 @@ const AssignRolesForm = () => {
         setLoading(false);
       }
     };
+
     fetchHierarchy();
   }, []);
 
@@ -56,7 +55,7 @@ const AssignRolesForm = () => {
     }
   }, [editingDraft]);
 
-  // Derived dropdowns
+  // Derived dropdowns safely
   const departmentsOptions = hierarchy.find(d => d.name === division)?.departments || [];
   const groupsOptions = departmentsOptions.find(dep => dep.name === department)?.groups || [];
   const cellsOptions = groupsOptions.find(g => g.name === group)?.cells || [];
@@ -89,7 +88,9 @@ const AssignRolesForm = () => {
     } catch (err) {
       console.error(err);
       alert("Failed to save roles.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -97,17 +98,26 @@ const AssignRolesForm = () => {
     navigate("/DraftDashboard");
   };
 
-  if (loading) return <div className="flex justify-center items-center min-h-screen"><div className="text-xl">Loading...</div></div>;
+  if (loading) return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="text-xl">Loading...</div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
       <div className="bg-white shadow-xl rounded-2xl w-full max-w-2xl p-8">
-        <h1 className="text-3xl font-bold text-gray-800 text-center mb-6">{isEditing ? "Edit Employee Roles" : "Assign Employee Roles"}</h1>
+        <h1 className="text-3xl font-bold text-gray-800 text-center mb-6">
+          {isEditing ? "Edit Employee Roles" : "Assign Employee Roles"}
+        </h1>
 
         {employeeData && (
           <div className="mb-6 p-4 bg-blue-50 rounded-lg">
             <h3 className="text-lg font-semibold text-blue-800 mb-2">Employee Info:</h3>
-            <p className="text-blue-600"><strong>Name:</strong> {employeeData.individualName} | <strong>ID:</strong> {employeeId || currentDraftId}</p>
+            <p className="text-blue-600">
+              <strong>Name:</strong> {employeeData.individualName} | 
+              <strong>ID:</strong> {employeeId || currentDraftId}
+            </p>
           </div>
         )}
 
@@ -135,8 +145,12 @@ const AssignRolesForm = () => {
           </div>
 
           <div className="flex justify-between pt-6">
-            <button type="button" onClick={handleCancel} className="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Cancel</button>
-            <button type="submit" disabled={loading} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{loading ? "Saving..." : isEditing ? "Update Draft" : "Save as Draft"}</button>
+            <button type="button" onClick={handleCancel} className="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">
+              Cancel
+            </button>
+            <button type="submit" disabled={loading} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              {loading ? "Saving..." : isEditing ? "Update Draft" : "Save as Draft"}
+            </button>
           </div>
         </form>
       </div>
