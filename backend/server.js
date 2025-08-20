@@ -19,7 +19,6 @@ app.use(cors(
     }
 ));
 app.use(express.urlencoded({ extended: true }));
-
 app.use(express.json());
 
 // db connection:
@@ -34,7 +33,7 @@ app.get("/api/hello", (req, res) => {
 });
 
 app.use("/api", employeeRouter);
-app.use("/api/hierarchy", HierarchyRouter);
+app.use("/api", HierarchyRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;
