@@ -131,52 +131,11 @@ const AssignRolesForm = () => {
     navigate("/DraftDashboard");
   };
 
-<<<<<<< HEAD
   if (loading) return (
     <div className="flex justify-center items-center min-h-screen">
       <div className="text-xl">Loading...</div>
     </div>
   );
-=======
-    // Save to draft slice
-    dispatch(addRolesData(RolesData));
-
-    // create Draft...
-    dispatch(addDraft());
-
-    alert("Draft created successfully. Added to redux store.");
-
-    // Reset
-    setDivision("");
-    setDepartment("");
-    setGroup("");
-    setCell("");
-
-     const res = await axios.post(
-        "http://localhost:3000/api/employees/roles", RolesData
-    );
-
-  } catch (err) {
-    console.error("Error saving draft:", err);
-    alert("Failed to create draft.");
-  }
-};
-
-    // try{
-    //   const res = await axios.post(
-    //     "http://localhost:3000/api/employee/roles",
-    //     roleAssignment
-    //   );
-
-    //   alert("Roles submitted successfully!");
-    //   console.log("Roles Assigned:", res.data);
-    // } catch (err) {
-    //   console.error("Error submitting roles:", err);
-    //   alert("Failed to submit roles.");
-    // }
-
-  if (loading) return <p>Loading hierarchy...</p>;
->>>>>>> 5e14bb7868226ff4daffbb1b2b4cd37ebfa7e437
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
