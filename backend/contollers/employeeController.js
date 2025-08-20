@@ -251,12 +251,13 @@ export const RejectedEmployee = async (req, res) => {
 
 export const AssignEmployeeRole = async (req, res) => {
   try {
-    const { employeeId, division, department, group, branch, city, country } = req.body;
+    const { employeeId, role } = req.body;
+    const { division, department, group, cell } = role || {};
 
     if (!employeeId) {
       return res.status(400).json({ success: false, message: "Employee ID is required" });
     }
-    if (!division && !department && !group && !branch && !city && !country) {
+    if (!division && !department && !group && !cell) {
       return res.status(400).json({ success: false, message: "At least one role field is required" });
     }
 
@@ -271,9 +272,7 @@ export const AssignEmployeeRole = async (req, res) => {
       division: division || null,
       department: department || null,
       group: group || null,
-      branch: branch || null,
-      city: city || null,
-      country: country || null,
+      cell: cell || null,
     });
     if (existing) {
       return res.status(400).json({ success: false, message: "This exact role is already assigned" });
@@ -284,9 +283,7 @@ export const AssignEmployeeRole = async (req, res) => {
       division,
       department,
       group,
-      branch,
-      city,
-      country,
+      cell,
     });
 
     await newRole.save();

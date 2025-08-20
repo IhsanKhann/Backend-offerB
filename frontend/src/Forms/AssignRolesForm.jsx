@@ -68,7 +68,7 @@ const handleSubmit = async (e) => {
     setCell("");
 
      const res = await axios.post(
-        "http://localhost:3000/api/employee/roles",RolesData
+        "http://localhost:3000/api/roles", RolesData
     );
 
   } catch (err) {

@@ -12,6 +12,6 @@ router.post("/employees/register",
     upload.single("profileImage"),
     RegisterEmployee)
 
-router.post("/employees/role", AssignEmployeeRole);
+router.post("/roles", AssignEmployeeRole);
 
 export default router; 
