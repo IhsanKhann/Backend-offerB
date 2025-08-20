@@ -1,0 +1,84 @@
+# ==========================
+# Node / JavaScript
+# ==========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ==========================
+# Environment files
+# ==========================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+
+# ==========================
+# Build / Distribution
+# ==========================
+dist/
+build/
+frontend/build/
+backend/build/
+out/
+
+# ==========================
+# Logs
+# ==========================
+logs/
+*.log
+
+# ==========================
+# OS / System files
+# ==========================
+.DS_Store
+Thumbs.db
+
+# ==========================
+# IDE / Editor configs
+# ==========================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# ==========================
+# Coverage / Test outputs
+# ==========================
+coverage/
+*.lcov
+
+# ==========================
+# Temporary files
+# ==========================
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# ==========================
+# Miscellaneous
+# ==========================
+yarn-error.log
+.pnp.*
+.pnp.js
+
+# ==========================
+# Optional: Frontend specific
+# ==========================
+frontend/node_modules/
+frontend/build/
+frontend/.env
+
+# ==========================
+# Optional: Backend specific
+# ==========================
+backend/node_modules/
+backend/build/
+backend/.env
