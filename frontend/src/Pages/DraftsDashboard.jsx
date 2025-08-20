@@ -4,11 +4,11 @@ import { useSelector, useDispatch } from "react-redux";
 import { deleteDraft } from "../store/sliceDraft.jsx";
 
 const DraftDashboard = () => {
-  const drafts = useSelector((state) => state.Draft.drafts);
+  const drafts = useSelector((state) => state.draft.drafts);
   const dispatch = useDispatch();
 
   const handleCancel = (draftId) => {
-    dispatch(deleteDraft({ Id: draftId }));
+    dispatch(deleteDraft({ id: draftId }));
   };
 
   const handleEdit = (draft) => {
@@ -46,14 +46,14 @@ const DraftDashboard = () => {
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-700">Employee Data:</h3>
               <pre className="text-sm text-gray-600 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded">
-                {JSON.stringify(draft.employeeData, null, 2)}
+                {JSON.stringify(draft.employee, null, 2)}
               </pre>
             </div>
 
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-700">Roles Data:</h3>
               <pre className="text-sm text-gray-600 max-h-32 overflow-y-auto bg-gray-50 p-2 rounded">
-                {JSON.stringify(draft.rolesData, null, 2)}
+                {JSON.stringify(draft.roles, null, 2)}
               </pre>
             </div>
 
