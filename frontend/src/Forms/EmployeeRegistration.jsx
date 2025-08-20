@@ -98,14 +98,28 @@ const OnSubmit = async (data) => {
   // Store formData in slice
   dispatch(setEmployeeFormData(employeeData));
 
+  // Create a plain object for draft storage (not FormData)
+  const plainEmployeeData = {
+    ...data,
+    avatar: avatar ? { name: avatar.name, size: avatar.size, type: avatar.type } : null,
+  };
+
+  // Store plain data in draft
+  dispatch(addEmployeeData(plainEmployeeData));
+
   try {
     // Wait for backend to register employee & return id
     const resultAction = await dispatch(registerEmployeeThunk());
 
     if (registerEmployeeThunk.fulfilled.match(resultAction)) {
       const newId = resultAction.payload.employeeId;
-      // Now safely add employee data to draft slice
-      dispatch(addEmployeeData(currentFormData));
+      
+      // Update employee data with the ID
+      dispatch(addEmployeeData({
+        ...plainEmployeeData,
+        employeeId: newId,
+      }));
+      
       navigate(`/assign-roles/${newId}`);
       alert("Employee registered successfully! ID: " + newId);
     } else {

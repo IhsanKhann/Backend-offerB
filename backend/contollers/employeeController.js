@@ -71,14 +71,21 @@ const normalizeTransfers = (arr) =>
 
 export const RegisterEmployee = async (req, res) => {
   try {
-    // file required
+    console.log("📝 RegisterEmployee received:", req.body);
+    console.log("📁 File received:", req.file);
+    
+    // file optional for now
     const image = req.file;
-    if (!image) {
-      return res.status(400).json({ success: false, message: "Image is required" });
+    let uploadedImage = null;
+    
+    if (image) {
+      try {
+        uploadedImage = await uploadImageToCloudinary(image, "employees", "profileImage");
+      } catch (uploadError) {
+        console.error("❌ Image upload failed:", uploadError);
+        // Continue without image for now
+      }
     }
-
-    // upload first so we can attach avatar even if validation later fails (you can swap order if preferred)
-    const uploadedImage = await uploadImageToCloudinary(image, "employees", "profileImage");
 
     const {
       individualName,
@@ -126,7 +133,7 @@ export const RegisterEmployee = async (req, res) => {
     const parsedHistory = normalizeEmploymentHistory(safeParse(employmentHistory, "employmentHistory") || {});
 
     // build doc
-    const newEmployee = new EmployeeModel({
+    const employeeData = {
       individualName,
       fatherName,
       qualification,
@@ -143,14 +150,20 @@ export const RegisterEmployee = async (req, res) => {
       role,
       tenure: parsedTenure,
       salary: parsedSalary,
-      avatar: {
-        url: uploadedImage.secure_url,
-        public_id: uploadedImage.public_id,
-      },
       changeOfStatus: parsedChangeOfStatus,
       transfers: parsedTransfers,
       profileSubmission: { submitted: true, passwordCreated: false, emailSent: false },
-    });
+    };
+
+    // Add avatar only if upload succeeded
+    if (uploadedImage) {
+      employeeData.avatar = {
+        url: uploadedImage.secure_url,
+        public_id: uploadedImage.public_id,
+      };
+    }
+
+    const newEmployee = new EmployeeModel(employeeData);
 
     // let mongoose validate types & requireds
     await newEmployee.validate();
