@@ -1,15 +1,12 @@
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { deleteDraft, startEditDraft, submitDraft, displayDrafts } from "../store/sliceDraft.jsx";
+import { deleteDraft, startEditDraft, submitDraft } from "../store/sliceDraft.jsx";
 
 const DraftDashboard = () => {
   const drafts = useSelector((state) => state.draft.drafts);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
-  // Keep displayDrafts if needed
-  dispatch(displayDrafts());
 
   const handleEdit = (draft) => {
     dispatch(startEditDraft({ id: draft.draftId }));
