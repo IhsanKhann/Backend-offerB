@@ -17,25 +17,7 @@ author = 45632123
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd backend && npm run dev"
-
-[[workflows.workflow]]
-name = "run frontend"
-mode = "sequential"
-author = 45632123
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd frontend && npm run dev"
-
-[[workflows.workflow]]
-name = "Run Backend"
-author = 45632123
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd backend && npm run dev"
+args = "cd backend && npm start"
 
 [[workflows.workflow]]
 name = "Run Frontend"
@@ -58,3 +40,7 @@ args = "cd backend && npm run dev"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd frontend && npm run dev"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
