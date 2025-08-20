@@ -54,9 +54,13 @@ const sliceDraft = createSlice({
         state.rolesData = {};
       }
     },
+
+    displayDrafts : (state) => {
+        console.log(state.drafts) ;
+    }
   },
 });
 
-export const { addEmployeeData, addRolesData, addDraft, deleteDraft } =
+export const { addEmployeeData, addRolesData, addDraft, deleteDraft, displayDrafts } =
   sliceDraft.actions;
 export default sliceDraft.reducer;

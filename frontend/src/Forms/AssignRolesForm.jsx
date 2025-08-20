@@ -87,7 +87,6 @@ const handleSubmit = async (e) => {
     console.error("Error saving draft:", err);
     alert("Failed to create draft.");
   }
-
 };
 
     // try{

@@ -1,12 +1,16 @@
 // DraftDashboard.jsx
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { deleteDraft } from "../store/sliceDraft.jsx";
+import { deleteDraft,displayDrafts } from "../store/sliceDraft.jsx";
 
 const DraftDashboard = () => {
-  const drafts = useSelector((state) => state.draft.drafts);
-  const dispatch = useDispatch();
+    const drafts = useSelector((state) => state.draft.drafts);
+    console.log("Drafts in the draft dashboard: " , drafts) ; 
+    
+    const dispatch = useDispatch();
 
+    dispatch(displayDrafts());
+    
   const handleCancel = (draftId) => {
     dispatch(deleteDraft({ id: draftId }));
   };
