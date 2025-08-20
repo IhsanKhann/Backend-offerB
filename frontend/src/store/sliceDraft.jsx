@@ -112,9 +112,14 @@ const sliceDraft = createSlice({
       state.currentDraft = null;
       state.currentDraftId = null;
     },
+
+    displayDrafts : (state) => {
+        console.log(state.drafts) ;
+    }
   },
 });
 
+<<<<<<< HEAD
 export const {
   addEmployeeData,
   addRolesData,
@@ -128,3 +133,8 @@ export const {
 } = sliceDraft.actions;
 
 export default sliceDraft.reducer;
+=======
+export const { addEmployeeData, addRolesData, addDraft, deleteDraft, displayDrafts } =
+  sliceDraft.actions;
+export default sliceDraft.reducer;
+>>>>>>> 5e14bb7868226ff4daffbb1b2b4cd37ebfa7e437

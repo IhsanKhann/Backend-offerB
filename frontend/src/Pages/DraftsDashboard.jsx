@@ -1,6 +1,7 @@
 
 import React from "react";
 import { useSelector, useDispatch } from "react-redux";
+<<<<<<< HEAD
 import { useNavigate } from "react-router-dom";
 import { deleteDraft, startEditDraft, submitDraft } from "../store/sliceDraft.jsx";
 
@@ -8,6 +9,21 @@ const DraftDashboard = () => {
   const drafts = useSelector((state) => state.draft.drafts);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+=======
+import { deleteDraft,displayDrafts } from "../store/sliceDraft.jsx";
+
+const DraftDashboard = () => {
+    const drafts = useSelector((state) => state.draft.drafts);
+    console.log("Drafts in the draft dashboard: " , drafts) ; 
+    
+    const dispatch = useDispatch();
+
+    dispatch(displayDrafts());
+    
+  const handleCancel = (draftId) => {
+    dispatch(deleteDraft({ id: draftId }));
+  };
+>>>>>>> 5e14bb7868226ff4daffbb1b2b4cd37ebfa7e437
 
   const handleEdit = (draft) => {
     dispatch(startEditDraft({ id: draft.draftId }));
