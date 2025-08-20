@@ -34,7 +34,7 @@ app.get("/api/hello", (req, res) => {
 });
 
 app.use("/api", employeeRouter);
-app.use("/api", HierarchyRouter);
+app.use("/api/hierarchy", HierarchyRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

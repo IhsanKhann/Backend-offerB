@@ -251,12 +251,21 @@ export const RejectedEmployee = async (req, res) => {
 
 export const AssignEmployeeRole = async (req, res) => {
   try {
+    console.log("📝 AssignEmployeeRole received body:", req.body);
+    
     const { employeeId, role } = req.body;
     const { division, department, group, cell } = role || {};
+
+    console.log("📝 Parsed values:", { employeeId, division, department, group, cell });
 
     if (!employeeId) {
       return res.status(400).json({ success: false, message: "Employee ID is required" });
     }
+    
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return res.status(400).json({ success: false, message: "Invalid Employee ID format" });
+    }
+    
     if (!division && !department && !group && !cell) {
       return res.status(400).json({ success: false, message: "At least one role field is required" });
     }

@@ -12,6 +12,18 @@ const AssignRolesForm = () => {
 
   const { employeeId } = useParams();
 
+  // Add validation for employeeId
+  if (!employeeId) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="bg-white shadow-xl rounded-2xl p-8 text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error: Employee ID Missing</h1>
+          <p className="text-gray-600">Employee ID not found in URL parameters.</p>
+        </div>
+      </div>
+    );
+  }
+
   const [division, setDivision] = useState("");
   const [department, setDepartment] = useState("");
   const [group, setGroup] = useState("");

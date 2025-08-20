@@ -98,17 +98,22 @@ const OnSubmit = async (data) => {
   // Store formData in slice
   dispatch(setEmployeeFormData(employeeData));
 
-  // Wait for backend to register employee & return id
-  const resultAction = dispatch(registerEmployeeThunk());
+  try {
+    // Wait for backend to register employee & return id
+    const resultAction = await dispatch(registerEmployeeThunk());
 
-  if (registerEmployeeThunk.fulfilled.match(resultAction)) {
-    const newId = resultAction.payload.employeeId;
-    // Now safely add employee data to draft slice
-    dispatch(addEmployeeData(currentFormData));
-    navigate(`/assign-roles/${newId}`)
-    alert("Employee data stored. Id fetched from the backend.");
-  } else {
-    alert("Failed to register employee: " + resultAction.payload);
+    if (registerEmployeeThunk.fulfilled.match(resultAction)) {
+      const newId = resultAction.payload.employeeId;
+      // Now safely add employee data to draft slice
+      dispatch(addEmployeeData(currentFormData));
+      navigate(`/assign-roles/${newId}`);
+      alert("Employee registered successfully! ID: " + newId);
+    } else {
+      alert("Failed to register employee: " + (resultAction.payload || "Unknown error"));
+    }
+  } catch (error) {
+    console.error("Registration error:", error);
+    alert("Failed to register employee: " + error.message);
   }
 };
 

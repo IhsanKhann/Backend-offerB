@@ -6,3 +6,55 @@ channel = "stable-25_05"
 
 [deployment]
 run = ["sh", "-c", "run"]
+
+[workflows]
+runButton = "Run Full Stack"
+
+[[workflows.workflow]]
+name = "run backend"
+mode = "sequential"
+author = 45632123
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && npm run dev"
+
+[[workflows.workflow]]
+name = "run frontend"
+mode = "sequential"
+author = 45632123
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm run dev"
+
+[[workflows.workflow]]
+name = "Run Backend"
+author = 45632123
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && npm run dev"
+
+[[workflows.workflow]]
+name = "Run Frontend"
+author = 45632123
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm run dev"
+
+[[workflows.workflow]]
+name = "Run Full Stack"
+author = 45632123
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && npm run dev"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm run dev"
