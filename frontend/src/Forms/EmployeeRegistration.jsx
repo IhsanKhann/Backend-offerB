@@ -76,7 +76,7 @@ const OnSubmit = async (data) => {
     ...data,
     avatar: avatar ? { name: avatar.name, size: avatar.size, type: avatar.type } : null,
   };
-
+  console.log(plainEmployeeData);
   // Store plain data in draft
   dispatch(addEmployeeData(plainEmployeeData));
 

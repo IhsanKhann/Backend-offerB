@@ -28,28 +28,55 @@ const sliceDraft = createSlice({
     },
 
     addDraft: (state, action) => {
-      const newDraftId = uuidv4();
+        const newDraftId = uuidv4();
 
-      const employee = action.payload?.employeeData || state.employeeData || null;
-      const roles = action.payload?.rolesData || state.rolesData || null;
+        const employee = action.payload?.employeeData || state.employeeData || null;
+        const roles = action.payload?.rolesData || state.rolesData || null;
 
-      if (!employee) {
-        console.warn("Cannot create draft: no employee data");
-        return;
-      }
+        if (!employee) {
+          console.warn("Cannot create draft: no employee data");
+          return;
+        }
 
-      const newDraft = {
-        employee,
-        roles,
-        status: "Draft",
-        draftId: newDraftId,
-        createdAt: new Date().toISOString(),
-      };
+        const newDraft = {
+          employee,
+          roles,
+          status: "Draft",
+          draftId: newDraftId,
+          createdAt: new Date().toISOString(),
+        };
 
-      state.drafts.push(newDraft);
-      state.currentDraft = newDraft;
-      state.currentDraftId = newDraftId;
-      console.log("Draft created:", newDraft);
+        // 🔎 Duplicate check using key fields
+        const duplicate = state.drafts.find((draft) => {
+          const emp = draft.employee;
+
+          return (
+            emp?._id === newDraft.employee?._id || // exact same employee in DB
+            (
+              emp?.individualName === newDraft.employee?.individualName &&
+              emp?.fatherName === newDraft.employee?.fatherName &&
+              emp?.dob === newDraft.employee?.dob
+            ) || // same personal identity
+            emp?.officialEmail === newDraft.employee?.officialEmail || // duplicate email
+            emp?.personalEmail === newDraft.employee?.personalEmail ||
+            emp?.govtId === newDraft.employee?.govtId ||
+            emp?.passportNo === newDraft.employee?.passportNo ||
+            emp?.alienRegNo === newDraft.employee?.alienRegNo
+          );
+        });
+
+        if (duplicate) {
+          console.warn("Duplicate draft detected. Skipping add.");
+          state.error = "Duplicate draft not allowed.";
+          alert("duplicate draft not allowed. Already exists");
+          return;
+        }
+
+        state.drafts.push(newDraft);
+        state.currentDraft = newDraft;
+        state.currentDraftId = newDraftId;
+        state.error = null;
+        console.log("Draft created:", newDraft);
     },
 
     deleteDraft: (state, action) => {
