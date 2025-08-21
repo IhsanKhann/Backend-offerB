@@ -1,11 +1,10 @@
-
 import { createSlice } from "@reduxjs/toolkit";
 import { v4 as uuidv4 } from "uuid";
 
 const initialState = {
   drafts: [],
-  employeeData: {},
-  rolesData: {},
+  employeeData: null,   // use null, not {}
+  rolesData: null,
   currentDraft: null,
   editingDraft: null,
   currentDraftId: null,
@@ -16,45 +15,52 @@ const sliceDraft = createSlice({
   initialState,
   reducers: {
     addEmployeeData: (state, action) => {
-      console.log("Adding employee data:", action.payload);
-      state.employeeData = action.payload;
+      state.employeeData = action.payload?.employeeData || action.payload || null;
+      console.log("Employee data added:", state.employeeData);
     },
 
     addRolesData: (state, action) => {
-      console.log("Adding roles data:", action.payload);
       state.rolesData = {
-        ...action.payload,
-        employeeId: state.employeeData?.employeeId || action.payload.employeeId,
+        ...(action.payload?.rolesData || action.payload || {}),
+        employeeId: state.employeeData?.employeeId || action.payload?.employeeId || null,
       };
+      console.log("Roles data added:", state.rolesData);
     },
 
-    addDraft: (state) => {
+    addDraft: (state, action) => {
       const newDraftId = uuidv4();
+
+      const employee = action.payload?.employeeData || state.employeeData || null;
+      const roles = action.payload?.rolesData || state.rolesData || null;
+
+      if (!employee) {
+        console.warn("Cannot create draft: no employee data");
+        return;
+      }
+
       const newDraft = {
-        employee: state.employeeData,
-        roles: state.rolesData,
+        employee,
+        roles,
         status: "Draft",
         draftId: newDraftId,
         createdAt: new Date().toISOString(),
       };
 
-      console.log("Creating new draft:", newDraft);
       state.drafts.push(newDraft);
       state.currentDraft = newDraft;
       state.currentDraftId = newDraftId;
+      console.log("Draft created:", newDraft);
     },
 
     deleteDraft: (state, action) => {
       const draftId = action.payload.id;
-      console.log("Deleting draft:", draftId);
-      
-      state.drafts = state.drafts.filter((draft) => draft.draftId !== draftId);
+      state.drafts = state.drafts.filter(d => d.draftId !== draftId);
 
       if (state.currentDraftId === draftId) {
         state.currentDraft = null;
         state.currentDraftId = null;
-        state.employeeData = {};
-        state.rolesData = {};
+        state.employeeData = null;
+        state.rolesData = null;
       }
 
       if (state.editingDraft?.draftId === draftId) {
@@ -62,12 +68,10 @@ const sliceDraft = createSlice({
       }
     },
 
-    // to study.
     startEditDraft: (state, action) => {
       const draftId = action.payload.id;
       const draft = state.drafts.find(d => d.draftId === draftId);
-      
-      // if draft found..
+
       if (draft) {
         state.editingDraft = { ...draft };
         state.employeeData = draft.employee;
@@ -76,11 +80,10 @@ const sliceDraft = createSlice({
       }
     },
 
-
     updateDraft: (state, action) => {
       const { draftId, employee, roles } = action.payload;
       const draftIndex = state.drafts.findIndex(d => d.draftId === draftId);
-      
+
       if (draftIndex !== -1) {
         state.drafts[draftIndex] = {
           ...state.drafts[draftIndex],
@@ -94,15 +97,15 @@ const sliceDraft = createSlice({
 
     cancelEdit: (state) => {
       state.editingDraft = null;
-      state.employeeData = {};
-      state.rolesData = {};
+      state.employeeData = null;
+      state.rolesData = null;
       state.currentDraftId = null;
     },
 
     submitDraft: (state, action) => {
       const draftId = action.payload.id;
       const draftIndex = state.drafts.findIndex(d => d.draftId === draftId);
-      
+
       if (draftIndex !== -1) {
         state.drafts[draftIndex].status = "Submitted";
         state.drafts[draftIndex].submittedAt = new Date().toISOString();
@@ -110,15 +113,15 @@ const sliceDraft = createSlice({
     },
 
     clearCurrentDraft: (state) => {
-      state.employeeData = {};
-      state.rolesData = {};
+      state.employeeData = null;
+      state.rolesData = null;
       state.currentDraft = null;
       state.currentDraftId = null;
     },
 
-    displayDrafts : (state) => {
-        console.log(state.drafts) ;
-    }
+    displayDrafts: (state) => {
+      console.log("All drafts:", state.drafts);
+    },
   },
 });
 
@@ -132,7 +135,7 @@ export const {
   cancelEdit,
   submitDraft,
   clearCurrentDraft,
+  displayDrafts,
 } = sliceDraft.actions;
 
 export default sliceDraft.reducer;
-

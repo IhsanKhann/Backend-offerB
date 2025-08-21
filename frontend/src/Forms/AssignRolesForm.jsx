@@ -5,7 +5,7 @@ import axios from "axios";
 
 // Redux actions
 import { assignRolesDraft } from "../store/sliceRoles.jsx";
-import { addRolesData, addDraft, updateDraft, cancelEdit } from "../store/sliceDraft.jsx";
+import { addRolesData, addDraft, updateDraft, cancelEdit, addEmployeeData } from "../store/sliceDraft.jsx";
 
 const AssignRolesForm = () => {
   const { employeeId } = useParams();
@@ -44,6 +44,31 @@ const AssignRolesForm = () => {
     fetchHierarchy();
   }, []);
 
+  // populate the store 
+  useEffect(()=>{
+    const fetchSingleEmployee = async() => {
+      if (!employeeId) return;
+      try {
+        const res = await axios.get(`http://localhost:3000/api/employees/${employeeId}`);
+        dispatch(addEmployeeData({ 
+          employeeData: res.data.employee, 
+         })); 
+
+        dispatch(addRolesData({
+          rolesData: res.data.roles,
+        }))
+
+        console.log("Employee data upon single fetch: ", res.data.employee)
+        console.log("roles data upon single fetch ", res.data.roles)
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+      fetchSingleEmployee();
+  },[employeeId,dispatch]);
+
+
   // Populate form if editing
   useEffect(() => {
     if (editingDraft?.roles?.role) {
@@ -62,6 +87,9 @@ const AssignRolesForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // as ids are stored in the store/draft as well we can get it from there as well if employee id is undefined.
+
     const currentEmployeeId = employeeId || employeeData?.employeeId || currentDraftId;
     if (!currentEmployeeId) return alert("No employee ID found.");
 
@@ -70,13 +98,18 @@ const AssignRolesForm = () => {
     try {
       setLoading(true);
       if (isEditing) {
-        dispatch(updateDraft({ draftId: editingDraft.draftId, roles: rolesData }));
+
+        dispatch(updateDraft(
+          { draftId: editingDraft.draftId, roles: rolesData }
+        ));
         alert("Draft updated successfully!");
       } else {
+
         dispatch(assignRolesDraft(rolesData));
         dispatch(addRolesData(rolesData));
         dispatch(addDraft());
         alert("Draft created successfully!");
+
         try {
           await axios.post("http://localhost:3000/api/employees/roles", rolesData);
         } catch (backendError) {
@@ -114,21 +147,32 @@ const AssignRolesForm = () => {
         {employeeData && (
           <div className="mb-6 p-4 bg-blue-50 rounded-lg">
             <h3 className="text-lg font-semibold text-blue-800 mb-2">Employee Info:</h3>
-            <p className="text-blue-600">
-              <strong>Name:</strong> {employeeData.individualName} | 
-              <strong>ID:</strong> {employeeId || currentDraftId}
+            <p className="text-blue-600 flex flex-row gap-12">
+              <strong>Name:</strong>{employeeData?.individualName || "N/A"} | 
+              <strong>ID:</strong> {employeeId || currentDraftId || ""}
+              {/* upon reload the employee id will show because it is coming from the url */}
             </p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <select value={division} onChange={e => { setDivision(e.target.value); setDepartment(""); setGroup(""); setCell(""); }}>
+            <select value={division} 
+            onChange={e => { 
+              setDivision(e.target.value); 
+              setDepartment(""); 
+              setGroup(""); 
+              setCell(""); 
+            }}>
               <option value="">Select Division</option>
               {hierarchy.map(d => <option key={d._id} value={d.name}>{d.name}</option>)}
             </select>
 
-            <select value={department} onChange={e => { setDepartment(e.target.value); setGroup(""); setCell(""); }}>
+            <select value={department} onChange={e => { 
+              setDepartment(e.target.value); 
+              setGroup(""); 
+              setCell(""); 
+            }}>
               <option value="">Select Department</option>
               {departmentsOptions.map(dep => <option key={dep._id} value={dep.name}>{dep.name}</option>)}
             </select>

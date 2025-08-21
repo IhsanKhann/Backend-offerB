@@ -4,18 +4,18 @@ import { useForm } from "react-hook-form";
 
 // submit and creating draft logic....
 import { useDispatch, useSelector } from "react-redux";
-import { setEmployeeFormData, getEmployeeId, getEmployeeFormData, registerEmployeeThunk } from "../store/sliceEmployee.jsx";
+import { setEmployeeFormData, getEmployeeFormData, registerEmployeeThunk } from "../store/sliceEmployee.jsx";
 import { addEmployeeData } from "../store/sliceDraft.jsx";
 
 export default function EmployeeRegistrationForm() {
   const [step, setStep] = useState(1);
   const totalSteps = 10;
   const navigate = useNavigate();
+  
   const { register, handleSubmit } = useForm({
     shouldUnregister: false, // ✅ keeps values across steps
   });
   const [avatar, setAvatar] = useState(null);
-  const [employeeId,setEmployeeId] = useState("");
   
   const dispatch = useDispatch();
 
@@ -87,7 +87,7 @@ const OnSubmit = async (data) => {
     if (registerEmployeeThunk.fulfilled.match(resultAction)) {
       const newId = resultAction.payload.employeeId;
       
-      // Update employee data with the ID
+      // Update employee data with the ID. Store the _id after getting it from backend as well.
       dispatch(addEmployeeData({
         ...plainEmployeeData,
         employeeId: newId,

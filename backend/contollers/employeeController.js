@@ -68,6 +68,53 @@ const normalizeTransfers = (arr) =>
     : [];
 
 // --- controllers -----------------------------------------------
+export const getSingleEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    if (!employeeId) {
+      return res.status(400).json({
+        status: false,
+        message: "employeeId not found or defined"
+      });
+    }
+
+    const employee = await EmployeeModel.findById(employeeId);
+    console.log("id", employeeId)
+    console.log("employee", employee)
+    
+    if (!employee) {
+      return res.status(404).json({
+        status: false,
+        message: "employee not found"
+      });
+    }
+
+    const roles = await RoleModel.findOne(
+      {employeeId: employeeId}
+    )
+
+    if(!roles){
+      return res.status(400).json({
+        status: true,
+        message: "roles couldnt be found"
+      })
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "employee found",
+      employee, roles
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: false,
+      message: "internal server error",
+    });
+  }
+};
 
 export const RegisterEmployee = async (req, res) => {
   try {

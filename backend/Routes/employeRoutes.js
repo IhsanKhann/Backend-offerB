@@ -3,6 +3,7 @@ import upload from "../middlewares/mutlerMiddleware.js";
 import {
     RegisterEmployee,
     AssignEmployeeRole,
+    getSingleEmployee
 } from "../contollers/employeeController.js";
 
 const router = express.Router();
@@ -13,5 +14,6 @@ router.post("/employees/register",
     RegisterEmployee)
 
 router.post("/employees/roles", AssignEmployeeRole);
+router.get("/employees/:employeeId", getSingleEmployee);
 
 export default router; 
