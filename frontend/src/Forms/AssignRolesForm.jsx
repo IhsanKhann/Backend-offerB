@@ -18,6 +18,7 @@ const AssignRolesForm = () => {
   const [cell, setCell] = useState("");
   const [loading, setLoading] = useState(false);
   const [hierarchy, setHierarchy] = useState([]);
+  const [employeeError, setEmployeeError] = useState(null);
 
   const employeeData = useSelector((state) => state.draft.employeeData);
   const editingDraft = useSelector((state) => state.draft.editingDraft);
@@ -44,29 +45,76 @@ const AssignRolesForm = () => {
     fetchHierarchy();
   }, []);
 
-  // populate the store 
-  useEffect(()=>{
-    const fetchSingleEmployee = async() => {
+  // Populate employee data
+  useEffect(() => {
+    const fetchSingleEmployee = async () => {
       if (!employeeId) return;
+
       try {
         const res = await axios.get(`http://localhost:3000/api/employees/${employeeId}`);
-        dispatch(addEmployeeData({ 
-          employeeData: res.data.employee, 
-         })); 
+        const emp = res.data?.employee;
 
-        dispatch(addRolesData({
-          rolesData: res.data.roles,
-        }))
+        if (!emp || Object.keys(emp).length === 0) {
+          // invalid or missing employee
+          setEmployeeError("No employee found with this ID. Please create one before assigning roles.");
+          dispatch(addEmployeeData({ employeeData: null }));
+          return;
+        }
 
-        console.log("Employee data upon single fetch: ", res.data.employee)
-        console.log("roles data upon single fetch ", res.data.roles)
+        dispatch(addEmployeeData({ employeeData: emp }));
+
+        console.log("Employee data upon single fetch: ", emp);
 
       } catch (err) {
         console.error(err);
+        setEmployeeError("Failed to fetch employee data.");
       }
+    };
+
+    fetchSingleEmployee();
+  }, [employeeId, dispatch]);
+
+// this is the single fetch Role for a specific employee.
+useEffect(() => {
+  if (!employeeId) return;
+
+  const fetchEmployeeAndRoles = async () => {
+    try {
+      // Fetch Employee
+      const empRes = await axios.get(`http://localhost:3000/api/employees/${employeeId}`);
+      const emp = empRes.data?.employee;
+
+      if (!emp || Object.keys(emp).length === 0) {
+        setEmployeeError("No employee found with this ID. Please create one before assigning roles.");
+        dispatch(addEmployeeData({ employeeData: null }));
+        dispatch(addRolesData({ rolesData: [] }));
+        return;
+      }
+
+      dispatch(addEmployeeData({ employeeData: emp }));
+      console.log("Employee data:", emp);
+
+      // Fetch Roles
+      const rolesRes = await axios.get(`http://localhost:3000/api/roles/${employeeId}`);
+      const roles = rolesRes.data?.roles;
+
+      if (!roles || roles.length === 0) {
+        dispatch(addRolesData({ rolesData: [] }));
+        setEmployeeError(""); // clear employee error since employee exists
+        return;
+      }
+
+      dispatch(addRolesData({ rolesData: roles }));
+      console.log("Roles data:", roles);
+
+    } catch (error) {
+      console.error(error);
+      setEmployeeError("Failed to fetch employee/roles data.");
     }
-      fetchSingleEmployee();
-  },[employeeId,dispatch]);
+  };
+
+  fetchEmployeeAndRoles();
+}, [employeeId, dispatch]);
 
 
   // Populate form if editing
@@ -88,23 +136,25 @@ const AssignRolesForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // as ids are stored in the store/draft as well we can get it from there as well if employee id is undefined.
+    if (!employeeData) {
+      alert("No valid employee data found. Please create an employee first.");
+      return;
+    }
 
     const currentEmployeeId = employeeId || employeeData?.employeeId || currentDraftId;
-    if (!currentEmployeeId) return alert("No employee ID found.");
+    if (!currentEmployeeId) {
+      alert("No employee ID found.");
+      return;
+    }
 
     const rolesData = { employeeId: currentEmployeeId, role: { division, department, group, cell } };
 
     try {
       setLoading(true);
       if (isEditing) {
-
-        dispatch(updateDraft(
-          { draftId: editingDraft.draftId, roles: rolesData }
-        ));
+        dispatch(updateDraft({ draftId: editingDraft.draftId, roles: rolesData }));
         alert("Draft updated successfully!");
       } else {
-
         dispatch(assignRolesDraft(rolesData));
         dispatch(addRolesData(rolesData));
         dispatch(addDraft());
@@ -137,6 +187,21 @@ const AssignRolesForm = () => {
     </div>
   );
 
+  // 🔴 Show fallback UI if employee is missing/invalid
+  if (employeeError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
+        <h2 className="text-xl text-red-600 mb-4">{employeeError}</h2>
+        <button
+          onClick={() => navigate("/register-employee")}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Create New Employee
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
       <div className="bg-white shadow-xl rounded-2xl w-full max-w-2xl p-8">
@@ -147,10 +212,9 @@ const AssignRolesForm = () => {
         {employeeData && (
           <div className="mb-6 p-4 bg-blue-50 rounded-lg">
             <h3 className="text-lg font-semibold text-blue-800 mb-2">Employee Info:</h3>
-            <p className="text-blue-600 flex flex-row gap-12">
-              <strong>Name:</strong>{employeeData?.individualName || "N/A"} | 
+            <p className="text-blue-600 flex flex-row gap-8">
+              <strong>Name:</strong> {employeeData?.individualName || "N/A"} 
               <strong>ID:</strong> {employeeId || currentDraftId || ""}
-              {/* upon reload the employee id will show because it is coming from the url */}
             </p>
           </div>
         )}
@@ -158,21 +222,13 @@ const AssignRolesForm = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <select value={division} 
-            onChange={e => { 
-              setDivision(e.target.value); 
-              setDepartment(""); 
-              setGroup(""); 
-              setCell(""); 
-            }}>
+              onChange={e => { setDivision(e.target.value); setDepartment(""); setGroup(""); setCell(""); }}>
               <option value="">Select Division</option>
               {hierarchy.map(d => <option key={d._id} value={d.name}>{d.name}</option>)}
             </select>
 
-            <select value={department} onChange={e => { 
-              setDepartment(e.target.value); 
-              setGroup(""); 
-              setCell(""); 
-            }}>
+            <select value={department} 
+              onChange={e => { setDepartment(e.target.value); setGroup(""); setCell(""); }}>
               <option value="">Select Department</option>
               {departmentsOptions.map(dep => <option key={dep._id} value={dep.name}>{dep.name}</option>)}
             </select>

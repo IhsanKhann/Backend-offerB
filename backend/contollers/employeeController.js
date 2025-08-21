@@ -90,21 +90,10 @@ export const getSingleEmployee = async (req, res) => {
       });
     }
 
-    const roles = await RoleModel.findOne(
-      {employeeId: employeeId}
-    )
-
-    if(!roles){
-      return res.status(400).json({
-        status: true,
-        message: "roles couldnt be found"
-      })
-    }
-
     return res.status(200).json({
       status: true,
       message: "employee found",
-      employee, roles
+      employee,
     });
 
   } catch (error) {
@@ -112,6 +101,43 @@ export const getSingleEmployee = async (req, res) => {
     return res.status(500).json({
       status: false,
       message: "internal server error",
+    });
+  }
+};
+
+export const getSingleRole = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    if (!employeeId) {
+      return res.status(400).json({
+        status: false,
+        message: "Id is either undefined or invalid",
+      });
+    }
+
+    console.log("id check in getSingleRole:", employeeId);
+
+    const roles = await RoleModel.findOne({ employeeId });
+
+    if (!roles) {
+      // No roles yet → return success but empty data
+      return res.status(200).json({
+        status: true,
+        message: "No roles assigned yet",
+        roles: null, // <-- makes frontend easier to check
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Roles fetched successfully",
+      roles,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: false,
+      message: "Internal Server Error",
     });
   }
 };
