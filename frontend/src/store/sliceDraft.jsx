@@ -19,6 +19,32 @@ const sliceDraft = createSlice({
       console.log("Employee data added:", state.employeeData);
     },
 
+    setDrafts: (state, action) => {
+      const { employees, roles } = action.payload;
+      if (!employees || !roles) return;
+
+      
+     const duplicate = state.drafts.find(
+      (draft) =>
+        draft.employees._id === employees._id &&
+        draft.roles._id === roles._id
+    );
+
+      if (duplicate) {
+        console.warn("Duplicate draft detected. Skipping add.");
+        state.error = "Duplicate draft not allowed.";
+        alert("duplicate draft not allowed. Already exists");
+        return;
+      }
+
+      // else:
+      state.drafts.push({ employees, roles });
+
+  // reset after pushing
+      state.employeeData = null;
+      state.rolesData = null;
+    },
+
     addRolesData: (state, action) => {
       state.rolesData = {
         ...(action.payload?.rolesData || action.payload || {}),
@@ -163,6 +189,7 @@ export const {
   submitDraft,
   clearCurrentDraft,
   displayDrafts,
+  setDrafts,
 } = sliceDraft.actions;
 
 export default sliceDraft.reducer;

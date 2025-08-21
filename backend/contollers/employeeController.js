@@ -68,6 +68,58 @@ const normalizeTransfers = (arr) =>
     : [];
 
 // --- controllers -----------------------------------------------
+export const getAllEmployees = async (req, res) => {
+  try {
+    const employees = await EmployeeModel.find();
+
+    console.log("employees: ", employees) 
+
+    if (employees.length > 0) {
+      return res.status(200).json({
+        status: true,
+        message: "Employees fetched successfully",
+        employees,
+      });
+    } else {
+      return res.status(404).json({
+        status: false,
+        message: "No employees found",
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const getAllRoles = async (req, res) => {
+  try {
+    const roles = await RoleModel.find();
+
+    if (roles.length > 0) {
+      return res.status(200).json({
+        status: true,
+        message: "Roles fetched successfully",
+        roles,
+      });
+    } else {
+      return res.status(404).json({
+        status: false,
+        message: "No roles found",
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching roles:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 export const getSingleEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -75,33 +127,48 @@ export const getSingleEmployee = async (req, res) => {
     if (!employeeId) {
       return res.status(400).json({
         status: false,
-        message: "employeeId not found or defined"
+        message: "employeeId not provided",
       });
     }
 
-    const employee = await EmployeeModel.findById(employeeId);
-    console.log("id", employeeId)
-    console.log("employee", employee)
-    
+    const employee = await EmployeeModel.findById(employeeId); // ✅ use findById
+
     if (!employee) {
       return res.status(404).json({
         status: false,
-        message: "employee not found"
+        message: "Employee not found",
       });
     }
 
     return res.status(200).json({
       status: true,
-      message: "employee found",
+      message: "Employee found",
       employee,
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching employee:", error);
     return res.status(500).json({
       status: false,
-      message: "internal server error",
+      message: "Internal server error",
     });
+  }
+};
+
+export const deleteEmployee = async(req,res) => {
+    try {
+    const { id } = req.params;
+
+    const deleted = await EmployeeModel.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ status: false, message: "Employee not found" });
+    }
+
+    return res.status(200).json({ status: true, message: "Employee deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting employee:", error);
+    return res.status(500).json({ status: false, message: "Server error" });
   }
 };
 
