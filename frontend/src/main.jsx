@@ -4,6 +4,8 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import HomePage from "./Pages/HomePage.jsx";
 import EmployeeRegistrationForm from "./Forms/EmployeeRegistration.jsx";
 import AssignRolesForm from "./Forms/AssignRolesForm.jsx";
+import AdminDashboard from "./Pages/AdminDashboard.jsx";
+
 import "./index.css";
 
 // store:
@@ -34,6 +36,10 @@ const router = createBrowserRouter([
   {
     path: "/DraftDashboard",
     element: <DraftDashboard/>
+  },
+  {
+    path: "/admin/dashboard",
+    element: <AdminDashboard />
   }
 ]);
 

@@ -286,37 +286,40 @@ const DraftDashboard = () => {
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between space-x-2">
-                  <button
-                    onClick={() => handleEditEmployee(emp._id)}
-                    className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleSubmitEmployee(emp._id)}
-                    className="flex-1 bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-700"
-                  >
-                    Submit
-                  </button>
-                  <button
-                    onClick={() => handleCancelEmployee(emp._id)}
-                    className="flex-1 bg-red-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
+               {/* Actions */}
+                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 space-y-2">
+                    {/* Main Actions */}
+                    <div className="flex justify-between gap-2">
+                      <button
+                        onClick={() => handleEditEmployee(emp._id)}
+                        className="flex-1 bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleSubmitEmployee(emp._id)}
+                        className="flex-1 bg-green-600 text-white font-medium py-2 rounded-lg hover:bg-green-700 transition-all duration-200 shadow-sm"
+                      >
+                        Submit
+                      </button>
+                      <button
+                        onClick={() => handleCancelEmployee(emp._id)}
+                        className="flex-1 bg-red-600 text-white font-medium py-2 rounded-lg hover:bg-red-700 transition-all duration-200 shadow-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
 
-                 {!hasRoles(emp._id) && (
-                    <button
-                      onClick={() => navigate(`/assign-roles/${emp._id}`)}
-                      className="flex-1 bg-orange-500 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-orange-600"
-                    >
-                      Assign Roles
-                    </button>
-                  )}
-
-                </div>
+                    {/* Conditional Roles Action */}
+                    {!hasRoles(emp._id) && (
+                      <button
+                        onClick={() => navigate(`/assign-roles/${emp._id}`)}
+                        className="w-full bg-orange-500 text-white font-medium py-2 rounded-lg hover:bg-orange-600 transition-all duration-200 shadow-sm"
+                      >
+                        Assign Roles
+                      </button>
+                    )}
+                  </div>
               </div>
             );
           })}

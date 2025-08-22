@@ -28,3 +28,21 @@ export const uploadImageToCloudinary = async (file, folder = "employees") => {
     throw err;
   }
 };
+
+// Destroy image
+export const destroyImageFromCloudinary = async (publicId) => {
+  try {
+    const result = await cloudinary.v2.uploader.destroy(publicId, {
+      resource_type: "image",
+    });
+
+    if (result.result !== "ok") {
+      console.warn("Cloudinary delete warning:", result);
+    }
+
+    return result;
+  } catch (err) {
+    console.error("Cloudinary delete error:", err);
+    throw err;
+  }
+};

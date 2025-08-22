@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 import EmployeeModel from "../models/Employee.model.js";
 import bcrypt from "bcrypt";
-import { uploadImageToCloudinary /*, destroyImageFromCloudinary*/ } from "../utilis/cloudinary.js";
+import { uploadImageToCloudinary, destroyImageFromCloudinary } from "../utilis/cloudinary.js";
 import RoleModel from "../models/Role.model.js";
 import FinalizedEmployeeModel from "../models/FinalizedEmployees.model.js";
 
@@ -132,22 +132,36 @@ export const getSingleEmployee = async (req, res) => {
   }
 };
 
-export const deleteEmployee = async(req,res) => {
-    try {
+export const deleteEmployee = async (req, res) => {
+  try {
     const { id } = req.params;
-    
-    const deleted = await EmployeeModel.findByIdAndDelete(id);
-    const postRemoved = await RoleModel.deleteMany({ employeeId: id });
 
-    if(!postRemoved) {
-      return res.status(404).json({ status: false, message: "Roles not found" });
-    }
+    // Find employee first (so we can access image info before deleting)
+    const employee = await EmployeeModel.findById(id);
 
-    if (!deleted) {
+    if (!employee) {
       return res.status(404).json({ status: false, message: "Employee not found" });
     }
 
-    return res.status(200).json({ status: true, message: "Employee deleted successfully" });
+    // Delete roles associated with employee
+    const postRemoved = await RoleModel.deleteMany({ employeeId: id });
+
+    if (!postRemoved) {
+      return res.status(404).json({ status: false, message: "Roles not found" });
+    }
+
+    // Delete employee document
+    await EmployeeModel.findByIdAndDelete(id);
+
+    // Destroy image from Cloudinary if exists
+    if (employee.image && employee.image.public_id) {
+      await destroyImageFromCloudinary(employee.image.public_id);
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Employee and associated roles deleted successfully",
+    });
   } catch (error) {
     console.error("Error deleting employee:", error);
     return res.status(500).json({ status: false, message: "Server error" });
@@ -351,7 +365,6 @@ export const RejectEmployee = async (req, res) => {
 };
 
 // roles or assigning posts functions.
-
 export const AssignEmployeePost = async (req, res) => {
   try {
     console.log("📝 AssignEmployeePost received body:", req.body);
@@ -477,7 +490,7 @@ export const getSingleRole = async (req, res) => {
 // get all or get single finalized employee.
 export const getFinalizedEmployees = async (req, res) => {
   try {
-    const finalizedEmployees = await FinalizedEmployeeModel.find().sort({ createdAt: -1 }); // newest first
+    const finalizedEmployees = await FinalizedEmployeeModel.find().sort({ createdAt: -1 });
     return res.status(200).json({
       success: true,
       count: finalizedEmployees.length,
@@ -504,5 +517,49 @@ export const getSingleFinalizedEmployee = async (req, res) => {
   } catch (error) {
     console.error("🔥 GetSingleFinalizedEmployee error:", error.stack || error.message);
     return res.status(500).json({ success: false, message: "Failed to fetch finalized employee" });
+  }
+};
+
+export const deleteFinalizedEmployee = async (req, res) => {
+  try {
+    const { finalizedEmployeeId } = req.params;
+    if (!finalizedEmployeeId) {
+      return res.status(400).json({
+        success: false,
+        message: "finalizedEmployeeId is required",
+      });
+    }
+
+    // Find finalized employee
+    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
+    if (!finalizedEmployee) {
+      return res.status(404).json({
+        success: false,
+        message: "FinalizedEmployee not found",
+      });
+    }
+
+    // // Get employeeId from finalized record
+    // const employeeId = finalizedEmployee.employeeId;
+    // if (employeeId) {
+    //   // Revert the original employee back to draft
+    //   await EmployeeModel.findByIdAndUpdate(employeeId, {
+    //     status: "draft",
+    //   });
+    // }
+
+    // Delete the finalized employee record
+    await FinalizedEmployeeModel.findByIdAndDelete(finalizedEmployeeId);
+
+    return res.status(200).json({
+      success: true,
+      message: "FinalizedEmployee deleted and reverted back to draft",
+    });
+  } catch (error) {
+    console.error("🔥 DeleteFinalizedEmployee error:", error.stack || error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete finalized employee",
+    });
   }
 };
