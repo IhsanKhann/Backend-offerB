@@ -135,8 +135,13 @@ export const getSingleEmployee = async (req, res) => {
 export const deleteEmployee = async(req,res) => {
     try {
     const { id } = req.params;
-
+    
     const deleted = await EmployeeModel.findByIdAndDelete(id);
+    const postRemoved = await RoleModel.deleteMany({ employeeId: id });
+
+    if(!postRemoved) {
+      return res.status(404).json({ status: false, message: "Roles not found" });
+    }
 
     if (!deleted) {
       return res.status(404).json({ status: false, message: "Employee not found" });
@@ -178,7 +183,7 @@ export const RegisterEmployee = async (req, res) => {
       return res.status(400).json({ success: false, message: "At least one ID is required" });
     }
 
-    // Uniqueness check
+    // Uniqueness check - checking for duplicates
     const existingEmployee = await EmployeeModel.findOne({
       $or: [{ officialEmail }, { personalEmail }, { individualName }],
     });
@@ -223,21 +228,45 @@ export const RegisterEmployee = async (req, res) => {
 export const SubmitEmployee = async (req, res) => {
   try {
     const { employeeId } = req.body;
-    if (!employeeId) return res.status(400).json({ success: false, message: "employeeId required" });
+    if (!employeeId) 
+      return res.status(400).json({ success: false, message: "employeeId required" });
 
     const employee = await EmployeeModel.findById(employeeId);
-    if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
+    if (!employee) 
+      return res.status(404).json({ success: false, message: "Employee not found" });
 
-    // 1. Update draft status
+    // ✅ Correct duplicate check in FinalizedEmployee collection
+    const duplicateFinalized = await FinalizedEmployeeModel.findOne({
+      $or: [
+        { officialEmail: employee.officialEmail },
+        { personalEmail: employee.personalEmail },
+        { govtId: employee.govtId },
+        { passportNo: employee.passportNo },
+        { alienRegNo: employee.alienRegNo },
+      ],
+    });
+
+    if (duplicateFinalized) {
+      return res.status(400).json({ success: false, message: "Duplicate employee exists in finalized employees" });
+    }
+
+    // 1️⃣ Update draft status
     employee.DraftStatus.status = "Submitted";
+    employee.finalizationStatus = "Pending";
     await employee.save();
 
-    // 2. Create FinalizedEmployee with Pending status
+    // 2️⃣ Create FinalizedEmployee with Pending status
     const finalizedData = {
       ...employee.toObject(),
-      employeeId: employee._id, // optional reference field
-      profileStatus: { submitted: true, decision: "Pending", passwordCreated: false, emailSent: false },
+      employeeId: employee._id, // optional reference
+      profileStatus: {
+        submitted: true,
+        decision: "Pending",
+        passwordCreated: false,
+        emailSent: false,
+      },
     };
+
     delete finalizedData.DraftStatus;
     delete finalizedData._id;
 
@@ -460,7 +489,7 @@ export const getFinalizedEmployees = async (req, res) => {
   }
 };
 
-export const GetSingleFinalizedEmployee = async (req, res) => {
+export const getSingleFinalizedEmployee = async (req, res) => {
   try {
     const { finalizedEmployeeId } = req.params;
     if (!finalizedEmployeeId) return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });

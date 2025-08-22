@@ -39,7 +39,6 @@ router.post("/employees/Submit", SubmitEmployee);
 router.delete("/employees/reject/:finalizedEmployeeId", RejectEmployee)
 
 
-
 // for the admin dashboard...
 router.get("/employees/getFinalizedEmployees", getFinalizedEmployees);
 router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", getSingleFinalizedEmployee);
