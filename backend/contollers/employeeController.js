@@ -444,3 +444,36 @@ export const getSingleRole = async (req, res) => {
     });
   }
 };
+
+// get all or get single finalized employee.
+export const getFinalizedEmployees = async (req, res) => {
+  try {
+    const finalizedEmployees = await FinalizedEmployeeModel.find().sort({ createdAt: -1 }); // newest first
+    return res.status(200).json({
+      success: true,
+      count: finalizedEmployees.length,
+      data: finalizedEmployees
+    });
+  } catch (error) {
+    console.error("🔥 GetAllFinalizedEmployees error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch finalized employees" });
+  }
+};
+
+export const GetSingleFinalizedEmployee = async (req, res) => {
+  try {
+    const { finalizedEmployeeId } = req.params;
+    if (!finalizedEmployeeId) return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
+
+    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
+    if (!finalizedEmployee) return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
+
+    return res.status(200).json({
+      success: true,
+      data: finalizedEmployee
+    });
+  } catch (error) {
+    console.error("🔥 GetSingleFinalizedEmployee error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch finalized employee" });
+  }
+};

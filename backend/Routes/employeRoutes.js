@@ -12,6 +12,12 @@ import {
     getAllEmployees,
     getAllRoles,
     deleteEmployee,
+
+        
+    getSingleFinalizedEmployee,
+    getFinalizedEmployees,
+
+
 } from "../contollers/employeeController.js";
 
 const router = express.Router();
@@ -31,5 +37,12 @@ router.patch("/employees/approve/:finalizedEmployeeId", ApproveEmployee);
 router.post("/employees/Submit", SubmitEmployee);
 // reject/delete employee
 router.delete("/employees/reject/:finalizedEmployeeId", RejectEmployee)
+
+
+
+// for the admin dashboard...
+router.get("/employees/getFinalizedEmployees", getFinalizedEmployees);
+router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", getSingleFinalizedEmployee);
+
 
 export default router; 

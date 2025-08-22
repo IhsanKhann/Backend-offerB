@@ -66,7 +66,7 @@ const DraftDashboard = () => {
       console.log("Response:", response.data); // return the finalized employee id.
       console.log("Id in submit response:", response.data.finalizedEmployeeId);
 
-      // this will need to be passed to the admin page or reject/approve wont work.
+      // this will need to be passed to the admin page or reject/approve wont work
       const finalizedEmployeeId = response.data.finalizedEmployeeId;
 
       if(response.status === 200){
