@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { deleteDraft, startEditDraft, submitDraft } from "../store/sliceDraft.jsx";
+import axios from "axios";
 
 const DraftDashboard = () => {
   const drafts = useSelector((state) => state.draft.drafts);
@@ -56,8 +57,25 @@ const DraftDashboard = () => {
     console.log("Edit employee:", employeeId);
   };
 
-  const handleSubmitEmployee = (employeeId) => {
-    // TODO: Call backend submit API
+
+  const handleSubmitEmployee = async(employeeId) => {
+    try{
+      const response = await axios.post("http://localhost:3000/api/employees/Submit",{
+        employeeId
+      });
+      console.log("Response:", response.data); // return the finalized employee id.
+      console.log("Id in submit response:", response.data.finalizedEmployeeId);
+
+      // this will need to be passed to the admin page or reject/approve wont work.
+      const finalizedEmployeeId = response.data.finalizedEmployeeId;
+
+      if(response.status === 200){
+        alert("Employee submitted successfully");
+      }
+    }
+    catch(error){
+      console.error("Failed to submit employee:", error);
+    }
     console.log("Submit employee:", employeeId);
   };
 

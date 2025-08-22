@@ -1,6 +1,5 @@
-// models/employee.model.js
+// models/finalizedEmployee.model.js
 import mongoose from "mongoose";
-// import bcrypt from "bcrypt";
 
 const addressSchema = new mongoose.Schema({
   houseNo: { type: String },
@@ -15,11 +14,11 @@ const addressSchema = new mongoose.Schema({
 });
 
 const employmentHistorySchema = new mongoose.Schema({
-  employeeId: { type: String }, // You may enforce unique elsewhere if needed
+  employeeId: { type: String },
   orgName: { type: String },
   releaseDate: { type: Date },
   designation: { type: String },
-  organizationsWorkedFor: { type: String }, // free text list
+  organizationsWorkedFor: { type: String },
 });
 
 const salarySchema = new mongoose.Schema({
@@ -40,7 +39,7 @@ const tenureSchema = new mongoose.Schema({
   retirement: { type: Date },
   contractExpiryOrRenewal: { type: Date },
   promotion: { type: Date },
-  otherEventDate: { type: Date }, // Retrenchment / Termination / Suspension / Death
+  otherEventDate: { type: Date },
 });
 
 const statusChangeSchema = new mongoose.Schema({
@@ -67,43 +66,37 @@ const transferSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
 });
 
-const DraftStatus = new mongoose.Schema({
-  status: {
+// Embedded schema for profile status
+const profileStatusSchema = new mongoose.Schema({
+  submitted: { type: Boolean, default: true }, // always true for finalized
+  decision: { 
     type: String,
-    enum:["Draft","Submitted"],
-    default:"Draft"
+    enum: ["Approved", "Rejected", "Pending"], 
+    default: "Pending" 
   },
-  PostStatus: {
-    type: String,
-    enum: ["Assigned","Not Assigned"],
-    default: "Not Assigned"
-  },
+  passwordCreated: { type: Boolean, default: false },
+  emailSent: { type: Boolean, default: false },
 });
 
-const employeeSchema = new mongoose.Schema(
+const finalizedEmployeeSchema = new mongoose.Schema(
   {
     // 1. Personal Details
     individualName: { type: String, required: true, trim: true },
     fatherName: { type: String, required: true, trim: true },
-    qualification: { type: String }, // "Qualification / Ongoing Qualification"
+    qualification: { type: String },
     dob: { type: Date, required: true },
-    govtId: { type: String }, // Social Security / CNIC / Govt. ID
+    govtId: { type: String },
     passportNo: { type: String },
-    alienRegNo: { type: String }, // Green Card / Alien Registration No.
+    alienRegNo: { type: String },
 
     officialEmail: { type: String, required: true, lowercase: true, trim: true },
-    passwordHash: { type: String }, // system-generated & stored securely
+    passwordHash: { type: String }, // system-generated
     personalEmail: { type: String, required: true, lowercase: true, trim: true },
     previousOrgEmail: { type: String, lowercase: true, trim: true },
 
-    // image here:
     avatar: {
-        public_id: {
-            type: String,
-        },
-        url: {
-            type: String,
-        },
+      public_id: { type: String },
+      url: { type: String },
     },
 
     // 2. Address
@@ -120,9 +113,9 @@ const employeeSchema = new mongoose.Schema(
     },
 
     // 5. Posting Information
-    // posting: { type: AppointmentSchema, required: true }, this has its own model now.
+    // posting: { type: AppointmentSchema, required: true }, // if needed
 
-    // 6. Starting Cadres / User Roles
+    // 6. Roles
     role: {
       type: String,
       enum: [
@@ -151,21 +144,14 @@ const employeeSchema = new mongoose.Schema(
     // 10. Transfers
     transfers: { type: [transferSchema], default: [] },
 
-    // 11. Final Submission
-    DraftStatus: { type: DraftStatus, default: {} },
-
-    // 12. Finalization Status
-    finalizationStatus: {
-      type: String,
-      enum: ["Pending", "Approved", "Rejected"],
-      default: "Pending",
-    }
-  },  
+    // 11. Final Submission Info
+    profileStatus: { type: profileStatusSchema, default: () => ({}) },
+  },
   { timestamps: true }
 );
 
-// Custom validator: require at least one government ID: govtId OR passportNo OR alienRegNo
-employeeSchema.pre("validate", function (next) {
+// Validator: require at least one government ID
+finalizedEmployeeSchema.pre("validate", function (next) {
   const hasAnyId = !!(this.govtId || this.passportNo || this.alienRegNo);
   if (!hasAnyId) {
     return next(new Error("At least one Government ID (CNIC/SSN), Passport No, or Alien Registration No is required."));
@@ -173,4 +159,4 @@ employeeSchema.pre("validate", function (next) {
   next();
 });
 
-export default mongoose.model("Employee", employeeSchema);
+export default mongoose.model("FinalizedEmployee", finalizedEmployeeSchema);
