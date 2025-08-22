@@ -141,13 +141,16 @@ useEffect(() => {
       return;
     }
 
+    const name = employeeData?.individualName;
     const currentEmployeeId = employeeId || employeeData?.employeeId || currentDraftId;
     if (!currentEmployeeId) {
       alert("No employee ID found.");
       return;
     }
 
-    const rolesData = { employeeId: currentEmployeeId, role: { division, department, group, cell } };
+    const rolesData = { employeeId: currentEmployeeId, 
+      employeeName: name,
+      role: { division, department, group, cell } };
 
     try {
       setLoading(true);

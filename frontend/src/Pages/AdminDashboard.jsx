@@ -58,6 +58,9 @@ const AdminDashboard = () => {
 
   const handleDelete = async (finalizedEmployeeId) => {
     try {
+
+    // fetch all the drafts -> if the name,email etc of the finalizedEmployee matches with any draft -> send the draft id to the url -> all this to update the status of the employee/draft.
+            
       const res = await axios.delete(
         `http://localhost:3000/api/employees/delete/${finalizedEmployeeId}`
       );

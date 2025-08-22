@@ -6,6 +6,9 @@ const roleSchema = new mongoose.Schema(
       type: String, // or ObjectId if referencing Employee collection
       required: true,
     },
+    employeeName: {
+      type: String,
+    },
     role: {
       division: { type: String, required: true },
       department: { type: String, required: true },

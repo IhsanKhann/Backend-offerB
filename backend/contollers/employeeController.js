@@ -369,10 +369,10 @@ export const AssignEmployeePost = async (req, res) => {
   try {
     console.log("📝 AssignEmployeePost received body:", req.body);
 
-    const { employeeId, role } = req.body;
+    const { employeeId, role, employeeName } = req.body;
     const { division, department, group, cell } = role || {};
 
-    console.log("📝 Parsed values:", { employeeId, division, department, group, cell });
+    console.log("📝 Parsed values:", { employeeId,employeeName, division, department, group, cell,});
 
     // Validate employeeId
     if (!employeeId) {
@@ -393,6 +393,7 @@ export const AssignEmployeePost = async (req, res) => {
     // Prevent exact duplicate role assignments
     const existing = await RoleModel.findOne({
       employeeId,
+      employeeName,
       "role.division": division || null,
       "role.department": department || null,
       "role.group": group || null,
@@ -405,6 +406,7 @@ export const AssignEmployeePost = async (req, res) => {
     // Create new role document
     const newRole = new RoleModel({
       employeeId,
+      employeeName,
       role: { division, department, group, cell },
     });
 
@@ -512,7 +514,7 @@ export const getSingleFinalizedEmployee = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: finalizedEmployee
+      finalizedEmployee: finalizedEmployee
     });
   } catch (error) {
     console.error("🔥 GetSingleFinalizedEmployee error:", error.stack || error.message);
@@ -550,7 +552,7 @@ export const deleteFinalizedEmployee = async (req, res) => {
 
     // Delete the finalized employee record
     await FinalizedEmployeeModel.findByIdAndDelete(finalizedEmployeeId);
-
+    
     return res.status(200).json({
       success: true,
       message: "FinalizedEmployee deleted and reverted back to draft",

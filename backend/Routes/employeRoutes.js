@@ -13,36 +13,38 @@ import {
     getAllRoles,
     deleteEmployee,
 
-        
     getSingleFinalizedEmployee,
     getFinalizedEmployees,
     deleteFinalizedEmployee,
-
-
 } from "../contollers/employeeController.js";
 
 const router = express.Router();
-router.get("/employees/allfinalized", getFinalizedEmployees);
 
-router.delete("/deleteEmployee/:id", deleteEmployee);
-router.post("/employees/roles", AssignEmployeePost);
-router.get("/employees/:employeeId", getSingleEmployee);
-router.get("/roles/:employeeId", getSingleRole);
+// ✅ Static routes first
+router.get("/employees/allfinalized", getFinalizedEmployees);
 router.get("/getAllEmployees", getAllEmployees);
 router.get("/getAllRoles", getAllRoles);
+router.post("/employees/roles", AssignEmployeePost);
 
-// add an employee to the database
-router.post("/employees/register", upload.single("profileImage"),RegisterEmployee)
-// approve it
+// Employee creation + submission
+router.post("/employees/register", upload.single("profileImage"), RegisterEmployee);
+router.post("/employees/submit", SubmitEmployee);
+
+// Approve / Reject finalized employees
 router.patch("/employees/approve/:finalizedEmployeeId", ApproveEmployee);
-// submit employee
-router.post("/employees/Submit", SubmitEmployee);
-// reject/delete employee
-router.delete("/employees/reject/:finalizedEmployeeId", RejectEmployee)
+router.delete("/employees/reject/:finalizedEmployeeId", RejectEmployee);
 
-
-// for the admin dashboard...
-router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", getSingleFinalizedEmployee);
+// Delete finalized + draft together
 router.delete("/employees/delete/:finalizedEmployeeId", deleteFinalizedEmployee);
 
-export default router; 
+// Delete employee (not finalized)
+router.delete("/deleteEmployee/:id", deleteEmployee);
+
+// ✅ Specific dynamic before generic
+router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", getSingleFinalizedEmployee);
+router.get("/roles/:employeeId", getSingleRole);
+
+// ✅ Generic dynamic route last
+router.get("/employees/:employeeId", getSingleEmployee);
+
+export default router;
