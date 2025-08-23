@@ -17,7 +17,7 @@ export default function EmployeeRegistrationForm() {
   });
   const [avatar, setAvatar] = useState(null);
   const [AutomaticId, setAutomaticId] = useState("");
-  const [attachmentSalary, setAttachmentSalary] = useState("");
+  // const [attachmentSalary, setAttachmentSalary] = useState("");
 
   const dispatch = useDispatch();
 
@@ -41,60 +41,86 @@ export default function EmployeeRegistrationForm() {
 const currentFormData = useSelector(getEmployeeFormData);
 
 const OnSubmit = async (data) => {
+  console.log("🚀 Raw form data:", data);
+
   const employeeFormData = new FormData();
 
-  // Append fields
+  // Core fields
+  employeeFormData.append("employeeId", AutomaticId || "");
   employeeFormData.append("individualName", data.individualName);
   employeeFormData.append("fatherName", data.fatherName);
-  employeeFormData.append("qualification", data.qualification);
+  employeeFormData.append("qualification", data.qualification || "");
   employeeFormData.append("dob", data.dob);
-  employeeFormData.append("govtId", data.govtId);
-  employeeFormData.append("passportNo", data.passportNo);
-  employeeFormData.append("alienRegNo", data.alienRegNo);
+  employeeFormData.append("govtId", data.govtId || "");
+  employeeFormData.append("passportNo", data.passportNo || "");
+  employeeFormData.append("alienRegNo", data.alienRegNo || "");
   employeeFormData.append("officialEmail", data.officialEmail);
   employeeFormData.append("personalEmail", data.personalEmail);
-  employeeFormData.append("previousOrgEmail", data.previousOrgEmail);
+  employeeFormData.append("previousOrgEmail", data.previousOrgEmail || "");
   employeeFormData.append("employmentStatus", data.employmentStatus);
   employeeFormData.append("role", data.role);
 
-  // Nested objects
-  if (data.address) employeeFormData.append("address", JSON.stringify(data.address));
-  if (data.salary) employeeFormData.append("salary", JSON.stringify(data.salary));
-  if (data.tenure) employeeFormData.append("tenure", JSON.stringify(data.tenure));
-  if (data.transfers) employeeFormData.append("transfers", JSON.stringify(data.transfers));
-  if (data.changeOfStatus) employeeFormData.append("changeOfStatus", JSON.stringify(data.changeOfStatus));
-  if (data.employmentHistory) employeeFormData.append("employmentHistory", JSON.stringify(data.employmentHistory));
+  // Nested objects (must be stringified for backend JSON.parse)
+  if (data.address) {
+    employeeFormData.append("address", JSON.stringify(data.address));
+  }
+  if (data.salary) {
+    employeeFormData.append("salary", JSON.stringify(data.salary));
+  }
+  if (data.tenure) {
+    employeeFormData.append("tenure", JSON.stringify(data.tenure));
+  }
+  if (data.transfers) {
+    employeeFormData.append("transfers", JSON.stringify(data.transfers));
+  }
+  if (data.changeOfStatus) {
+    employeeFormData.append("changeOfStatus", JSON.stringify(data.changeOfStatus));
+  }
+  if (data.employmentHistory) {
+    employeeFormData.append("employmentHistory", JSON.stringify(data.employmentHistory));
+  }
 
   // Files
-  if (avatar) employeeFormData.append("profileImage", avatar);
-  
-  // if (data.salary?.attachment && data.salary.attachment[0])
-  //   employeeFormData.append("salaryAttachment", data.salary.attachment[0]);
+  if (avatar) {
+    console.log("📂 Attaching profile image:", avatar.name);
+    employeeFormData.append("profileImage", avatar);
+  }
 
-  // ✅ Dispatch only plain object metadata to Redux
-  dispatch(setEmployeeFormData({
-    ...data,
-    avatar: avatar ? { name: avatar.name, type: avatar.type, size: avatar.size } : null,
-    // salaryAttachment: data.salary?.attachment ? { name: data.salary.attachment[0].name } : null
-  }));
+  // if (data.salary?.attachment && data.salary.attachment[0]) {
+  //   employeeFormData.append("salaryAttachment", data.salary.attachment[0]);
+  // }
+
+  // Debug: log all FormData keys
+  for (let [key, val] of employeeFormData.entries()) {
+    console.log(`➡️ FormData ${key}:`, val);
+  }
+
+  // Save minimal data in Redux (no File object, just metadata)
+  dispatch(
+    setEmployeeFormData({
+      ...data,
+      employeeId: data.employeeId || AutomaticId,
+      avatar: avatar ? { name: avatar.name, type: avatar.type, size: avatar.size } : null,
+    })
+  );
 
   try {
-    // Pass FormData directly to thunk
     const resultAction = await dispatch(registerEmployeeThunk(employeeFormData));
+    console.log("✅ Result from thunk:", resultAction);
 
     if (registerEmployeeThunk.fulfilled.match(resultAction)) {
       const newId = resultAction.payload.employeeId;
       alert("Employee registered successfully! ID: " + newId);
       navigate(`/assign-roles/${newId}`);
     } else {
+      console.warn("❌ Registration failed:", resultAction.payload);
       alert("Failed to register employee: " + (resultAction.payload || "Unknown error"));
     }
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("🔥 Registration error:", error);
     alert("Failed to register employee: " + error.message);
   }
 };
-
 
 const handleAutomatic_ID_Generation = () => {
   const id = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -417,7 +443,7 @@ const handleAutomatic_ID_Generation = () => {
                 />
               </div>
 
-              {/* Attach File */}
+              {/* Attach File
               <div className="space-y-1 col-span-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Attach File
@@ -430,7 +456,8 @@ const handleAutomatic_ID_Generation = () => {
                 <p className="text-xs text-gray-500">
                   Supported formats: PDF, DOCX, JPG, PNG. Max size 10MB.
                 </p>
-              </div>
+              </div> */}
+
             </div>
           )}
 

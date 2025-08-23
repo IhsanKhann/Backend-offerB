@@ -5,21 +5,27 @@ export const registerEmployeeThunk = createAsyncThunk(
   "employee/register",
   async (formData, { rejectWithValue }) => {
     try {
-      if (!formData) return rejectWithValue("No form data provided");
+      if (!formData) {
+        console.warn("⚠️ No form data provided to thunk");
+        return rejectWithValue("No form data provided");
+      }
+
+      console.log("📡 Sending to backend:", formData);
 
       const response = await axios.post(
-        "http://localhost:3000/api/employees/register",
+        "http://localhost:3000/api/employees/register", // ✅ fixed port
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
 
+      console.log("✅ Backend response:", response.data);
       return response.data;
     } catch (error) {
+      console.error("❌ Backend error:", error.response?.data || error.message);
       return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
-
 
 
 const employeeSlice = createSlice({

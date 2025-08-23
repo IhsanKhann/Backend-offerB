@@ -74,9 +74,11 @@ const DraftDashboard = () => {
 
       if (response.status === 200) {
         alert("Employee submitted successfully");
+
         // refresh employees and roles after submission
         const empRes = await fetch("http://localhost:3000/api/getAllEmployees");
         const rolesRes = await fetch("http://localhost:3000/api/getAllRoles");
+        
         setEmployees((await empRes.json()).employees || []);
         setRoles((await rolesRes.json()).roles || []);
         setRolesAssigned(true);

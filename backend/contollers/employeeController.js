@@ -170,61 +170,130 @@ export const deleteEmployee = async (req, res) => {
 
 export const RegisterEmployee = async (req, res) => {
   try {
-      const image = req.file; // multer puts it inside array
-      // const salaryAttachment = req.files?.salaryAttachment?.[0];
-    
-      let uploadedImage = null;
+    console.log("Incoming employee registration request");
+    console.log("req.body:", req.body);
+    console.log("req.file:", req.file);
+
+    const image = req.file;
+    // const salaryAttachment = req.files?.salaryAttachment?.[0];
+
+    let uploadedImage = null;
     // let uploadedSalaryAttachment = null;
 
     if (image) {
       try {
-        uploadedImage = await uploadFileToCloudinary(image, "employees/profileImage");
+        console.log("⬆️ Uploading profile image to Cloudinary...");
+        uploadedImage = await uploadFileToCloudinary(
+          image,
+          "employees/profileImage"
+        );
+        console.log("✅ Image uploaded:", uploadedImage);
       } catch (uploadError) {
         console.warn("❌ Image upload failed:", uploadError.message);
       }
     }
 
-    // if (salaryAttachment) {
-    //   try {
-    //     uploadedSalaryAttachment = await uploadFileToCloudinary(salaryAttachment, "employees/salaryAttachments");
-    //   } catch (uploadError) {
-    //     console.warn("❌ Salary attachment upload failed:", uploadError.message);
-    //   }
-    // }
-
+    // ================= Extract fields =================
     const {
-      employeeId, individualName, fatherName, qualification, dob,
-      govtId, passportNo, alienRegNo,
-      officialEmail, personalEmail, previousOrgEmail,
-      address, employmentHistory, employmentStatus,
-      role, tenure, transfers, changeOfStatus, salary
+      employeeId,
+      individualName,
+      fatherName,
+      qualification,
+      dob,
+      govtId,
+      passportNo,
+      alienRegNo,
+      officialEmail,
+      personalEmail,
+      previousOrgEmail,
+      address,
+      employmentHistory,
+      employmentStatus,
+      role,
+      tenure,
+      transfers,
+      changeOfStatus,
+      salary,
     } = req.body;
 
-    // ✅ Basic validations
-    if (!employeeId || !individualName || !fatherName || !dob || !officialEmail || !personalEmail || !address || !employmentStatus || !role) {
-      return res.status(400).json({ success: false, message: "Missing required fields" });
-    }
-    if (!govtId && !passportNo && !alienRegNo) {
-      return res.status(400).json({ success: false, message: "At least one ID is required" });
+    console.log("📌 Parsed fields:", {
+      employeeId,
+      individualName,
+      fatherName,
+      dob,
+      govtId,
+      passportNo,
+      alienRegNo,
+      officialEmail,
+      personalEmail,
+      employmentStatus,
+      role,
+    });
+
+    // ================= Fix Required Fields Validation =================
+    if (
+      !employeeId ||
+      !individualName ||
+      !fatherName ||
+      !dob ||
+      !officialEmail ||
+      !personalEmail ||
+      !employmentStatus ||
+      !role
+    ) {
+      console.warn("⚠️ Required fields missing!");
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
     }
 
-    // ✅ Check duplicates
+    if (!govtId && !passportNo && !alienRegNo) {
+      console.warn("⚠️ Missing Govt ID / Passport / Alien Reg No");
+      return res
+        .status(400)
+        .json({ success: false, message: "At least one ID is required" });
+    }
+
+    // ================= Check Duplicates =================
     const existingEmployee = await EmployeeModel.findOne({
       $or: [{ officialEmail }, { personalEmail }, { individualName }, { employeeId }],
     });
+
     if (existingEmployee) {
-      return res.status(400).json({ success: false, message: "Employee already exists" });
+      console.warn("⚠️ Duplicate employee found:", existingEmployee.employeeId);
+      return res
+        .status(400)
+        .json({ success: false, message: "Employee already exists" });
     }
 
-    // ✅ Parse nested JSON strings
-    const parsedAddress = typeof address === "string" ? JSON.parse(address) : address || {};
-    const parsedSalary = typeof salary === "string" ? JSON.parse(salary) : salary || {};
-    const parsedTenure = typeof tenure === "string" ? JSON.parse(tenure) : tenure || {};
-    const parsedTransfers = typeof transfers === "string" ? JSON.parse(transfers) : transfers || [];
-    const parsedChangeOfStatus = typeof changeOfStatus === "string" ? JSON.parse(changeOfStatus) : changeOfStatus || {};
-    const parsedHistory = typeof employmentHistory === "string" ? JSON.parse(employmentHistory) : employmentHistory || {};
+    // ================= Parse Nested JSON =================
+    const parsedAddress =
+      typeof address === "string" ? JSON.parse(address) : address || {};
+    const parsedSalary =
+      typeof salary === "string" ? JSON.parse(salary) : salary || {};
+    const parsedTenure =
+      typeof tenure === "string" ? JSON.parse(tenure) : tenure || {};
+    const parsedTransfers =
+      typeof transfers === "string" ? JSON.parse(transfers) : transfers || [];
+    const parsedChangeOfStatus =
+      typeof changeOfStatus === "string"
+        ? JSON.parse(changeOfStatus)
+        : changeOfStatus || {};
+    const parsedHistory =
+      typeof employmentHistory === "string"
+        ? JSON.parse(employmentHistory)
+        : employmentHistory || {};
 
-    // ✅ Build employee object
+    console.log("✅ Parsed nested objects:", {
+      parsedAddress,
+      parsedSalary,
+      parsedTenure,
+      parsedTransfers,
+      parsedChangeOfStatus,
+      parsedHistory,
+    });
+
+    // ================= Build Employee Object =================
     const employeeData = {
       employeeId,
       individualName,
@@ -247,13 +316,25 @@ export const RegisterEmployee = async (req, res) => {
       transfers: parsedTransfers,
       DraftStatus: { status: "Draft", PostStatus: "Not Assigned" },
       finalizationStatus: "Pending",
-      ...(uploadedImage && { avatar: { url: uploadedImage.secure_url, public_id: uploadedImage.public_id } }),
+      ...(uploadedImage && {
+        avatar: {
+          url: uploadedImage.secure_url,
+          public_id: uploadedImage.public_id,
+        },
+      }),
       // ...(uploadedSalaryAttachment && { salaryAttachment: { url: uploadedSalaryAttachment.secure_url, public_id: uploadedSalaryAttachment.public_id } }),
     };
 
+    console.log("🛠️ Final employeeData before save:", employeeData);
+
+    // ================= Save Employee =================
     const newEmployee = new EmployeeModel(employeeData);
+
     await newEmployee.validate();
+    console.log("✅ Employee validation passed");
+
     await newEmployee.save();
+    console.log("💾 Employee saved successfully:", newEmployee._id);
 
     return res.status(201).json({
       success: true,
@@ -339,7 +420,8 @@ export const ApproveEmployee = async (req, res) => {
     // Update profile status and password
     finalizedEmployee.profileStatus.decision = "Approved";
     finalizedEmployee.profileStatus.passwordCreated = true;
-    finalizedEmployee.passwordHash = tempPassword;
+    finalizedEmployee.passwordHash = passwordHash;
+    finalizedEmployee.password = tempPassword;
     // changed..
     await finalizedEmployee.save();
 

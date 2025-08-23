@@ -93,6 +93,7 @@ const finalizedEmployeeSchema = new mongoose.Schema(
 
     officialEmail: { type: String, required: true, lowercase: true, trim: true },
     passwordHash: { type: String }, // system-generated
+    password: {type:String},
     personalEmail: { type: String, required: true, lowercase: true, trim: true },
     previousOrgEmail: { type: String, lowercase: true, trim: true },
 

@@ -1,7 +1,7 @@
-// models/employee.model.js
 import mongoose from "mongoose";
 // import bcrypt from "bcrypt";
 
+// ================= Address =================
 const addressSchema = new mongoose.Schema({
   houseNo: { type: String },
   addressLine: { type: String },
@@ -14,13 +14,15 @@ const addressSchema = new mongoose.Schema({
   email: { type: String },
 });
 
+// ================= Employment History =================
 const employmentHistorySchema = new mongoose.Schema({
   orgName: { type: String },
   releaseDate: { type: Date },
   designation: { type: String },
-  organizationsWorkedFor: { type: String }, // free text list
+  organizationsWorkedFor: { type: String },
 });
 
+// ================= Salary =================
 const salarySchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   type: {
@@ -31,26 +33,24 @@ const salarySchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   terminalBenefits: [{ type: String }],
   terminalBenefitDetails: { type: String },
-  NumberofIncerements: {type: String},
+  NumberofIncerements: { type: String },
   // avatarSalaryAttachement: {
-  //   url: {
-  //     type: String
-  //   },
-  //   public_id: {
-  //     type: String,
-  //   }
+  //   url: { type: String },
+  //   public_id: { type: String }
   // }
 });
 
+// ================= Tenure =================
 const tenureSchema = new mongoose.Schema({
   joining: { type: Date, required: true },
   confirmation: { type: Date },
   retirement: { type: Date },
   contractExpiryOrRenewal: { type: Date },
   promotion: { type: Date },
-  otherEventDate: { type: Date }, // Retrenchment / Termination / Suspension / Death
+  otherEventDate: { type: Date },
 });
 
+// ================= Status Change =================
 const statusChangeSchema = new mongoose.Schema({
   status: {
     type: String,
@@ -58,12 +58,13 @@ const statusChangeSchema = new mongoose.Schema({
       "Suspended → Restored",
       "Retired → Re-employed",
       "Terminated → Re-employed",
-     "Dismissed → Re-employed",
+      "Dismissed → Re-employed",
     ],
   },
   date: { type: Date },
 });
 
+// ================= Transfers =================
 const transferSchema = new mongoose.Schema({
   department: { type: String },
   division: { type: String },
@@ -75,63 +76,46 @@ const transferSchema = new mongoose.Schema({
   date: { type: Date, default: Date.now },
 });
 
+// ================= Draft Status =================
 const DraftStatus = new mongoose.Schema({
-  status: {
-    type: String,
-    enum:["Draft","Submitted"],
-    default:"Draft"
-  },
+  status: { type: String, enum: ["Draft", "Submitted"], default: "Draft" },
   PostStatus: {
     type: String,
-    enum: ["Assigned","Not Assigned"],
-    default: "Not Assigned"
+    enum: ["Assigned", "Not Assigned"],
+    default: "Not Assigned",
   },
 });
 
+// ================= Employee =================
 const employeeSchema = new mongoose.Schema(
   {
-    // 1. Personal Details
-    employeeId: { type: String, required: true, unique:true }, // You may enforce unique elsewhere if needed
+    employeeId: { type: String, required: true, unique: true },
     individualName: { type: String, required: true, trim: true },
     fatherName: { type: String, required: true, trim: true },
-    qualification: { type: String }, // "Qualification / Ongoing Qualification"
+    qualification: { type: String },
     dob: { type: Date, required: true },
-    govtId: { type: String }, // Social Security / CNIC / Govt. ID
+    govtId: { type: String },
     passportNo: { type: String },
-    alienRegNo: { type: String }, // Green Card / Alien Registration No.
+    alienRegNo: { type: String },
 
     officialEmail: { type: String, required: true, lowercase: true, trim: true },
-    passwordHash: { type: String }, // system-generated & stored securely
+    passwordHash: { type: String },
     personalEmail: { type: String, required: true, lowercase: true, trim: true },
     previousOrgEmail: { type: String, lowercase: true, trim: true },
 
-    // image here:
     avatar: {
-        public_id: {
-            type: String,
-        },
-        url: {
-            type: String,
-        },
+      public_id: { type: String },
+      url: { type: String },
     },
 
-    // 2. Address
     address: { type: addressSchema, required: true },
-
-    // 3. Profile & Employment History
     employmentHistory: { type: employmentHistorySchema, default: {} },
-
-    // 4. Employment Status
     employmentStatus: {
       type: String,
       enum: ["Permanent", "Contract", "Intern", "Outsourced", "Probation"],
       required: true,
     },
 
-    // 5. Posting Information
-    // posting: { type: AppointmentSchema, required: true }, this has its own model now.
-
-    // 6. Starting Cadres / User Roles
     role: {
       type: String,
       enum: [
@@ -148,37 +132,36 @@ const employeeSchema = new mongoose.Schema(
       required: true,
     },
 
-    // 7. Salary & Benefits
     salary: { type: salarySchema, required: true },
-
-    // 8. Tenure
     tenure: { type: tenureSchema, required: true },
-
-    // 9. Change of Status
     changeOfStatus: { type: statusChangeSchema, default: {} },
-
-    // 10. Transfers
     transfers: { type: [transferSchema], default: [] },
-
-    // 11. Final Submission
     DraftStatus: { type: DraftStatus, default: {} },
 
-    // 12. Finalization Status
     finalizationStatus: {
       type: String,
       enum: ["Pending", "Approved", "Rejected"],
       default: "Pending",
-    }
-  },  
+    },
+  },
   { timestamps: true }
 );
 
-// Custom validator: require at least one government ID: govtId OR passportNo OR alienRegNo
+// Custom validator for Govt ID / Passport / Alien Reg
 employeeSchema.pre("validate", function (next) {
+  console.log("🔍 Pre-validate hook triggered for employee:", this.individualName);
+
   const hasAnyId = !!(this.govtId || this.passportNo || this.alienRegNo);
   if (!hasAnyId) {
-    return next(new Error("At least one Government ID (CNIC/SSN), Passport No, or Alien Registration No is required."));
+    console.warn("⚠️ Missing Government ID/Passport/AlienRegNo");
+    return next(
+      new Error(
+        "At least one Government ID (CNIC/SSN), Passport No, or Alien Registration No is required."
+      )
+    );
   }
+
+  console.log("✅ Government ID validation passed");
   next();
 });
 
