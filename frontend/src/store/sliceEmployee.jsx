@@ -1,20 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-// Thunk to register employee using stored formData
 export const registerEmployeeThunk = createAsyncThunk(
   "employee/register",
-  async (_, { getState, rejectWithValue }) => {
+  async (formData, { rejectWithValue }) => {
     try {
-      const { employee } = getState();
-      const formData = employee.formData;
+      if (!formData) return rejectWithValue("No form data provided");
 
-      if (!formData) {
-        return rejectWithValue("No form data available");
-      }
-
-      console.log("Submitting employee:", formData);
-      const response = await axios.post("http://localhost:3000/api/employees/register", formData);
+      const response = await axios.post(
+        "http://localhost:3000/api/employees/register",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
 
       return response.data;
     } catch (error) {
@@ -22,6 +19,7 @@ export const registerEmployeeThunk = createAsyncThunk(
     }
   }
 );
+
 
 
 const employeeSlice = createSlice({

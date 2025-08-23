@@ -4,16 +4,17 @@ import {HierarchyModel} from "../models/Hiearchy.model.js";
 // only for saving manual work for tesing, we only call this once.
 const addHierarchy = async (req, res) => {
   try {
-    const { name, divisions } = req.body;
+    const { offices } = req.body;   // ✅ destructure here
+    console.log("req.body.offices:", offices);
 
-    if (!divisions || divisions.length === 0) {
+    if (!offices || offices.length === 0) {
       return res.status(400).json({
-        message: "At least one division is required",
+        message: "At least one office is required",
         success: false,
       });
     }
 
-    const newHierarchy = new HierarchyModel(req.body);
+    const newHierarchy = new HierarchyModel({ offices });
     await newHierarchy.save();
 
     return res.status(201).json({
@@ -47,7 +48,7 @@ const getHierarchy = async (req, res) => {
     return res.status(200).json({
       message: "Hierarchy found",
       success: true,
-      divisions: hierarchy.divisions, // returns nested divisions -> departments -> groups -> cells
+      data: hierarchy,   // ✅ return array of offices
     });
   } catch (error) {
     console.error("🔥 getHierarchy error:", error);

@@ -1,26 +1,48 @@
 import mongoose from "mongoose";
 
-const CellSchema = new mongoose.Schema({
-  name: { type: String, required: true },
+const DeskSchema = new mongoose.Schema({
+  name: { type: String, required: true }
 });
 
-const GroupSchema = new mongoose.Schema({
+const CellSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  cells: [CellSchema],
+  desks: [DeskSchema]
+});
+
+const BranchSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  cells: [CellSchema]
 });
 
 const DepartmentSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  groups: [GroupSchema],
+  branches: [BranchSchema],
+  cells: [CellSchema],
+  desks: [DeskSchema]
 });
 
 const DivisionSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  departments: [DepartmentSchema]
+});
+
+const GroupSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  divisions: [DivisionSchema]
+});
+
+const OfficeSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  groups: [GroupSchema],
+  divisions: [DivisionSchema],
   departments: [DepartmentSchema],
+  branches: [BranchSchema],
+  cells: [CellSchema],
+  desks: [DeskSchema]
 });
 
 const HierarchySchema = new mongoose.Schema({
-  divisions: [DivisionSchema],
+  offices: [OfficeSchema]
 }, { timestamps: true });
 
 export const HierarchyModel = mongoose.model("Hierarchy", HierarchySchema);

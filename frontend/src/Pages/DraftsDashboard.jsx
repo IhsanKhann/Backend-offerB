@@ -270,7 +270,8 @@ const DraftDashboard = () => {
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Roles</h4>
                     {empRoles.map((r, idx) => (
                       <div key={idx} className="text-xs mb-2">
-                        {["division", "department", "group", "cell"].map(
+                        {["office", "group", "division", "department", "branch", "cell", "desk"].map(
+
                           (field) =>
                             r.role[field] && (
                               <div key={field} className="flex justify-between">

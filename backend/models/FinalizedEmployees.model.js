@@ -14,7 +14,6 @@ const addressSchema = new mongoose.Schema({
 });
 
 const employmentHistorySchema = new mongoose.Schema({
-  employeeId: { type: String },
   orgName: { type: String },
   releaseDate: { type: Date },
   designation: { type: String },
@@ -52,6 +51,8 @@ const statusChangeSchema = new mongoose.Schema({
       "Dismissed → Re-employed",
     ],
   },
+  NumberofIncerements: {type: String},
+  // AttachmentFile: {type: String},
   date: { type: Date },
 });
 
@@ -81,6 +82,7 @@ const profileStatusSchema = new mongoose.Schema({
 const finalizedEmployeeSchema = new mongoose.Schema(
   {
     // 1. Personal Details
+    employeeId: { type: String, required: true},
     individualName: { type: String, required: true, trim: true },
     fatherName: { type: String, required: true, trim: true },
     qualification: { type: String },
@@ -94,11 +96,15 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     personalEmail: { type: String, required: true, lowercase: true, trim: true },
     previousOrgEmail: { type: String, lowercase: true, trim: true },
 
+     // image here:
     avatar: {
-      public_id: { type: String },
-      url: { type: String },
+        public_id: {
+            type: String,
+        },
+        url: {
+            type: String,
+        },
     },
-
     // 2. Address
     address: { type: addressSchema, required: true },
 

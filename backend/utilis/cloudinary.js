@@ -11,12 +11,12 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export const uploadImageToCloudinary = async (file, folder = "employees") => {
+export const uploadFileToCloudinary = async (file, folder = "employees") => {
   try {
     // file.path comes from multer disk storage
     const result = await cloudinary.v2.uploader.upload(file.path, {
       folder,
-      resource_type: "image",
+      resource_type: "auto",
     });
 
     // remove file from local uploads folder
@@ -33,7 +33,7 @@ export const uploadImageToCloudinary = async (file, folder = "employees") => {
 export const destroyImageFromCloudinary = async (publicId) => {
   try {
     const result = await cloudinary.v2.uploader.destroy(publicId, {
-      resource_type: "image",
+      resource_type: "auto",
     });
 
     if (result.result !== "ok") {

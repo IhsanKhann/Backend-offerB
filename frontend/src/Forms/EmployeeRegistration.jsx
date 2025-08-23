@@ -16,7 +16,9 @@ export default function EmployeeRegistrationForm() {
     shouldUnregister: false, // ✅ keeps values across steps
   });
   const [avatar, setAvatar] = useState(null);
-  
+  const [AutomaticId, setAutomaticId] = useState("");
+  const [attachmentSalary, setAttachmentSalary] = useState("");
+
   const dispatch = useDispatch();
 
   const stepTitles = [
@@ -39,62 +41,51 @@ export default function EmployeeRegistrationForm() {
 const currentFormData = useSelector(getEmployeeFormData);
 
 const OnSubmit = async (data) => {
-  const employeeData = new FormData();
+  const employeeFormData = new FormData();
 
-  // Append simple text fields
-  employeeData.append("individualName", data.individualName);
-  employeeData.append("fatherName", data.fatherName);
-  employeeData.append("qualification", data.qualification);
-  employeeData.append("dob", data.dob);
-  employeeData.append("govtId", data.govtId);
-  employeeData.append("passportNo", data.passportNo);
-  employeeData.append("alienRegNo", data.alienRegNo);
-  employeeData.append("officialEmail", data.officialEmail);
-  employeeData.append("personalEmail", data.personalEmail);
-  employeeData.append("previousOrgEmail", data.previousOrgEmail);
-  employeeData.append("employmentStatus", data.employmentStatus);
-  employeeData.append("role", data.role);
+  // Append fields
+  employeeFormData.append("individualName", data.individualName);
+  employeeFormData.append("fatherName", data.fatherName);
+  employeeFormData.append("qualification", data.qualification);
+  employeeFormData.append("dob", data.dob);
+  employeeFormData.append("govtId", data.govtId);
+  employeeFormData.append("passportNo", data.passportNo);
+  employeeFormData.append("alienRegNo", data.alienRegNo);
+  employeeFormData.append("officialEmail", data.officialEmail);
+  employeeFormData.append("personalEmail", data.personalEmail);
+  employeeFormData.append("previousOrgEmail", data.previousOrgEmail);
+  employeeFormData.append("employmentStatus", data.employmentStatus);
+  employeeFormData.append("role", data.role);
 
-  // ✅ Nested objects
-  if (data.address) employeeData.append("address", JSON.stringify(data.address));
-  if (data.salary) employeeData.append("salary", JSON.stringify(data.salary));
-  if (data.tenure) employeeData.append("tenure", JSON.stringify(data.tenure));
-  if (data.transfers) employeeData.append("transfers", JSON.stringify(data.transfers));
-  if (data.changeOfStatus) employeeData.append("changeOfStatus", JSON.stringify(data.changeOfStatus));
-  if (data.employmentHistory) employeeData.append("employmentHistory", JSON.stringify(data.employmentHistory));
+  // Nested objects
+  if (data.address) employeeFormData.append("address", JSON.stringify(data.address));
+  if (data.salary) employeeFormData.append("salary", JSON.stringify(data.salary));
+  if (data.tenure) employeeFormData.append("tenure", JSON.stringify(data.tenure));
+  if (data.transfers) employeeFormData.append("transfers", JSON.stringify(data.transfers));
+  if (data.changeOfStatus) employeeFormData.append("changeOfStatus", JSON.stringify(data.changeOfStatus));
+  if (data.employmentHistory) employeeFormData.append("employmentHistory", JSON.stringify(data.employmentHistory));
 
-  // ✅ File upload
-  if (avatar) {
-    employeeData.append("profileImage", avatar);
-  }
+  // Files
+  if (avatar) employeeFormData.append("profileImage", avatar);
+  
+  // if (data.salary?.attachment && data.salary.attachment[0])
+  //   employeeFormData.append("salaryAttachment", data.salary.attachment[0]);
 
-  // Store formData in slice
-  dispatch(setEmployeeFormData(employeeData));
-
-  // Create a plain object for draft storage (not FormData)
-  const plainEmployeeData = {
+  // ✅ Dispatch only plain object metadata to Redux
+  dispatch(setEmployeeFormData({
     ...data,
-    avatar: avatar ? { name: avatar.name, size: avatar.size, type: avatar.type } : null,
-  };
-  console.log(plainEmployeeData);
-  // Store plain data in draft
-  dispatch(addEmployeeData(plainEmployeeData));
+    avatar: avatar ? { name: avatar.name, type: avatar.type, size: avatar.size } : null,
+    // salaryAttachment: data.salary?.attachment ? { name: data.salary.attachment[0].name } : null
+  }));
 
   try {
-    // Wait for backend to register employee & return id
-    const resultAction = await dispatch(registerEmployeeThunk());
+    // Pass FormData directly to thunk
+    const resultAction = await dispatch(registerEmployeeThunk(employeeFormData));
 
     if (registerEmployeeThunk.fulfilled.match(resultAction)) {
       const newId = resultAction.payload.employeeId;
-      
-      // Update employee data with the ID. Store the _id after getting it from backend as well.
-      dispatch(addEmployeeData({
-        ...plainEmployeeData,
-        employeeId: newId,
-      }));
-      
-      navigate(`/assign-roles/${newId}`);
       alert("Employee registered successfully! ID: " + newId);
+      navigate(`/assign-roles/${newId}`);
     } else {
       alert("Failed to register employee: " + (resultAction.payload || "Unknown error"));
     }
@@ -103,6 +94,12 @@ const OnSubmit = async (data) => {
     alert("Failed to register employee: " + error.message);
   }
 };
+
+
+const handleAutomatic_ID_Generation = () => {
+  const id = Math.random().toString(36).substring(2, 8).toUpperCase();
+  setAutomaticId(id);
+}
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
@@ -189,7 +186,7 @@ const OnSubmit = async (data) => {
                         <span>Upload a file</span>
                         <input
                           id="file-upload"
-                          name="file-upload"
+                          name="profileImage"
                           type="file"
                           accept="image/*,application/pdf"
                           className="sr-only"
@@ -257,8 +254,15 @@ const OnSubmit = async (data) => {
           {step === 3 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Employee ID</label>
-                <input placeholder="Enter employee ID" className="input" {...register("employmentHistory.employeeId")} />
+                <label className="block text-sm font-medium text-gray-700">Employee ID (click to generate) </label>
+                <input placeholder="Enter employee ID"
+                value={AutomaticId}
+                onClick={handleAutomatic_ID_Generation} 
+                readOnly
+                className="input" 
+                {...register("employeeId")} 
+                // randomly generate id and save it to the database. show that id.
+                />
               </div>
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">Organization Name</label>
@@ -330,15 +334,29 @@ const OnSubmit = async (data) => {
           )}
 
           {/* STEP 6 */}
-          {step === 6 && (
+       {step === 6 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Start Date of Salary */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Start Date of Salary *</label>
-                <input type="date" className="input" {...register("salary.startDate", { required: true })} />
+                <label className="block text-sm font-medium text-gray-700">
+                  Start Date of Salary *
+                </label>
+                <input
+                  type="date"
+                  className="input"
+                  {...register("salary.startDate", { required: true })}
+                />
               </div>
+
+              {/* Salary Type */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Salary Type *</label>
-                <select className="input" {...register("salary.type", { required: true })}>
+                <label className="block text-sm font-medium text-gray-700">
+                  Salary Type *
+                </label>
+                <select
+                  className="input"
+                  {...register("salary.type", { required: true })}
+                >
                   <option value="">Select salary type</option>
                   <option value="Initial">Initial</option>
                   <option value="Incremented">Incremented</option>
@@ -347,17 +365,71 @@ const OnSubmit = async (data) => {
                   <option value="Internship">Internship</option>
                 </select>
               </div>
+
+              {/* Current Salary Amount */}
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Current Salary Amount *</label>
-                <input placeholder="Enter amount" type="number" step="0.01" className="input" {...register("salary.amount", { required: true })} />
+                <label className="block text-sm font-medium text-gray-700">
+                  Current Salary Amount *
+                </label>
+                <input
+                  placeholder="Enter amount"
+                  type="number"
+                  step="0.01"
+                  className="input"
+                  {...register("salary.amount", { required: true })}
+                />
               </div>
-              <div className="space-y-1 col-span-2">
-                <label className="block text-sm font-medium text-gray-700">List of Terminal Benefits</label>
-                <textarea placeholder="Enter terminal benefits" className="input" {...register("salary.terminalBenefits")} />
+
+              {/* No of Increments */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  No of Increments
+                </label>
+                <input
+                  placeholder="Enter the no of increments"
+                  type="number"
+                  className="input w-[250px]"
+                  {...register("salary.noOfIncrements")}
+                />
               </div>
+
+              {/* List of Terminal Benefits */}
               <div className="space-y-1 col-span-2">
-                <label className="block text-sm font-medium text-gray-700">Terminal Benefits Details</label>
-                <textarea placeholder="Enter details" className="input" {...register("salary.terminalBenefitDetails")} />
+                <label className="block text-sm font-medium text-gray-700">
+                  List of Terminal Benefits
+                </label>
+                <textarea
+                  placeholder="Enter terminal benefits"
+                  className="input"
+                  {...register("salary.terminalBenefits")}
+                />
+              </div>
+
+              {/* Terminal Benefits Details */}
+              <div className="space-y-1 col-span-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Terminal Benefits Details
+                </label>
+                <textarea
+                  placeholder="Enter details"
+                  className="input"
+                  {...register("salary.terminalBenefitDetails")}
+                />
+              </div>
+
+              {/* Attach File */}
+              <div className="space-y-1 col-span-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Attach File
+                </label>
+                <input
+                  type="file"
+                  className="input"
+                  {...register("salary.attachment")}
+                />
+                <p className="text-xs text-gray-500">
+                  Supported formats: PDF, DOCX, JPG, PNG. Max size 10MB.
+                </p>
               </div>
             </div>
           )}

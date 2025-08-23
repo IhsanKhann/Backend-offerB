@@ -28,6 +28,8 @@ router.post("/employees/roles", AssignEmployeePost);
 
 // Employee creation + submission
 router.post("/employees/register", upload.single("profileImage"), RegisterEmployee);
+// the file upload syntax added to the cloudinary..
+
 router.post("/employees/submit", SubmitEmployee);
 
 // Approve / Reject finalized employees

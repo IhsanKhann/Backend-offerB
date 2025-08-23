@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 import EmployeeModel from "../models/Employee.model.js";
 import bcrypt from "bcrypt";
-import { uploadImageToCloudinary, destroyImageFromCloudinary } from "../utilis/cloudinary.js";
+import { uploadFileToCloudinary, destroyImageFromCloudinary } from "../utilis/cloudinary.js";
 import RoleModel from "../models/Role.model.js";
 import FinalizedEmployeeModel from "../models/FinalizedEmployees.model.js";
 
@@ -170,55 +170,77 @@ export const deleteEmployee = async (req, res) => {
 
 export const RegisterEmployee = async (req, res) => {
   try {
-    const image = req.file;
-    let uploadedImage = null;
+      const image = req.file; // multer puts it inside array
+      // const salaryAttachment = req.files?.salaryAttachment?.[0];
+    
+      let uploadedImage = null;
+    // let uploadedSalaryAttachment = null;
 
     if (image) {
       try {
-        uploadedImage = await uploadImageToCloudinary(image, "employees", "profileImage");
+        uploadedImage = await uploadFileToCloudinary(image, "employees/profileImage");
       } catch (uploadError) {
         console.warn("❌ Image upload failed:", uploadError.message);
       }
     }
 
+    // if (salaryAttachment) {
+    //   try {
+    //     uploadedSalaryAttachment = await uploadFileToCloudinary(salaryAttachment, "employees/salaryAttachments");
+    //   } catch (uploadError) {
+    //     console.warn("❌ Salary attachment upload failed:", uploadError.message);
+    //   }
+    // }
+
     const {
-      individualName, fatherName, qualification, dob,
+      employeeId, individualName, fatherName, qualification, dob,
       govtId, passportNo, alienRegNo,
       officialEmail, personalEmail, previousOrgEmail,
       address, employmentHistory, employmentStatus,
       role, tenure, transfers, changeOfStatus, salary
     } = req.body;
 
-    // Basic validations
-    if (!individualName || !fatherName || !dob || !officialEmail || !personalEmail || !address || !employmentStatus || !role) {
+    // ✅ Basic validations
+    if (!employeeId || !individualName || !fatherName || !dob || !officialEmail || !personalEmail || !address || !employmentStatus || !role) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
     if (!govtId && !passportNo && !alienRegNo) {
       return res.status(400).json({ success: false, message: "At least one ID is required" });
     }
 
-    // Uniqueness check - checking for duplicates
+    // ✅ Check duplicates
     const existingEmployee = await EmployeeModel.findOne({
-      $or: [{ officialEmail }, { personalEmail }, { individualName }],
+      $or: [{ officialEmail }, { personalEmail }, { individualName }, { employeeId }],
     });
-    if (existingEmployee) return res.status(400).json({ success: false, message: "Employee already exists" });
+    if (existingEmployee) {
+      return res.status(400).json({ success: false, message: "Employee already exists" });
+    }
 
-    // Parse nested payloads
-    const parsedAddress = typeof address === "string" ? safeParse(address, "address") : address || {};
-    const parsedSalary  = typeof salary  === "string" ? normalizeSalary(safeParse(salary, "salary") || {}) : normalizeSalary(salary || {});
-    const parsedTenure  = typeof tenure  === "string" ? normalizeTenure(safeParse(tenure, "tenure") || {}) : normalizeTenure(tenure || {});
-    const parsedTransfers = normalizeTransfers(typeof transfers === "string" ? safeParse(transfers, "transfers") : transfers);
-    const parsedChangeOfStatus = normalizeChangeOfStatus(typeof changeOfStatus === "string" ? safeParse(changeOfStatus, "changeOfStatus") : changeOfStatus || {});
-    const parsedHistory = normalizeEmploymentHistory(typeof employmentHistory === "string" ? safeParse(employmentHistory, "employmentHistory") : employmentHistory || {});
+    // ✅ Parse nested JSON strings
+    const parsedAddress = typeof address === "string" ? JSON.parse(address) : address || {};
+    const parsedSalary = typeof salary === "string" ? JSON.parse(salary) : salary || {};
+    const parsedTenure = typeof tenure === "string" ? JSON.parse(tenure) : tenure || {};
+    const parsedTransfers = typeof transfers === "string" ? JSON.parse(transfers) : transfers || [];
+    const parsedChangeOfStatus = typeof changeOfStatus === "string" ? JSON.parse(changeOfStatus) : changeOfStatus || {};
+    const parsedHistory = typeof employmentHistory === "string" ? JSON.parse(employmentHistory) : employmentHistory || {};
 
-    // Build draft employee object
+    // ✅ Build employee object
     const employeeData = {
-      individualName, fatherName, qualification,
-      dob: toDate(dob), govtId, passportNo, alienRegNo,
-      officialEmail, personalEmail, previousOrgEmail,
+      employeeId,
+      individualName,
+      fatherName,
+      qualification,
+      dob: new Date(dob),
+      govtId,
+      passportNo,
+      alienRegNo,
+      officialEmail,
+      personalEmail,
+      previousOrgEmail,
       address: parsedAddress,
       employmentHistory: parsedHistory,
-      employmentStatus, role,
+      employmentStatus,
+      role,
       tenure: parsedTenure,
       salary: parsedSalary,
       changeOfStatus: parsedChangeOfStatus,
@@ -226,13 +248,18 @@ export const RegisterEmployee = async (req, res) => {
       DraftStatus: { status: "Draft", PostStatus: "Not Assigned" },
       finalizationStatus: "Pending",
       ...(uploadedImage && { avatar: { url: uploadedImage.secure_url, public_id: uploadedImage.public_id } }),
+      // ...(uploadedSalaryAttachment && { salaryAttachment: { url: uploadedSalaryAttachment.secure_url, public_id: uploadedSalaryAttachment.public_id } }),
     };
 
     const newEmployee = new EmployeeModel(employeeData);
     await newEmployee.validate();
     await newEmployee.save();
 
-    return res.status(201).json({ success: true, message: "Employee registered successfully", employeeId: newEmployee._id });
+    return res.status(201).json({
+      success: true,
+      message: "Employee registered successfully",
+      employeeId: newEmployee._id,
+    });
   } catch (error) {
     console.error("🔥 RegisterEmployee error:", error.stack || error.message);
     return res.status(500).json({ success: false, message: "Server error" });
@@ -312,7 +339,8 @@ export const ApproveEmployee = async (req, res) => {
     // Update profile status and password
     finalizedEmployee.profileStatus.decision = "Approved";
     finalizedEmployee.profileStatus.passwordCreated = true;
-    finalizedEmployee.passwordHash = passwordHash;
+    finalizedEmployee.passwordHash = tempPassword;
+    // changed..
     await finalizedEmployee.save();
 
     // Delete original draft employee
@@ -369,18 +397,33 @@ export const AssignEmployeePost = async (req, res) => {
   try {
     console.log("📝 AssignEmployeePost received body:", req.body);
 
-    const { employeeId, role, employeeName } = req.body;
-    const { division, department, group, cell } = role || {};
+    const { employeeId, autoGeneratedId, role, employeeName } = req.body;
+    const { 
+        office, 
+        group, 
+        division, 
+        department, 
+        branch, 
+        cell, 
+        desk } 
+        = role || {};
 
-    console.log("📝 Parsed values:", { employeeId,employeeName, division, department, group, cell,});
+    console.log("📝 Parsed values:", { employeeId,autoGeneratedId,employeeName, office, group, division, department, branch, cell, desk});
 
     // Validate employeeId
     if (!employeeId) {
       return res.status(400).json({ success: false, message: "Employee ID is required" });
     }
 
+    if(!autoGeneratedId){
+      return res.status(400).json({
+        success: false,
+        message: "Auto generated Id",
+      })
+    }
+
     // Validate role fields
-    if (!division && !department && !group && !cell) {
+    if (!office && !group && !division && !department && !branch && !cell && !desk) {
       return res.status(400).json({ success: false, message: "At least one role field is required" });
     }
 
@@ -393,10 +436,13 @@ export const AssignEmployeePost = async (req, res) => {
     // Prevent exact duplicate role assignments
     const existing = await RoleModel.findOne({
       employeeId,
+      autoGeneratedId,
       employeeName,
+      "role.office": office || null,
+      "role.group": group || null,
       "role.division": division || null,
       "role.department": department || null,
-      "role.group": group || null,
+      "role.branch": branch || null,
       "role.cell": cell || null,
     });
     if (existing) {
@@ -406,8 +452,17 @@ export const AssignEmployeePost = async (req, res) => {
     // Create new role document
     const newRole = new RoleModel({
       employeeId,
+      autoGeneratedId,
       employeeName,
-      role: { division, department, group, cell },
+      role: { 
+        office, 
+        group, 
+        division, 
+        department, 
+        branch, 
+        cell, 
+        desk 
+      },
     });
 
     // Update employee's PostStatus

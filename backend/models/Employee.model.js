@@ -15,7 +15,6 @@ const addressSchema = new mongoose.Schema({
 });
 
 const employmentHistorySchema = new mongoose.Schema({
-  employeeId: { type: String }, // You may enforce unique elsewhere if needed
   orgName: { type: String },
   releaseDate: { type: Date },
   designation: { type: String },
@@ -32,6 +31,15 @@ const salarySchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   terminalBenefits: [{ type: String }],
   terminalBenefitDetails: { type: String },
+  NumberofIncerements: {type: String},
+  // avatarSalaryAttachement: {
+  //   url: {
+  //     type: String
+  //   },
+  //   public_id: {
+  //     type: String,
+  //   }
+  // }
 });
 
 const tenureSchema = new mongoose.Schema({
@@ -50,7 +58,7 @@ const statusChangeSchema = new mongoose.Schema({
       "Suspended → Restored",
       "Retired → Re-employed",
       "Terminated → Re-employed",
-      "Dismissed → Re-employed",
+     "Dismissed → Re-employed",
     ],
   },
   date: { type: Date },
@@ -83,6 +91,7 @@ const DraftStatus = new mongoose.Schema({
 const employeeSchema = new mongoose.Schema(
   {
     // 1. Personal Details
+    employeeId: { type: String, required: true, unique:true }, // You may enforce unique elsewhere if needed
     individualName: { type: String, required: true, trim: true },
     fatherName: { type: String, required: true, trim: true },
     qualification: { type: String }, // "Qualification / Ongoing Qualification"
