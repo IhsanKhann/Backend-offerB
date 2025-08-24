@@ -254,7 +254,14 @@ export const RegisterEmployee = async (req, res) => {
 
     // ================= Check Duplicates =================
     const existingEmployee = await EmployeeModel.findOne({
-      $or: [{ officialEmail }, { personalEmail }, { individualName }, { UserId }],
+      $or: [
+        { officialEmail }, 
+        { personalEmail }, 
+        { UserId },
+        { govtId: govtId || null },
+        { passportNo: passportNo || null },
+        { alienRegNo: alienRegNo || null }
+      ].filter(condition => Object.values(condition)[0] != null),
     });
 
     if (existingEmployee) {

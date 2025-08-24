@@ -89,7 +89,7 @@ const DraftStatus = new mongoose.Schema({
 // ================= Employee =================
 const employeeSchema = new mongoose.Schema(
   {
-    UserId: { type: String, required: true}, 
+    UserId: { type: String, required: true, unique: true }, 
     individualName: { type: String, required: true, trim: true },
     fatherName: { type: String, required: true, trim: true },
     qualification: { type: String },
