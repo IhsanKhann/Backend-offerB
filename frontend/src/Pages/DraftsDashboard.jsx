@@ -11,8 +11,9 @@ const DraftDashboard = () => {
 
   const [employees, setEmployees] = useState([]);
   const [roles, setRoles] = useState([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const [rolesAssigned, setRolesAssigned] = useState(null);
+  const [submitting, setSubmitting] = useState(null); // State to track submitting employee
 
   // Fetch employees and roles from backend
   useEffect(() => {
@@ -34,6 +35,19 @@ const DraftDashboard = () => {
     };
     fetchData();
   }, []);
+
+  // Function to refresh employees and roles
+  const fetchEmployees = async () => {
+    try {
+      const empRes = await fetch("http://localhost:3000/api/getAllEmployees");
+      const rolesRes = await fetch("http://localhost:3000/api/getAllRoles");
+
+      setEmployees((await empRes.json()).employees || []);
+      setRoles((await rolesRes.json()).roles || []);
+    } catch (error) {
+      console.error("Failed to refresh employees or roles:", error);
+    }
+  };
 
   // Draft card handlers (Redux store) - commented out
   // const handleEditDraft = (draft) => {
@@ -59,46 +73,35 @@ const DraftDashboard = () => {
   };
 
   const handleSubmitEmployee = async (employeeId) => {
-  const empRoles = roles.filter((r) => r.UserId === employeeId);
-  if (!empRoles.length) {
-    alert("Cannot submit employee: No roles assigned yet.");
-    setRolesAssigned(false);
-    return;
-  }
+    try {
+      setSubmitting(employeeId);
 
-  try {
-    // 👉 pick the right orgUnitId from assigned role
-    const selectedOrgUnitId = empRoles[0]?.orgUnit; // assume role already stores orgUnit reference
+      // Find employee's roles to get orgUnitId
+      const employeeRoles = roles.filter(r => r.UserId === employeeId);
+      if (!employeeRoles.length) {
+        alert("Cannot submit: No roles assigned to this employee");
+        return;
+      }
 
-    if (!selectedOrgUnitId) {
-      alert("Cannot submit employee: No orgUnit selected");
-      return;
+      const orgUnitId = employeeRoles[0].orgUnit; // Use first role's orgUnit
+
+      // Send as POST request body, not URL params
+      const response = await axios.post(`http://localhost:3000/api/submit-employee`, {
+        employeeId: employeeId,
+        orgUnitId: orgUnitId
+      });
+
+      if (response.data.success) {
+        alert("Employee submitted successfully!");
+        fetchEmployees(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      alert("Failed to submit employee: " + (error.response?.data?.message || error.message));
+    } finally {
+      setSubmitting(null);
     }
-
-    const response = await axios.post("http://localhost:3000/api/employees/Submit", {
-      employeeId,
-      orgUnitId: selectedOrgUnitId,   // ✅ new required field
-    });
-
-    console.log("Response:", response.data);
-    console.log("Roles data from backend upon populate: ", response.rolesData);
-    if (response.status === 200) {
-      alert("Employee submitted successfully");
-
-      // refresh employees and roles after submission
-      const empRes = await fetch("http://localhost:3000/api/getAllEmployees");
-      const rolesRes = await fetch("http://localhost:3000/api/getAllRoles");
-
-      setEmployees((await empRes.json()).employees || []);
-      setRoles((await rolesRes.json()).roles || []);
-      setRolesAssigned(true);
-    }
-  } catch (error) {
-    console.error("Failed to submit employee:", error);
-    alert("Failed to submit employee");
-    setRolesAssigned(false);
-  }
-};
+  };
 
   const handleCancelEmployee = async (employeeId) => {
     try {
@@ -311,9 +314,10 @@ const DraftDashboard = () => {
                   </button>
                   <button
                     onClick={() => handleSubmitEmployee(emp._id)}
-                    className="flex-1 bg-green-600 text-white font-medium py-2 rounded-lg hover:bg-green-700 transition-all duration-200 shadow-sm"
+                    className={`flex-1 bg-green-600 text-white font-medium py-2 rounded-lg transition-all duration-200 shadow-sm ${submitting === emp._id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'}`}
+                    disabled={submitting === emp._id}
                   >
-                    Submit
+                    {submitting === emp._id ? "Submitting..." : "Submit"}
                   </button>
                   <button
                     onClick={() => handleCancelEmployee(emp._id)}
