@@ -274,7 +274,7 @@ const DraftDashboard = () => {
                 <div>
                   <p className="text-lg font-semibold text-gray-900">{emp.individualName}</p>
                   <p className="text-sm text-gray-500">{emp.officialEmail}</p>
-                  <p className="text-xs text-gray-400">ID: {emp.UserId}</p>
+                  <p className="text-xs text-gray-400">ID: {emp._id}</p>
                 </div>
               </div>
 

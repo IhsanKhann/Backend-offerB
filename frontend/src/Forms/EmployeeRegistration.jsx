@@ -13,7 +13,7 @@ export default function EmployeeRegistrationForm() {
   const totalSteps = 9;
   const navigate = useNavigate();
   
-  const { register, handleSubmit } = useForm({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
     shouldUnregister: false, // ✅ keeps values across steps
   });
   const [avatar, setAvatar] = useState(null);

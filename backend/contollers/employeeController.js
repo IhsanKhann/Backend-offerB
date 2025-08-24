@@ -375,19 +375,34 @@ export const SubmitEmployee = async (req, res) => {
     employee.finalizationStatus = "Pending";
     await employee.save();
 
-    // 2️⃣ Fetch assigned roles from RoleModel
-    const assignedRoles = await RoleModel.find({ UserId: employee._id }); // or employee.UserId if needed
+    // 2️⃣ Fetch assigned roles from RoleModel with populated orgUnit
+    const assignedRoles = await RoleModel.find({ UserId: employee._id }).populate('orgUnit');
 
     if (!assignedRoles.length) {
       return res.status(400).json({ success: false, message: "Cannot submit employee: No roles assigned" });
     }
 
-    // 3️⃣ Prepare finalized employee data including roles
+    // 3️⃣ Get orgUnit details
+    const orgUnit = await OrgUnitModel.findById(orgUnitId);
+    if (!orgUnit) {
+      return res.status(400).json({ success: false, message: "Invalid orgUnitId" });
+    }
+
+    // 4️⃣ Prepare finalized employee data including roles and orgUnit
     const finalizedData = {
       ...employee.toObject(),
-      role: assignedRoles.map(r => r._id), // ✅ assign role IDs
-      orgUnit: orgUnitId,
-      UserId: employee.UserId,
+      role: assignedRoles.map(r => ({
+        _id: r._id,
+        roleName: r.roleName,
+        orgUnit: r.orgUnit,
+        permissions: r.permissions
+      })),
+      orgUnit: {
+        _id: orgUnit._id,
+        name: orgUnit.name,
+        parent: orgUnit.parent
+      },
+      UserId: employee.UserId || employee._id,
       profileStatus: {
         submitted: true,
         decision: "Pending",
@@ -399,17 +414,18 @@ export const SubmitEmployee = async (req, res) => {
     delete finalizedData.DraftStatus;
     delete finalizedData._id;
 
-    // 4️⃣ Create finalized employee
+    // 5️⃣ Create finalized employee
     const finalizedEmployee = await FinalizedEmployeeModel.create(finalizedData);
 
-    // 5️⃣ Update orgUnit with employee reference
+    // 6️⃣ Update orgUnit with employee reference
     await OrgUnitModel.findByIdAndUpdate(orgUnitId, { employee: finalizedEmployee._id });
 
     return res.status(200).json({
       success: true,
       message: "Draft submitted successfully and FinalizedEmployee created",
       finalizedEmployeeId: finalizedEmployee._id,
-      // rolesData: assignedRoles,
+      rolesData: assignedRoles,
+      orgUnitData: orgUnit,
     });
   } catch (error) {
     console.error("🔥 SubmitEmployee error:", error.stack || error.message);
