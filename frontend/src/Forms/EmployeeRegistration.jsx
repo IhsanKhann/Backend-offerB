@@ -17,7 +17,7 @@ export default function EmployeeRegistrationForm() {
     shouldUnregister: false, // ✅ keeps values across steps
   });
   const [avatar, setAvatar] = useState(null);
-  const [AutomaticId, setAutomaticId] = useState("");
+  const [UserId, setUserId] = useState("");
   // const [attachmentSalary, setAttachmentSalary] = useState("");
 
   const dispatch = useDispatch();
@@ -46,7 +46,7 @@ const OnSubmit = async (data) => {
   const employeeFormData = new FormData();
 
   // Core fields
-  employeeFormData.append("employeeId", AutomaticId || "");
+  employeeFormData.append("UserId", UserId || "");
   employeeFormData.append("individualName", data.individualName);
   employeeFormData.append("fatherName", data.fatherName);
   employeeFormData.append("qualification", data.qualification || "");
@@ -95,7 +95,7 @@ const OnSubmit = async (data) => {
   dispatch(
     setEmployeeFormData({
       ...data,
-      employeeId: data.UserId || AutomaticId,
+      employeeId: data.UserId || UserId,
       avatar: avatar ? { name: avatar.name, type: avatar.type, size: avatar.size } : null,
     })
   );
@@ -108,7 +108,8 @@ const OnSubmit = async (data) => {
       const newId = resultAction.payload.employeeId;
       alert("Employee registered successfully! ID: " + newId);
       // database id..employeeId (employee db id.)
-      navigate(`/assign-roles/${newId}`);
+      const employeeId = newId;
+      navigate(`/assign-roles/${employeeId}`);
     } else {
       console.warn("❌ Registration failed:", resultAction.payload);
       alert("Failed to register employee: " + (resultAction.payload || "Unknown error"));
@@ -121,7 +122,7 @@ const OnSubmit = async (data) => {
 
 const handleAutomatic_ID_Generation = () => {
   const id = Math.random().toString(36).substring(2, 8).toUpperCase();
-  setAutomaticId(id);
+  setUserId(id);
 }
 
   return (
@@ -277,13 +278,13 @@ const handleAutomatic_ID_Generation = () => {
           {step === 3 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Employee ID (click to generate) </label>
+                <label className="block text-sm font-medium text-gray-700">User ID (click to generate) </label>
                 <input placeholder="Enter employee ID"
-                value={AutomaticId}
+                value={UserId}
                 onClick={handleAutomatic_ID_Generation} 
                 readOnly
                 className="input" 
-                {...register("employeeId")} 
+                {...register("UserId")} 
                 // randomly generate id and save it to the database. show that id.
                 />
               </div>

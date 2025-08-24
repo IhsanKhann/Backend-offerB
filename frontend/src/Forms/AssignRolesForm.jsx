@@ -47,6 +47,9 @@ const [allPermissions, setAllPermissions] = useState([]); // array of permission
   const [employee,setEmployee] = useState("");
   const [roles,setRoles] = useState("");
 
+
+
+
 // Fetch Employee independently
 useEffect(() => {
   const fetchEmployee = async () => {
@@ -55,6 +58,7 @@ useEffect(() => {
       if (res.data?.employee) {
         setEmployee(res.data.employee);
         dispatch(addEmployeeData({ employeeData: res.data.employee }));
+        console.log("Employee data: ", res.data.employee);
       } else {
         setEmployeeError("No employee found. Please create one first.");
       }
@@ -263,7 +267,7 @@ const handleSubmit = async (e) => {
     } else {
       dispatch(assignRolesDraft(rolesData));
       dispatch(addDraft());
-      await axios.post("http://localhost:3000/api/roles", rolesData);
+      await axios.post("http://localhost:3000/api/employees/roles", rolesData);
     }
 
     navigate("/DraftDashboard");
@@ -311,7 +315,7 @@ const handleSubmit = async (e) => {
       <div className=" flex flex-row gap-12 font-bold text-blue-600">
           <h2> Name of Employee: {employee?.individualName || "N/A" } </h2>
           <h2> Employee ID: {employee?._id || "N/A" } </h2>
-          <h2> Auto Generated Id: {employee?.employeeId || "N/A"} </h2> 
+          <h2> UserId: {employee?.UserId || "N/A"} </h2> 
           {/* this is the auto generated id for the employee.. */}
       </div>
 

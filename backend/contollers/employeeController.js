@@ -343,7 +343,6 @@ export const RegisterEmployee = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 export const SubmitEmployee = async (req, res) => {
   try {
     const { employeeId, orgUnitId } = req.body;
@@ -376,10 +375,18 @@ export const SubmitEmployee = async (req, res) => {
     employee.finalizationStatus = "Pending";
     await employee.save();
 
-    // 2️⃣ Prepare finalized employee data
+    // 2️⃣ Fetch assigned roles from RoleModel
+    const assignedRoles = await RoleModel.find({ UserId: employee._id }); // or employee.UserId if needed
+
+    if (!assignedRoles.length) {
+      return res.status(400).json({ success: false, message: "Cannot submit employee: No roles assigned" });
+    }
+
+    // 3️⃣ Prepare finalized employee data including roles
     const finalizedData = {
       ...employee.toObject(),
-      orgUnit: orgUnitId, // 🔗 link orgUnit
+      role: assignedRoles.map(r => r._id), // ✅ assign role IDs
+      orgUnit: orgUnitId,
       UserId: employee.UserId,
       profileStatus: {
         submitted: true,
@@ -392,22 +399,24 @@ export const SubmitEmployee = async (req, res) => {
     delete finalizedData.DraftStatus;
     delete finalizedData._id;
 
-    // 3️⃣ Create finalized employee
+    // 4️⃣ Create finalized employee
     const finalizedEmployee = await FinalizedEmployeeModel.create(finalizedData);
 
-    // 4️⃣ Update orgUnit with placeholder employeeId
-    await OrgUnit.findByIdAndUpdate(orgUnitId, { employee: finalizedEmployee._id });
+    // 5️⃣ Update orgUnit with employee reference
+    await OrgUnitModel.findByIdAndUpdate(orgUnitId, { employee: finalizedEmployee._id });
 
     return res.status(200).json({
       success: true,
       message: "Draft submitted successfully and FinalizedEmployee created",
       finalizedEmployeeId: finalizedEmployee._id,
+      // rolesData: assignedRoles,
     });
   } catch (error) {
     console.error("🔥 SubmitEmployee error:", error.stack || error.message);
     return res.status(500).json({ success: false, message: "Failed to submit draft" });
   }
 };
+
 
 export const ApproveEmployee = async (req, res) => {
   try {
@@ -487,6 +496,10 @@ export const RejectEmployee = async (req, res) => {
     return res.status(500).json({ success: false, message: "Failed to reject employee" });
   }
 };
+
+
+
+
 
 // this is for getting the id of the orgunit and orgunit object..
 export const resolveOrgUnit = async (req, res) => {

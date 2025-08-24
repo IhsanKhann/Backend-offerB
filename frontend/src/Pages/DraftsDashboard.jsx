@@ -59,7 +59,7 @@ const DraftDashboard = () => {
   };
 
   const handleSubmitEmployee = async (employeeId) => {
-  const empRoles = roles.filter((r) => r.employeeId === employeeId);
+  const empRoles = roles.filter((r) => r.UserId === employeeId);
   if (!empRoles.length) {
     alert("Cannot submit employee: No roles assigned yet.");
     setRolesAssigned(false);
@@ -77,11 +77,11 @@ const DraftDashboard = () => {
 
     const response = await axios.post("http://localhost:3000/api/employees/Submit", {
       employeeId,
-      orgUnit: selectedOrgUnitId,   // ✅ new required field
+      orgUnitId: selectedOrgUnitId,   // ✅ new required field
     });
 
     console.log("Response:", response.data);
-
+    console.log("Roles data from backend upon populate: ", response.rolesData);
     if (response.status === 200) {
       alert("Employee submitted successfully");
 
@@ -240,102 +240,102 @@ const DraftDashboard = () => {
           ))}
           */}
 
-          {/* Employee cards from backend */}
-          {employees.map((emp) => {
-            const empRoles = roles.filter((r) => r.employeeId === emp._id || r.employeeId === emp.employeeId);
-            return (
-              <div
-                key={emp._id}
-                className="bg-white overflow-hidden shadow-lg rounded-xl hover:shadow-xl transition-all duration-300"
-              >
-                {/* Header with Status */}
-                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                  <span className={getStatusBadge(emp.DraftStatus?.status || "Draft")}>
-                    {emp.DraftStatus?.status || "Draft"}
-                  </span>
-                  <span className="text-xs text-gray-500">{formatDate(emp.createdAt)}</span>
-                </div>
+        {/* Employee cards from backend */}
+        {employees.map((emp) => {
+          // ✅ Filter roles assigned to this employee using UserId
+          const empRoles = roles.filter((r) => r.UserId === emp._id);
 
-                {/* Employee Info */}
-                <div className="px-6 py-4 flex items-center space-x-4">
-                  {emp.avatar ? (
-                    <img
-                      src={emp.avatar?.url || 'https://via.placeholder.com/150'}
-                      alt="Employee Avatar"
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-500">
-                      N/A
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-lg font-semibold text-gray-900">{emp.individualName}</p>
-                    <p className="text-sm text-gray-500">{emp.officialEmail}</p>
-                    <p className="text-xs text-gray-400">ID: {emp.employeeId}</p>
-                  </div>
-                </div>
+          return (
+            <div
+              key={emp._id}
+              className="bg-white overflow-hidden shadow-lg rounded-xl hover:shadow-xl transition-all duration-300"
+            >
+              {/* Header with Status */}
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <span className={getStatusBadge(emp.DraftStatus?.status || "Draft")}>
+                  {emp.DraftStatus?.status || "Draft"}
+                </span>
+                <span className="text-xs text-gray-500">{formatDate(emp.createdAt)}</span>
+              </div>
 
-                {/* Roles Info */}
-                {empRoles.length > 0 && (
-                  <div className="px-6 py-4 border-t border-gray-100">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Roles</h4>
-                    {empRoles.map((r, idx) => (
-                      <div key={idx} className="text-xs mb-2">
-                        {["office", "group", "division", "department", "branch", "cell", "desk"].map(
-
-                          (field) =>
-                            r.role[field] && (
-                              <div key={field} className="flex justify-between">
-                                <span className="text-gray-500">
-                                  {field.charAt(0).toUpperCase() + field.slice(1)}:
-                                </span>
-                                <span className="text-gray-900">{r.role[field]}</span>
-                              </div>
-                            )
-                        )}
-                      </div>
-                    ))}
+              {/* Employee Info */}
+              <div className="px-6 py-4 flex items-center space-x-4">
+                {emp.avatar ? (
+                  <img
+                    src={emp.avatar?.url || "https://via.placeholder.com/150"}
+                    alt="Employee Avatar"
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gray-300 flex items-center justify-center text-gray-500">
+                    N/A
                   </div>
                 )}
-
-               {/* Actions */}
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 space-y-2">
-                    {/* Main Actions */}
-                    <div className="flex justify-between gap-2">
-                      <button
-                        onClick={() => handleEditEmployee(emp._id)}
-                        className="flex-1 bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleSubmitEmployee(emp._id)}
-                        className="flex-1 bg-green-600 text-white font-medium py-2 rounded-lg hover:bg-green-700 transition-all duration-200 shadow-sm"
-                      >
-                        Submit
-                      </button>
-                      <button
-                        onClick={() => handleCancelEmployee(emp._id)}
-                        className="flex-1 bg-red-600 text-white font-medium py-2 rounded-lg hover:bg-red-700 transition-all duration-200 shadow-sm"
-                      >
-                        Delete
-                      </button>
-                    </div>
-
-                    {/* Conditional Roles Action */}
-                    {!hasRoles(emp._id) && (
-                      <button
-                        onClick={() => navigate(`/assign-roles/${emp._id}`)}
-                        className="w-full bg-orange-500 text-white font-medium py-2 rounded-lg hover:bg-orange-600 transition-all duration-200 shadow-sm"
-                      >
-                        Assign Roles
-                      </button>
-                    )}
-                  </div>
+                <div>
+                  <p className="text-lg font-semibold text-gray-900">{emp.individualName}</p>
+                  <p className="text-sm text-gray-500">{emp.officialEmail}</p>
+                  <p className="text-xs text-gray-400">ID: {emp.UserId}</p>
+                </div>
               </div>
-            );
-          })}
+
+              {/* Assigned Roles */}
+              {empRoles.length > 0 && (
+                <div className="px-6 py-4 border-t border-gray-100">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned Roles</h4>
+                  {empRoles.map((role) => (
+                    <div key={role._id} className="text-xs mb-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Role:</span>
+                        <span className="text-gray-900">{role.roleName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">OrgUnit:</span>
+                        <span className="text-gray-900">
+                          {/* Show populated orgUnit name or fallback */}
+                          {role.orgUnit?.name || role.orgUnit || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 space-y-2">
+                <div className="flex justify-between gap-2">
+                  <button
+                    onClick={() => handleEditEmployee(emp._id)}
+                    className="flex-1 bg-blue-600 text-white font-medium py-2 rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleSubmitEmployee(emp._id)}
+                    className="flex-1 bg-green-600 text-white font-medium py-2 rounded-lg hover:bg-green-700 transition-all duration-200 shadow-sm"
+                  >
+                    Submit
+                  </button>
+                  <button
+                    onClick={() => handleCancelEmployee(emp._id)}
+                    className="flex-1 bg-red-600 text-white font-medium py-2 rounded-lg hover:bg-red-700 transition-all duration-200 shadow-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+
+                {!hasRoles(emp._id) && (
+                  <button
+                    onClick={() => navigate(`/assign-roles/${emp._id}`)}
+                    className="w-full bg-orange-500 text-white font-medium py-2 rounded-lg hover:bg-orange-600 transition-all duration-200 shadow-sm"
+                  >
+                    Assign Roles
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
         </div>
       </div>
     </div>
