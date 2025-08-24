@@ -89,7 +89,7 @@ const DraftStatus = new mongoose.Schema({
 // ================= Employee =================
 const employeeSchema = new mongoose.Schema(
   {
-    employeeId: { type: String, required: true, unique: true },
+    UserId: { type: String, required: true, unique: true }, 
     individualName: { type: String, required: true, trim: true },
     fatherName: { type: String, required: true, trim: true },
     qualification: { type: String },
@@ -116,22 +116,6 @@ const employeeSchema = new mongoose.Schema(
       required: true,
     },
 
-    role: {
-      type: String,
-      enum: [
-        "Chairman",
-        "BoD Member",
-        "Company Secretary",
-        "Group Head / Division Head / Department Head",
-        "Branch Manager",
-        "Officer / Manager / Senior Manager",
-        "Cell Incharge",
-        "Executive (Contract / Permanent)",
-        "Senior Group Head",
-      ],
-      required: true,
-    },
-
     salary: { type: salarySchema, required: true },
     tenure: { type: tenureSchema, required: true },
     changeOfStatus: { type: statusChangeSchema, default: {} },
@@ -142,6 +126,15 @@ const employeeSchema = new mongoose.Schema(
       type: String,
       enum: ["Pending", "Approved", "Rejected"],
       default: "Pending",
+    },
+
+    role: {
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Role",
+    },
+    OrgUnit: {
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "OrgUnit",
     },
   },
   { timestamps: true }

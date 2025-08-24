@@ -16,6 +16,9 @@ import {
     getSingleFinalizedEmployee,
     getFinalizedEmployees,
     deleteFinalizedEmployee,
+
+    resolveOrgUnit,
+    
 } from "../contollers/employeeController.js";
 
 const router = express.Router();
@@ -48,5 +51,8 @@ router.get("/roles/:employeeId", getSingleRole);
 
 // ✅ Generic dynamic route last
 router.get("/employees/:employeeId", getSingleEmployee);
+
+// orgUnit resolve routee..
+router.post("/org-units/resolve", resolveOrgUnit);
 
 export default router;

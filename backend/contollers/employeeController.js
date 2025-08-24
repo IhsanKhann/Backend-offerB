@@ -5,7 +5,8 @@ import bcrypt from "bcrypt";
 import { uploadFileToCloudinary, destroyImageFromCloudinary } from "../utilis/cloudinary.js";
 import RoleModel from "../models/Role.model.js";
 import FinalizedEmployeeModel from "../models/FinalizedEmployees.model.js";
-
+import {OrgUnitModel} from "../models/OrgUnit.js";
+import { PermissionModel } from "../models/Permissions.model.js";
 
 // --- helpers ----------------------------------------------------
 const generatePassword = () => Math.random().toString(36).slice(-8);
@@ -69,7 +70,7 @@ const normalizeTransfers = (arr) =>
       }))
     : [];
 
-// --- controllers -----------------------------------------------
+// --------------------------- controllers -------------------------
 export const getAllEmployees = async (req, res) => {
   try {
     const employees = await EmployeeModel.find();
@@ -170,7 +171,7 @@ export const deleteEmployee = async (req, res) => {
 
 export const RegisterEmployee = async (req, res) => {
   try {
-    console.log("Incoming employee registration request");
+    console.log("Incoming employee registratiosn request");
     console.log("req.body:", req.body);
     console.log("req.file:", req.file);
 
@@ -195,7 +196,7 @@ export const RegisterEmployee = async (req, res) => {
 
     // ================= Extract fields =================
     const {
-      employeeId,
+      UserId,
       individualName,
       fatherName,
       qualification,
@@ -209,7 +210,6 @@ export const RegisterEmployee = async (req, res) => {
       address,
       employmentHistory,
       employmentStatus,
-      role,
       tenure,
       transfers,
       changeOfStatus,
@@ -217,7 +217,7 @@ export const RegisterEmployee = async (req, res) => {
     } = req.body;
 
     console.log("📌 Parsed fields:", {
-      employeeId,
+      UserId,
       individualName,
       fatherName,
       dob,
@@ -227,19 +227,17 @@ export const RegisterEmployee = async (req, res) => {
       officialEmail,
       personalEmail,
       employmentStatus,
-      role,
     });
 
     // ================= Fix Required Fields Validation =================
     if (
-      !employeeId ||
+      !UserId ||
       !individualName ||
       !fatherName ||
       !dob ||
       !officialEmail ||
       !personalEmail ||
-      !employmentStatus ||
-      !role
+      !employmentStatus
     ) {
       console.warn("⚠️ Required fields missing!");
       return res
@@ -256,7 +254,7 @@ export const RegisterEmployee = async (req, res) => {
 
     // ================= Check Duplicates =================
     const existingEmployee = await EmployeeModel.findOne({
-      $or: [{ officialEmail }, { personalEmail }, { individualName }, { employeeId }],
+      $or: [{ officialEmail }, { personalEmail }, { individualName }, { UserId }],
     });
 
     if (existingEmployee) {
@@ -295,7 +293,7 @@ export const RegisterEmployee = async (req, res) => {
 
     // ================= Build Employee Object =================
     const employeeData = {
-      employeeId,
+      UserId,
       individualName,
       fatherName,
       qualification,
@@ -309,7 +307,6 @@ export const RegisterEmployee = async (req, res) => {
       address: parsedAddress,
       employmentHistory: parsedHistory,
       employmentStatus,
-      role,
       tenure: parsedTenure,
       salary: parsedSalary,
       changeOfStatus: parsedChangeOfStatus,
@@ -349,15 +346,17 @@ export const RegisterEmployee = async (req, res) => {
 
 export const SubmitEmployee = async (req, res) => {
   try {
-    const { employeeId } = req.body;
-    if (!employeeId) 
-      return res.status(400).json({ success: false, message: "employeeId required" });
+    const { employeeId, orgUnitId } = req.body;
+    if (!employeeId || !orgUnitId) {
+      return res.status(400).json({ success: false, message: "employeeId and orgUnitId are required" });
+    }
 
     const employee = await EmployeeModel.findById(employeeId);
-    if (!employee) 
+    if (!employee) {
       return res.status(404).json({ success: false, message: "Employee not found" });
+    }
 
-    // ✅ Correct duplicate check in FinalizedEmployee collection
+    // ✅ Check duplicates in finalized employees
     const duplicateFinalized = await FinalizedEmployeeModel.findOne({
       $or: [
         { officialEmail: employee.officialEmail },
@@ -372,15 +371,16 @@ export const SubmitEmployee = async (req, res) => {
       return res.status(400).json({ success: false, message: "Duplicate employee exists in finalized employees" });
     }
 
-    // 1️⃣ Update draft status
+    // 1️⃣ Update draft employee
     employee.DraftStatus.status = "Submitted";
     employee.finalizationStatus = "Pending";
     await employee.save();
 
-    // 2️⃣ Create FinalizedEmployee with Pending status
+    // 2️⃣ Prepare finalized employee data
     const finalizedData = {
       ...employee.toObject(),
-      employeeId: employee._id, // optional reference
+      orgUnit: orgUnitId, // 🔗 link orgUnit
+      UserId: employee.UserId,
       profileStatus: {
         submitted: true,
         decision: "Pending",
@@ -392,7 +392,11 @@ export const SubmitEmployee = async (req, res) => {
     delete finalizedData.DraftStatus;
     delete finalizedData._id;
 
+    // 3️⃣ Create finalized employee
     const finalizedEmployee = await FinalizedEmployeeModel.create(finalizedData);
+
+    // 4️⃣ Update orgUnit with placeholder employeeId
+    await OrgUnit.findByIdAndUpdate(orgUnitId, { employee: finalizedEmployee._id });
 
     return res.status(200).json({
       success: true,
@@ -408,25 +412,35 @@ export const SubmitEmployee = async (req, res) => {
 export const ApproveEmployee = async (req, res) => {
   try {
     const { finalizedEmployeeId } = req.params;
-    if (!finalizedEmployeeId) return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
+    if (!finalizedEmployeeId) {
+      return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
+    }
 
     const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
-    if (!finalizedEmployee) return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
+    if (!finalizedEmployee) {
+      return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
+    }
 
-    // Generate password
+    // 🔑 Generate password
     const tempPassword = generatePassword();
     const passwordHash = await hashPassword(tempPassword);
 
-    // Update profile status and password
+    // 1️⃣ Update finalized employee
     finalizedEmployee.profileStatus.decision = "Approved";
     finalizedEmployee.profileStatus.passwordCreated = true;
     finalizedEmployee.passwordHash = passwordHash;
     finalizedEmployee.password = tempPassword;
-    // changed..
     await finalizedEmployee.save();
 
-    // Delete original draft employee
-    await EmployeeModel.findByIdAndDelete(finalizedEmployee.employeeId);
+    // 2️⃣ Confirm assignment to OrgUnit
+    if (finalizedEmployee.orgUnit) {
+      await OrgUnit.findByIdAndUpdate(finalizedEmployee.orgUnit, { employee: finalizedEmployee._id });
+    }
+
+    // 3️⃣ Delete original draft employee
+    if (finalizedEmployee.employeeId) {
+      await EmployeeModel.findByIdAndDelete(finalizedEmployee.employeeId);
+    }
 
     return res.status(200).json({
       success: true,
@@ -474,83 +488,87 @@ export const RejectEmployee = async (req, res) => {
   }
 };
 
+// this is for getting the id of the orgunit and orgunit object..
+export const resolveOrgUnit = async (req, res) => {
+  try {
+    const { office, group, division, department, branch, cell, desk } = req.body;
+
+    // Build path
+    const levels = [office, group, division, department, branch, cell, desk].filter(Boolean);
+
+    let parent = null;
+    let orgUnit = null;
+
+    for (let level of levels) {
+      orgUnit = await OrgUnitModel.findOne({ name: level, parent: parent?._id });
+
+      if (!orgUnit) {
+        orgUnit = await OrgUnitModel.create({ name: level, parent: parent?._id });
+      }
+
+      parent = orgUnit;
+    }
+
+    // keeps checking the orgUnits/nodes until the leaf Node is reached, we return the leaf node..
+    
+    return res.status(200).json({ success: true, orgUnitId: orgUnit._id, orgUnit });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // roles or assigning posts functions.
 export const AssignEmployeePost = async (req, res) => {
   try {
-    console.log("📝 AssignEmployeePost received body:", req.body);
+    const { employeeId, roleName, orgUnit, permissions = [] } = req.body;
 
-    const { employeeId, autoGeneratedId, role, employeeName } = req.body;
-    const { 
-        office, 
-        group, 
-        division, 
-        department, 
-        branch, 
-        cell, 
-        desk } 
-        = role || {};
-
-    console.log("📝 Parsed values:", { employeeId,autoGeneratedId,employeeName, office, group, division, department, branch, cell, desk});
-
-    // Validate employeeId
-    if (!employeeId) {
-      return res.status(400).json({ success: false, message: "Employee ID is required" });
-    }
-
-    if(!autoGeneratedId){
-      return res.status(400).json({
-        success: false,
-        message: "Auto generated Id",
-      })
-    }
-
-    // Validate role fields
-    if (!office && !group && !division && !department && !branch && !cell && !desk) {
-      return res.status(400).json({ success: false, message: "At least one role field is required" });
-    }
-
-    // Check if employee exists
+    // Validate employee
     const employee = await EmployeeModel.findById(employeeId);
     if (!employee) {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
-    // Prevent exact duplicate role assignments
-    const existing = await RoleModel.findOne({
-      employeeId,
-      autoGeneratedId,
-      employeeName,
-      "role.office": office || null,
-      "role.group": group || null,
-      "role.division": division || null,
-      "role.department": department || null,
-      "role.branch": branch || null,
-      "role.cell": cell || null,
-    });
-    if (existing) {
-      return res.status(400).json({ success: false, message: "This exact role is already assigned" });
+    // Validate orgUnit
+    const orgUnitDoc = await OrgUnitModel.findById(orgUnit);
+    // the orgUnit is created if not existing in the above function and then fetched from frontend..
+
+    if (!orgUnitDoc) {
+      return res.status(400).json({ success: false, message: "Invalid orgUnitId" });
     }
 
-    // Create new role document
-    const newRole = new RoleModel({
-      employeeId,
-      autoGeneratedId,
-      employeeName,
-      role: { 
-        office, 
-        group, 
-        division, 
-        department, 
-        branch, 
-        cell, 
-        desk 
-      },
+    // Handle permissions
+    let permissionIds = [];
+    if (Array.isArray(permissions) && permissions.length > 0) {
+      permissionIds = await Promise.all(
+        permissions.map(async (perm) => {
+          let p = await PermissionModel.findOne({ name: perm });
+          if (!p) p = await PermissionModel.create({ name: perm });
+          return p._id;
+        })
+      );
+    }
+
+    // Prevent duplicate role in same orgUnit
+    const existing = await RoleModel.findOne({
+      UserId: employee._id,
+      roleName,
+      orgUnit: orgUnitDoc._id,
     });
 
-    // Update employee's PostStatus
+    if (existing) {
+      return res.status(400).json({ success: false, message: "Role already assigned here" });
+    }
+
+    // Create Role
+    const newRole = new RoleModel({
+      UserId: employee._id,
+      roleName,
+      orgUnit: orgUnitDoc._id,
+      permissions: permissionIds,
+    });
+
     employee.DraftStatus.PostStatus = "Assigned";
     await employee.save();
-
     await newRole.save();
 
     return res.status(200).json({
@@ -559,7 +577,7 @@ export const AssignEmployeePost = async (req, res) => {
       role: newRole,
     });
   } catch (error) {
-    console.error("🔥 AssignEmployeeRole error:", error.stack || error.message);
+    console.error("🔥 AssignEmployeePost error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -702,3 +720,10 @@ export const deleteFinalizedEmployee = async (req, res) => {
     });
   }
 };
+
+
+// to do: edit all the controllers according to the..new forms and new fields..
+// modify the flow,add the new fields, remove the old fields..
+// handle edit..
+// add the file attachements step: (file attachements in the specific step)..
+

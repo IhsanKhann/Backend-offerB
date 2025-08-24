@@ -9,7 +9,8 @@ import { addEmployeeData } from "../store/sliceDraft.jsx";
 
 export default function EmployeeRegistrationForm() {
   const [step, setStep] = useState(1);
-  const totalSteps = 10;
+  
+  const totalSteps = 9;
   const navigate = useNavigate();
   
   const { register, handleSubmit } = useForm({
@@ -27,7 +28,6 @@ export default function EmployeeRegistrationForm() {
     "Address Information",
     "Profile & Employment History",
     "Employment Status",
-    "Starting Cadres / User Roles",
     "Salary & Benefits",
     "Tenure",
     "Change of Status",
@@ -58,7 +58,7 @@ const OnSubmit = async (data) => {
   employeeFormData.append("personalEmail", data.personalEmail);
   employeeFormData.append("previousOrgEmail", data.previousOrgEmail || "");
   employeeFormData.append("employmentStatus", data.employmentStatus);
-  employeeFormData.append("role", data.role);
+  // employeeFormData.append("role", data.role);
 
   // Nested objects (must be stringified for backend JSON.parse)
   if (data.address) {
@@ -86,10 +86,6 @@ const OnSubmit = async (data) => {
     employeeFormData.append("profileImage", avatar);
   }
 
-  // if (data.salary?.attachment && data.salary.attachment[0]) {
-  //   employeeFormData.append("salaryAttachment", data.salary.attachment[0]);
-  // }
-
   // Debug: log all FormData keys
   for (let [key, val] of employeeFormData.entries()) {
     console.log(`➡️ FormData ${key}:`, val);
@@ -99,7 +95,7 @@ const OnSubmit = async (data) => {
   dispatch(
     setEmployeeFormData({
       ...data,
-      employeeId: data.employeeId || AutomaticId,
+      employeeId: data.UserId || AutomaticId,
       avatar: avatar ? { name: avatar.name, type: avatar.type, size: avatar.size } : null,
     })
   );
@@ -111,6 +107,7 @@ const OnSubmit = async (data) => {
     if (registerEmployeeThunk.fulfilled.match(resultAction)) {
       const newId = resultAction.payload.employeeId;
       alert("Employee registered successfully! ID: " + newId);
+      // database id..employeeId (employee db id.)
       navigate(`/assign-roles/${newId}`);
     } else {
       console.warn("❌ Registration failed:", resultAction.payload);
@@ -329,7 +326,7 @@ const handleAutomatic_ID_Generation = () => {
             </div>
           )}
 
-          {/* STEP 5 */}
+          {/* STEP 5
           {step === 5 && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Select Role *</h3>
@@ -357,10 +354,10 @@ const handleAutomatic_ID_Generation = () => {
                 ))}
               </div>
             </div>
-          )}
+          )} */}
 
-          {/* STEP 6 */}
-       {step === 6 && (
+          {/* STEP 5 */}
+       {step === 5 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Start Date of Salary */}
               <div className="space-y-1">
@@ -461,8 +458,8 @@ const handleAutomatic_ID_Generation = () => {
             </div>
           )}
 
-          {/* STEP 7 */}
-          {step === 7 && (
+          {/* STEP 6 */}
+          {step === 6 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">Date of Joining *</label>
@@ -491,8 +488,8 @@ const handleAutomatic_ID_Generation = () => {
             </div>
           )}
 
-          {/* STEP 8 */}
-          {step === 8 && (
+          {/* STEP 7 */}
+          {step === 7 && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Change of Status</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -515,8 +512,8 @@ const handleAutomatic_ID_Generation = () => {
             </div>
           )}
 
-          {/* STEP 9 */}
-          {step === 9 && (
+          {/* STEP 8 */}
+          {step === 8 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">Department</label>

@@ -59,36 +59,46 @@ const DraftDashboard = () => {
   };
 
   const handleSubmitEmployee = async (employeeId) => {
-    const empRoles = roles.filter((r) => r.employeeId === employeeId);
-    if (!empRoles.length) {
-      alert("Cannot submit employee: No roles assigned yet.");
-      setRolesAssigned(false);
+  const empRoles = roles.filter((r) => r.employeeId === employeeId);
+  if (!empRoles.length) {
+    alert("Cannot submit employee: No roles assigned yet.");
+    setRolesAssigned(false);
+    return;
+  }
+
+  try {
+    // 👉 pick the right orgUnitId from assigned role
+    const selectedOrgUnitId = empRoles[0]?.orgUnit; // assume role already stores orgUnit reference
+
+    if (!selectedOrgUnitId) {
+      alert("Cannot submit employee: No orgUnit selected");
       return;
     }
 
-    try {
-      const response = await axios.post("http://localhost:3000/api/employees/Submit", {
-        employeeId,
-      });
-      console.log("Response:", response.data);
+    const response = await axios.post("http://localhost:3000/api/employees/Submit", {
+      employeeId,
+      orgUnit: selectedOrgUnitId,   // ✅ new required field
+    });
 
-      if (response.status === 200) {
-        alert("Employee submitted successfully");
+    console.log("Response:", response.data);
 
-        // refresh employees and roles after submission
-        const empRes = await fetch("http://localhost:3000/api/getAllEmployees");
-        const rolesRes = await fetch("http://localhost:3000/api/getAllRoles");
-        
-        setEmployees((await empRes.json()).employees || []);
-        setRoles((await rolesRes.json()).roles || []);
-        setRolesAssigned(true);
-      }
-    } catch (error) {
-      console.error("Failed to submit employee:", error);
-      alert("Failed to submit employee");
-      setRolesAssigned(false);
+    if (response.status === 200) {
+      alert("Employee submitted successfully");
+
+      // refresh employees and roles after submission
+      const empRes = await fetch("http://localhost:3000/api/getAllEmployees");
+      const rolesRes = await fetch("http://localhost:3000/api/getAllRoles");
+
+      setEmployees((await empRes.json()).employees || []);
+      setRoles((await rolesRes.json()).roles || []);
+      setRolesAssigned(true);
     }
-  };
+  } catch (error) {
+    console.error("Failed to submit employee:", error);
+    alert("Failed to submit employee");
+    setRolesAssigned(false);
+  }
+};
 
   const handleCancelEmployee = async (employeeId) => {
     try {

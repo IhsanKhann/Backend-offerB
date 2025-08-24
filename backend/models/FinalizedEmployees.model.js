@@ -82,7 +82,10 @@ const profileStatusSchema = new mongoose.Schema({
 const finalizedEmployeeSchema = new mongoose.Schema(
   {
     // 1. Personal Details
-    employeeId: { type: String, required: true},
+    UserId: { type: String, required: true}, //comes from the employee..
+    OrganizationId : {type: String}, 
+    // this id is assigned when the employee is approved.
+
     individualName: { type: String, required: true, trim: true },
     fatherName: { type: String, required: true, trim: true },
     qualification: { type: String },
@@ -93,7 +96,7 @@ const finalizedEmployeeSchema = new mongoose.Schema(
 
     officialEmail: { type: String, required: true, lowercase: true, trim: true },
     passwordHash: { type: String }, // system-generated
-    password: {type:String},
+    password: {type:String },
     personalEmail: { type: String, required: true, lowercase: true, trim: true },
     previousOrgEmail: { type: String, lowercase: true, trim: true },
 
@@ -123,21 +126,8 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     // posting: { type: AppointmentSchema, required: true }, // if needed
 
     // 6. Roles
-    role: {
-      type: String,
-      enum: [
-        "Chairman",
-        "BoD Member",
-        "Company Secretary",
-        "Group Head / Division Head / Department Head",
-        "Branch Manager",
-        "Officer / Manager / Senior Manager",
-        "Cell Incharge",
-        "Executive (Contract / Permanent)",
-        "Senior Group Head",
-      ],
-      required: true,
-    },
+    role: { type: mongoose.Schema.Types.ObjectId, ref: "Role", required: true },
+    orgUnit: { type: mongoose.Schema.Types.ObjectId, ref: "OrgUnit", required: true },
 
     // 7. Salary & Benefits
     salary: { type: salarySchema, required: true },

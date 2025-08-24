@@ -26,7 +26,7 @@ const router = createBrowserRouter([
     element: <EmployeeRegistrationForm />,
   },
   {
-    path: "/assign-roles/:employeeId",
+    path: "/assign-roles/:UserID",
     element: <AssignRolesForm />,
   },
   {
