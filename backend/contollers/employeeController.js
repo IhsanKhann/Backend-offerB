@@ -27,7 +27,7 @@ const toDate = (val) => (val ? new Date(val) : undefined);
 const generateOrganizationId = (finalizedEmployee) => {
   const userName = finalizedEmployee.individualName;
 
-  const organizationId = userName + finalizedEmployee.UserId;
+  const organizationId = userName + "OBE" + finalizedEmployee.UserId;
   return organizationId;
 };
 
@@ -508,6 +508,7 @@ export const ApproveEmployee = async (req, res) => {
     finalizedEmployee.passwordHash = passwordHash;
     finalizedEmployee.password = tempPassword;
     finalizedEmployee.OrganizationId = organizationId;
+    console.log(finalizedEmployee.passwordHash, finalizedEmployee.password, finalizedEmployee.OrganizationId);
   
     await finalizedEmployee.save();
 
