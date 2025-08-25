@@ -88,7 +88,6 @@ const normalizeTransfers = (arr) =>
       }))
     : [];
 
-
 // --------------------------- controllers -------------------------
 export const getAllEmployees = async (req, res) => {
   try {

@@ -185,35 +185,48 @@ useEffect(() => {
     { id: 14, name: "Senior Group Head" },
   ];
 
-  // 🔹 Options derivation (handle flexible schema)
+
+// 🔹 Options derivation (supports inconsistency)
 const officesOptions = hierarchy?.offices || [];
 
-// Groups OR Divisions OR Departments OR Branches OR Cells OR Desks can live under Office
+// Groups (if exist under office)
 const groupsOptions =
   officesOptions.find((o) => o.name === office)?.groups || [];
 
-const divisionsOptions =
-  (groupsOptions.find((g) => g.name === group)?.divisions || [])
-    .concat(officesOptions.find((o) => o.name === office)?.divisions || []);
+// Divisions (either under group OR directly under office)
+const divisionsOptions = [
+  ...(groupsOptions.find((g) => g.name === group)?.divisions || []),
+  ...(officesOptions.find((o) => o.name === office)?.divisions || []),
+];
 
-const departmentsOptions =
-  (divisionsOptions.find((d) => d.name === division)?.departments || [])
-    .concat(officesOptions.find((o) => o.name === office)?.departments || []);
+// Departments (can be under division OR directly under office)
+const departmentsOptions = [
+  ...(divisionsOptions.find((d) => d.name === division)?.departments || []),
+  ...(officesOptions.find((o) => o.name === office)?.departments || []),
+];
 
-const branchesOptions =
-  (departmentsOptions.find((d) => d.name === department)?.branches || [])
-    .concat(officesOptions.find((o) => o.name === office)?.branches || []);
+// Branches (can be under department OR directly under office)
+const branchesOptions = [
+  ...(departmentsOptions.find((d) => d.name === department)?.branches || []),
+  ...(officesOptions.find((o) => o.name === office)?.branches || []),
+];
 
-const cellsOptions =
-  (branchesOptions.find((b) => b.name === branch)?.cells || [])
-    .concat(departmentsOptions.find((d) => d.name === department)?.cells || [])
-    .concat(officesOptions.find((o) => o.name === office)?.cells || []);
+// Cells (can be under branch, department, division, or office directly)
+const cellsOptions = [
+  ...(branchesOptions.find((b) => b.name === branch)?.cells || []),
+  ...(departmentsOptions.find((d) => d.name === department)?.cells || []),
+  ...(divisionsOptions.find((d) => d.name === division)?.cells || []),
+  ...(officesOptions.find((o) => o.name === office)?.cells || []),
+];
 
-const desksOptions =
-  (cellsOptions.find((c) => c.name === cell)?.desks || [])
-    .concat(branchesOptions.find((b) => b.name === branch)?.desks || [])
-    .concat(departmentsOptions.find((d) => d.name === department)?.desks || [])
-    .concat(officesOptions.find((o) => o.name === office)?.desks || []);
+// Desks (can be under cell, branch, department, division, or office directly)
+const desksOptions = [
+  ...(cellsOptions.find((c) => c.name === cell)?.desks || []),
+  ...(branchesOptions.find((b) => b.name === branch)?.desks || []),
+  ...(departmentsOptions.find((d) => d.name === department)?.desks || []),
+  ...(divisionsOptions.find((d) => d.name === division)?.desks || []),
+  ...(officesOptions.find((o) => o.name === office)?.desks || []),
+];
 
   // ----------------- HANDLE PERMISSION INPUT -----------------
 const handlePermissionKeyDown = (e) => {
