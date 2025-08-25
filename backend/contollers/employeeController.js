@@ -24,18 +24,10 @@ const generatePassword = () => Math.random().toString(36).slice(-8);
 const hashPassword = async (password) => await bcrypt.hash(password, 10);
 const toDate = (val) => (val ? new Date(val) : undefined);
 
-const generateOrganizationId = (finalizedEmployee) => {
+const generateOrganizationId = (finalizedEmployee, UserId) => {
   const userName = finalizedEmployee.individualName;
 
-  // Format DOB as YYYYMMDD (assuming dob is a Date object)
-  const dobObj = new Date(finalizedEmployee.dob);
-  const dobFormatted = `${dobObj.getFullYear()}${String(dobObj.getMonth() + 1).padStart(2, '0')}${String(dobObj.getDate()).padStart(2, '0')}`;
-
-  // Generate 6-digit random number
-  const randomSixDigit = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // Combine all to create organization ID
-  const organizationId = userName + dobFormatted + randomSixDigit;
+  const organizationId = userName + UserId;
   return organizationId;
 };
 
@@ -506,7 +498,10 @@ export const ApproveEmployee = async (req, res) => {
     // 🔑 Generate password
     const tempPassword = generatePassword();
     const passwordHash = await hashPassword(tempPassword);
-    const organizationId  = generateOrganizationId(finalizedEmployee);
+
+    // generate the organization id..
+    const finalizedEmployee = finalizedEmployee.UserId;
+    const organizationId  = generateOrganizationId(finalizedEmployee, id);
 
     // 1️⃣ Update finalized employee
     finalizedEmployee.profileStatus.decision = "Approved";
