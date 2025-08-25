@@ -194,6 +194,15 @@ const DraftDashboard = () => {
           >
             New Employee
           </button>
+
+          <button
+            onClick={() => navigate("/admin/dashboard")}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          >
+            admin dashboard
+          </button>
+
+          
         </div>
 
         {/* Stats */}
@@ -277,7 +286,8 @@ const DraftDashboard = () => {
                 <div>
                   <p className="text-lg font-semibold text-gray-900">{emp.individualName}</p>
                   <p className="text-sm text-gray-500">{emp.officialEmail}</p>
-                  <p className="text-xs text-gray-400">ID: {emp._id}</p>
+                   <p className="text-xs text-gray-400">ID: {emp.UserId}</p> 
+                  <p className="text-xs text-gray-400">DataBase Id: {emp._id}</p>
                 </div>
               </div>
 

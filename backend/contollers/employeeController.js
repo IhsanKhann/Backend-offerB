@@ -350,19 +350,25 @@ export const RegisterEmployee = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 export const SubmitEmployee = async (req, res) => {
   try {
     const { employeeId, orgUnitId } = req.body;
     if (!employeeId || !orgUnitId) {
-      return res.status(400).json({ success: false, message: "employeeId and orgUnitId are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "employeeId and orgUnitId are required" });
     }
 
+    // 1️⃣ Find draft employee
     const employee = await EmployeeModel.findById(employeeId);
     if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found" });
     }
 
-    // ✅ Check duplicates in finalized employees
+    // 2️⃣ Duplicate check in finalized employees
     const duplicateFinalized = await FinalizedEmployeeModel.findOne({
       $or: [
         { officialEmail: employee.officialEmail },
@@ -374,41 +380,39 @@ export const SubmitEmployee = async (req, res) => {
     });
 
     if (duplicateFinalized) {
-      return res.status(400).json({ success: false, message: "Duplicate employee exists in finalized employees" });
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate employee exists in finalized employees",
+      });
     }
 
-    // 1️⃣ Update draft employee
+    // 3️⃣ Update draft employee
     employee.DraftStatus.status = "Submitted";
     employee.finalizationStatus = "Pending";
     await employee.save();
 
-    // 2️⃣ Fetch assigned roles from RoleModel with populated orgUnit
-    const assignedRoles = await RoleModel.find({ UserId: employee._id }).populate('orgUnit');
-
-    if (!assignedRoles.length) {
-      return res.status(400).json({ success: false, message: "Cannot submit employee: No roles assigned" });
+    // 4️⃣ Find assigned role (one per employee)
+    const assignedRole = await RoleModel.findOne({ UserId: employee._id });
+    if (!assignedRole) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot submit employee: No role assigned",
+      });
     }
 
-    // 3️⃣ Get orgUnit details
+    // 5️⃣ Verify orgUnit exists
     const orgUnit = await OrgUnitModel.findById(orgUnitId);
     if (!orgUnit) {
-      return res.status(400).json({ success: false, message: "Invalid orgUnitId" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid orgUnitId" });
     }
 
-    // 4️⃣ Prepare finalized employee data including roles and orgUnit
+    // 6️⃣ Prepare finalized employee (only refs for role + orgUnit)
     const finalizedData = {
       ...employee.toObject(),
-      role: assignedRoles.map(r => ({
-        _id: r._id,
-        roleName: r.roleName,
-        orgUnit: r.orgUnit,
-        permissions: r.permissions
-      })),
-      orgUnit: {
-        _id: orgUnit._id,
-        name: orgUnit.name,
-        parent: orgUnit.parent
-      },
+      role: assignedRole._id, // reference only
+      orgUnit: orgUnit._id,   // reference only
       UserId: employee.UserId || employee._id,
       profileStatus: {
         submitted: true,
@@ -421,25 +425,28 @@ export const SubmitEmployee = async (req, res) => {
     delete finalizedData.DraftStatus;
     delete finalizedData._id;
 
-    // 5️⃣ Create finalized employee
+    // 7️⃣ Create finalized employee
     const finalizedEmployee = await FinalizedEmployeeModel.create(finalizedData);
 
-    // 6️⃣ Update orgUnit with employee reference
-    await OrgUnitModel.findByIdAndUpdate(orgUnitId, { employee: finalizedEmployee._id });
+    // 8️⃣ Update orgUnit with employee reference
+    await OrgUnitModel.findByIdAndUpdate(orgUnitId, {
+      employee: finalizedEmployee._id,
+    });
 
     return res.status(200).json({
       success: true,
       message: "Draft submitted successfully and FinalizedEmployee created",
       finalizedEmployeeId: finalizedEmployee._id,
-      rolesData: assignedRoles,
-      orgUnitData: orgUnit,
+      roleId: assignedRole._id,
+      orgUnitId: orgUnit._id,
     });
   } catch (error) {
     console.error("🔥 SubmitEmployee error:", error.stack || error.message);
-    return res.status(500).json({ success: false, message: "Failed to submit draft" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to submit draft" });
   }
 };
-
 
 export const ApproveEmployee = async (req, res) => {
   try {
@@ -466,12 +473,12 @@ export const ApproveEmployee = async (req, res) => {
 
     // 2️⃣ Confirm assignment to OrgUnit
     if (finalizedEmployee.orgUnit) {
-      await OrgUnit.findByIdAndUpdate(finalizedEmployee.orgUnit, { employee: finalizedEmployee._id });
+      await OrgUnitModel.findByIdAndUpdate(finalizedEmployee.orgUnit, { employee: finalizedEmployee._id });
     }
 
     // 3️⃣ Delete original draft employee
-    if (finalizedEmployee.employeeId) {
-      await EmployeeModel.findByIdAndDelete(finalizedEmployee.employeeId);
+    if (finalizedEmployee._id) {
+      await EmployeeModel.findByIdAndDelete(finalizedEmployee._id);
     }
 
     return res.status(200).json({
@@ -508,7 +515,7 @@ export const RejectEmployee = async (req, res) => {
     await finalizedEmployee.save();
 
     // Delete draft employee
-    await EmployeeModel.findByIdAndDelete(finalizedEmployee.employeeId);
+    await EmployeeModel.findByIdAndDelete(finalizedEmployee._id);
 
     // Optional: delete finalizedEmployee document if you want complete cleanup
     await FinalizedEmployeeModel.findByIdAndDelete(finalizedEmployeeId);
@@ -557,7 +564,8 @@ export const resolveOrgUnit = async (req, res) => {
 export const AssignEmployeePost = async (req, res) => {
   try {
     const { employeeId, roleName, orgUnit, permissions = [] } = req.body;
-
+    console.log(employeeId) ;
+    
     // Validate employee
     const employee = await EmployeeModel.findById(employeeId);
     if (!employee) {

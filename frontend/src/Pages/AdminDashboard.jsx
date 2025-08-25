@@ -165,7 +165,9 @@ const AdminDashboard = () => {
                     <p className="text-sm text-gray-500">
                       {emp.personalEmail || emp.officialEmail}
                     </p>
-                    <p className="text-xs text-gray-400">ID: {emp.employeeId}</p>
+                    <p className="text-xs text-gray-400">ID: {emp.UserId}</p>
+                    <p className="text-xs text-gray-400">Database Id: {emp._id}</p>
+
                     <p className="text-xs text-gray-400">
                       Created: {new Date(emp.createdAt).toLocaleDateString()}
                     </p>

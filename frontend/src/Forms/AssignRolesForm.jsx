@@ -296,6 +296,13 @@ const handleSubmit = async (e) => {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
         <h2 className="text-xl text-red-600 mb-4">{employeeError}</h2>
+         <button
+          onClick={() => navigate("/admin/dashboard")}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Admin Dashboard
+        </button>
+
         <button
           onClick={() => navigate("/register-employee")}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
