@@ -2,15 +2,88 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+/**
+ * Recursive Tree Node component
+ * Renders a node (like Chairman, Division, etc.) and its children
+ */
+const TreeNode = ({ node, childrenNodes }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="ml-4">
+      {/* Node Label */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        className="cursor-pointer flex items-center space-x-2 hover:text-blue-600"
+      >
+        {/* Expand/Collapse Toggle */}
+        {childrenNodes.length > 0 && (
+          <span className="text-xs">{expanded ? "▼" : "▶"}</span>
+        )}
+        <span>{node.name}</span>
+      </div>
+
+      {/* Render Children if expanded */}
+      {expanded && (
+        <div className="ml-4 border-l border-gray-300 pl-2">
+          {childrenNodes.map((child) => (
+            <TreeNode
+              key={child._id}
+              node={child}
+              childrenNodes={child.children || []}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Hierarchy Tree Component
+ * Fetches all org units and builds a nested tree
+ */
+const HierarchyTree = () => {
+  const [treeData, setTreeData] = useState([]);
+
+  useEffect(() => {
+    const fetchTree = async () => {
+      try {
+        const res = await axios.get("http://localhost:3000/api/getOrgUnits");
+        setTreeData(res.data); // The backend will return the hierarchy tree
+      } catch (err) {
+        console.error("Failed to fetch hierarchy:", err);
+      }
+    };
+    fetchTree();
+  }, []);
+
+  return (
+    <div>
+      <h3 className="text-lg font-bold mb-2">Org Hierarchy</h3>
+      {treeData.length === 0 ? (
+        <p className="text-sm text-gray-500">No hierarchy available</p>
+      ) : (
+        treeData.map((node) => (
+          <TreeNode
+            key={node._id}
+            node={node}
+            childrenNodes={node.children || []}
+          />
+        ))
+      )}
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [finalizedEmployees, setFinalizedEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDropdown, setOpenDropdown] = useState(null);
-
   const [profileView, setProfileView] = useState(null);
 
-  // Fetch all finalized employees
+  // Fetch finalized employees
   useEffect(() => {
     const fetchFinalizedEmployees = async () => {
       try {
@@ -27,6 +100,7 @@ const AdminDashboard = () => {
     fetchFinalizedEmployees();
   }, []);
 
+  // approve/reject/delete/profileView handlers
   const handleApprove = async (finalizedEmployeeId) => {
     try {
       const res = await axios.patch(
@@ -61,7 +135,7 @@ const AdminDashboard = () => {
       alert("Failed to reject employee.");
     }
   };
-  
+
   const handleDelete = async (finalizedEmployeeId) => {
     try {
       const res = await axios.delete(
@@ -107,10 +181,16 @@ const AdminDashboard = () => {
   return (
     <div className="flex min-h-screen bg-gray-100 relative">
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg flex-shrink-0">
+      <aside className="w-72 bg-white shadow-lg flex-shrink-0 overflow-y-auto">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Admin Dashboard</h2>
         </div>
+
+        {/* Org Hierarchy Tree */}
+        <div className="px-6 py-4 border-b border-gray-200">
+          <HierarchyTree />
+        </div>
+
         <nav className="px-6 py-4 space-y-2">
           <button
             onClick={() => navigate("/DraftDashboard")}
@@ -119,14 +199,12 @@ const AdminDashboard = () => {
             Move to Drafts
           </button>
 
-           <button
+          <button
             onClick={() => navigate("/register-employee")}
             className="w-full text-left px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
           >
             Register Employee
           </button>
-
-
         </nav>
       </aside>
 
@@ -166,19 +244,23 @@ const AdminDashboard = () => {
                       {emp.personalEmail || emp.officialEmail}
                     </p>
                     <p className="text-xs text-gray-400">ID: {emp.UserId}</p>
-                    <p className="text-xs text-gray-400">Database Id: {emp._id}</p>
-                    <p className="text-xs text-gray-400">Organization Id: {emp.OrganizationId} </p>
-                  
+                    <p className="text-xs text-gray-400">
+                      Database Id: {emp._id}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Organization Id: {emp.OrganizationId}
+                    </p>
+
                     <p className="text-xs text-gray-400">
                       Created: {new Date(emp.createdAt).toLocaleDateString()}
                     </p>
                   </div>
 
                   <div>
-                    <p className=" ml-12 text-xs text-gray-600">
+                    <p className="ml-12 text-xs text-gray-600">
                       Role: {emp.role}
                     </p>
-                    <p className=" ml-12 text-xs text-gray-600">
+                    <p className="ml-12 text-xs text-gray-600">
                       <strong>
                         Decision: {emp.profileStatus?.decision || "N/A"}
                       </strong>
@@ -277,7 +359,6 @@ const AdminDashboard = () => {
 
             {/* Profile Details */}
             <div className="grid grid-cols-2 gap-6 text-sm text-gray-700">
-
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">
                   Personal Details
@@ -290,13 +371,18 @@ const AdminDashboard = () => {
                 <p>Govt ID: {profileView.govtId || "N/A"}</p>
                 <p>Passport No: {profileView.passportNo || "N/A"}</p>
                 <p>Personal Email: {profileView.personalEmail}</p>
-                <p>Password: {profileView.password || "Profile not approved yet."} </p>
-
+                <p>
+                  Password:{" "}
+                  {profileView.password || "Profile not approved yet."}
+                </p>
               </div>
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Address</h3>
-                <p>{profileView.address?.houseNo}, {profileView.address?.addressLine}</p>
+                <p>
+                  {profileView.address?.houseNo},{" "}
+                  {profileView.address?.addressLine}
+                </p>
                 <p>
                   {profileView.address?.city}, {profileView.address?.state}{" "}
                   {profileView.address?.country}
@@ -307,21 +393,27 @@ const AdminDashboard = () => {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Employment</h3>
                 <p>Status: {profileView.employmentStatus}</p>
-                <p>Joining: {new Date(profileView.tenure?.joining).toLocaleDateString()}</p>
-                <p>Confirmation: {profileView.tenure?.confirmation ? new Date(profileView.tenure.confirmation).toLocaleDateString() : "N/A"}</p>
+                <p>
+                  Joining:{" "}
+                  {new Date(profileView.tenure?.joining).toLocaleDateString()}
+                </p>
+                <p>
+                  Confirmation:{" "}
+                  {profileView.tenure?.confirmation
+                    ? new Date(profileView.tenure.confirmation).toLocaleDateString()
+                    : "N/A"}
+                </p>
               </div>
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Salary</h3>
                 <p>Type: {profileView.salary?.type}</p>
                 <p>Amount: {profileView.salary?.amount}</p>
-                <p>Start Date: {new Date(profileView.salary?.startDate).toLocaleDateString()}</p>
+                <p>
+                  Start Date:{" "}
+                  {new Date(profileView.salary?.startDate).toLocaleDateString()}
+                </p>
               </div>
-
-              {/* <div>
-            
-              </div> */}
-
             </div>
           </div>
         </div>
