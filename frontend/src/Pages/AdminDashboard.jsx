@@ -1,106 +1,57 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
-/**
- * Recursive Tree Node component
- * Renders a node (like Chairman, Division, etc.) and its children
- */
-const TreeNode = ({ node, childrenNodes }) => {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="ml-4">
-      {/* Node Label */}
-      <div
-        onClick={() => setExpanded(!expanded)}
-        className="cursor-pointer flex items-center space-x-2 hover:text-blue-600"
-      >
-        {/* Expand/Collapse Toggle */}
-        {childrenNodes.length > 0 && (
-          <span className="text-xs">{expanded ? "▼" : "▶"}</span>
-        )}
-        <span>{node.name}</span>
-      </div>
-
-      {/* Render Children if expanded */}
-      {expanded && (
-        <div className="ml-4 border-l border-gray-300 pl-2">
-          {childrenNodes.map((child) => (
-            <TreeNode
-              key={child._id}
-              node={child}
-              childrenNodes={child.children || []}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-/**
- * Hierarchy Tree Component
- * Fetches all org units and builds a nested tree
- */
-const HierarchyTree = () => {
-  const [treeData, setTreeData] = useState([]);
-
-  useEffect(() => {
-    const fetchTree = async () => {
-      try {
-        const res = await axios.get("http://localhost:3000/api/getOrgUnits");
-        setTreeData(res.data); // The backend will return the hierarchy tree
-      } catch (err) {
-        console.error("Failed to fetch hierarchy:", err);
-      }
-    };
-    fetchTree();
-  }, []);
-
-  return (
-    <div>
-      <h3 className="text-lg font-bold mb-2">Org Hierarchy</h3>
-      {treeData.length === 0 ? (
-        <p className="text-sm text-gray-500">No hierarchy available</p>
-      ) : (
-        treeData.map((node) => (
-          <TreeNode
-            key={node._id}
-            node={node}
-            childrenNodes={node.children || []}
-          />
-        ))
-      )}
-    </div>
-  );
-};
+import { HierarchyTree } from "../components/HieararchyTree";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [finalizedEmployees, setFinalizedEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [profileView, setProfileView] = useState(null);
 
-  // Fetch finalized employees
+  // Fetch finalized employees on mount
   useEffect(() => {
-    const fetchFinalizedEmployees = async () => {
-      try {
-        const res = await axios.get(
-          "http://localhost:3000/api/employees/allfinalized"
-        );
-        setFinalizedEmployees(res.data.data || []);
-      } catch (error) {
-        console.error("Failed to fetch finalized employees:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFinalizedEmployees();
+    handleAllEmployees();
   }, []);
 
-  // approve/reject/delete/profileView handlers
+  // Fetch ALL employees
+  const handleAllEmployees = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(
+        "http://localhost:3000/api/employees/allfinalized"
+      );
+      setFinalizedEmployees(res.data.data || []);
+    } catch (error) {
+      console.error("Failed to fetch finalized employees:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch employees for a node
+  const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
+    try {
+      setLoading(true);
+
+      if (!orgUnit.parent || isLeaf) {
+        const res = await axios.get(
+          `http://localhost:3000/api/getorgUnit/${orgUnit._id}`
+        );
+        setFinalizedEmployees(res.data.employees || []);
+      } else {
+        // intermediate node → clear
+        setFinalizedEmployees([]);
+      }
+    } catch (err) {
+      console.error("Error fetching employees for node:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Approve employee
   const handleApprove = async (finalizedEmployeeId) => {
     try {
       const res = await axios.patch(
@@ -111,7 +62,6 @@ const AdminDashboard = () => {
         setFinalizedEmployees((prev) =>
           prev.filter((e) => e._id !== finalizedEmployeeId)
         );
-        window.location.reload();
       }
     } catch (error) {
       console.error(error);
@@ -119,6 +69,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // Reject employee
   const handleReject = async (finalizedEmployeeId) => {
     try {
       const res = await axios.delete(
@@ -136,6 +87,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // Delete employee
   const handleDelete = async (finalizedEmployeeId) => {
     try {
       const res = await axios.delete(
@@ -153,6 +105,7 @@ const AdminDashboard = () => {
     }
   };
 
+  // Profile view
   const handleProfileView = async (finalizedEmployeeId) => {
     try {
       const res = await axios.get(
@@ -181,15 +134,23 @@ const AdminDashboard = () => {
   return (
     <div className="flex min-h-screen bg-gray-100 relative">
       {/* Sidebar */}
-      <aside className="w-72 bg-white shadow-lg flex-shrink-0 overflow-y-auto">
+      <aside className="w-72 bg-gray-300 shadow-lg flex-shrink-0 overflow-y-auto">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Admin Dashboard</h2>
         </div>
 
         {/* Org Hierarchy Tree */}
         <div className="px-6 py-4 border-b border-gray-200">
-          <HierarchyTree />
+          <HierarchyTree onNodeSelect={fetchEmployeesByNode} />
         </div>
+
+        {/* Show all employees button */}
+        <button
+          onClick={handleAllEmployees}
+          className="w-[80%]  text-xs px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors ml-8 mt-8"
+        >
+          Show All Employees
+        </button>
 
         <nav className="px-6 py-4 space-y-2">
           <button
@@ -210,12 +171,12 @@ const AdminDashboard = () => {
 
       {/* Main Content */}
       <main className="flex-1 p-6 overflow-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">
-          Finalized Employees
-        </h1>
 
-        {finalizedEmployees.length === 0 ? (
-          <div className="text-gray-500 text-lg">No finalized employees.</div>
+       <h1 className="text-3xl font-bold text-gray-900 mb-6">Employees</h1>
+        {loading ? (
+          <div className="text-gray-600">Loading employees...</div>
+        ) : finalizedEmployees.length === 0 ? (
+          <div className="text-gray-500 text-lg">No employees to show.</div>
         ) : (
           <div className="space-y-4">
             {finalizedEmployees.map((emp) => (

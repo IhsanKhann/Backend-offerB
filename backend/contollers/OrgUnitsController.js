@@ -1,4 +1,6 @@
 import { OrgUnitModel } from "../models/OrgUnit.js";
+import EmployeeModel from "../models/Employee.model.js";
+
 /**
  * Helper: Build tree recursively
  */
@@ -38,3 +40,34 @@ export const createOrgUnit = async (req, res) => {
   }
 };
 
+// ✅ Fetch employees of a specific hierarchy node (last node reached)
+export const getEmployeesByNode = async (req, res) => {
+  try {
+    const { orgUnitId } = req.params;
+
+    if (!orgUnitId) {
+      return res.status(400).json({
+        success: false,
+        message: "❌ orgUnitId is required to fetch employees",
+      });
+    }
+
+    // 🔎 Find employees belonging to that node only
+    const employees = await EmployeeModel.find({ OrgUnit: orgUnitId })
+      .populate("role", "name permissions") // optional: role info
+      .populate("OrgUnit", "name parent");   // optional: orgUnit info
+
+    return res.status(200).json({
+      success: true,
+      count: employees.length,
+      employees,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching employees by node:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching employees",
+      error: error.message,
+    });
+  }
+};
