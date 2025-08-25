@@ -24,10 +24,10 @@ const generatePassword = () => Math.random().toString(36).slice(-8);
 const hashPassword = async (password) => await bcrypt.hash(password, 10);
 const toDate = (val) => (val ? new Date(val) : undefined);
 
-const generateOrganizationId = (finalizedEmployee, UserId) => {
+const generateOrganizationId = (finalizedEmployee) => {
   const userName = finalizedEmployee.individualName;
 
-  const organizationId = userName + UserId;
+  const organizationId = userName + finalizedEmployee.UserId;
   return organizationId;
 };
 
@@ -500,8 +500,7 @@ export const ApproveEmployee = async (req, res) => {
     const passwordHash = await hashPassword(tempPassword);
 
     // generate the organization id..
-    const finalizedEmployee = finalizedEmployee.UserId;
-    const organizationId  = generateOrganizationId(finalizedEmployee, id);
+    const organizationId  = generateOrganizationId(finalizedEmployee);
 
     // 1️⃣ Update finalized employee
     finalizedEmployee.profileStatus.decision = "Approved";
