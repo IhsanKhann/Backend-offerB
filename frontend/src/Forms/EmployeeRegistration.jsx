@@ -17,7 +17,7 @@ export default function EmployeeRegistrationForm() {
     shouldUnregister: false, // ✅ keeps values across steps
   });
   const [avatar, setAvatar] = useState(null);
-  const [UserId, setUserId] = useState("");
+
   // const [attachmentSalary, setAttachmentSalary] = useState("");
 
   const dispatch = useDispatch();
@@ -46,7 +46,6 @@ const OnSubmit = async (data) => {
   const employeeFormData = new FormData();
 
   // Core fields
-  employeeFormData.append("UserId", UserId || "");
   employeeFormData.append("individualName", data.individualName);
   employeeFormData.append("fatherName", data.fatherName);
   employeeFormData.append("qualification", data.qualification || "");
@@ -95,7 +94,7 @@ const OnSubmit = async (data) => {
   dispatch(
     setEmployeeFormData({
       ...data,
-      employeeId: data.UserId || UserId,
+      employeeId: data._id ,
       avatar: avatar ? { name: avatar.name, type: avatar.type, size: avatar.size } : null,
     })
   );
@@ -119,11 +118,6 @@ const OnSubmit = async (data) => {
     alert("Failed to register employee: " + error.message);
   }
 };
-
-const handleAutomatic_ID_Generation = () => {
-  const id = Math.random().toString(36).substring(2, 8).toUpperCase();
-  setUserId(id);
-}
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
@@ -277,17 +271,7 @@ const handleAutomatic_ID_Generation = () => {
           {/* STEP 3 */}
           {step === 3 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">User ID (click to generate) </label>
-                <input placeholder="Enter employee ID"
-                value={UserId}
-                onClick={handleAutomatic_ID_Generation} 
-                readOnly
-                className="input" 
-                {...register("UserId")} 
-                // randomly generate id and save it to the database. show that id.
-                />
-              </div>
+     
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-gray-700">Organization Name</label>
                 <input placeholder="Enter organization name" className="input" {...register("employmentHistory.orgName")} />

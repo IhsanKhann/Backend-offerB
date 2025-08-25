@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const roleSchema = new mongoose.Schema(
   {
-    UserId: {
+    employeeId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
     }, // comes from the employee..

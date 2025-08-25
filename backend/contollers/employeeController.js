@@ -7,8 +7,19 @@ import RoleModel from "../models/Role.model.js";
 import FinalizedEmployeeModel from "../models/FinalizedEmployees.model.js";
 import {OrgUnitModel} from "../models/OrgUnit.js";
 import { PermissionModel } from "../models/Permissions.model.js";
+import CounterModel from "../models/Counter.model.js";
 
 // --- helpers ----------------------------------------------------
+
+export const getNextUserId = async () => {
+  const counter = await CounterModel.findOneAndUpdate(
+    { name: "employee" },
+    { $inc: { seq: 1 } },
+    { upsert: true, new: true }
+  );
+  return counter.seq;
+};
+
 const generatePassword = () => Math.random().toString(36).slice(-8);
 const hashPassword = async (password) => await bcrypt.hash(password, 10);
 const toDate = (val) => (val ? new Date(val) : undefined);
@@ -229,7 +240,6 @@ export const RegisterEmployee = async (req, res) => {
 
     // ================= Extract fields =================
     const {
-      UserId,
       individualName,
       fatherName,
       qualification,
@@ -250,7 +260,6 @@ export const RegisterEmployee = async (req, res) => {
     } = req.body;
 
     console.log("📌 Parsed fields:", {
-      UserId,
       individualName,
       fatherName,
       dob,
@@ -264,7 +273,6 @@ export const RegisterEmployee = async (req, res) => {
 
     // ================= Fix Required Fields Validation =================
     if (
-      !UserId ||
       !individualName ||
       !fatherName ||
       !dob ||
@@ -290,7 +298,6 @@ export const RegisterEmployee = async (req, res) => {
       $or: [
         { officialEmail }, 
         { personalEmail }, 
-        { UserId },
         { govtId: govtId || null },
         { passportNo: passportNo || null },
         { alienRegNo: alienRegNo || null }
@@ -333,7 +340,6 @@ export const RegisterEmployee = async (req, res) => {
 
     // ================= Build Employee Object =================
     const employeeData = {
-      UserId,
       individualName,
       fatherName,
       qualification,
@@ -425,7 +431,7 @@ export const SubmitEmployee = async (req, res) => {
     await employee.save();
 
     // 4️⃣ Find assigned role (one per employee)
-    const assignedRole = await RoleModel.findOne({ UserId: employee._id });
+    const assignedRole = await RoleModel.findOne({ employeeId: employee._id });
     if (!assignedRole) {
       return res.status(400).json({
         success: false,
@@ -441,12 +447,16 @@ export const SubmitEmployee = async (req, res) => {
         .json({ success: false, message: "Invalid orgUnitId" });
     }
 
+    const UserId = await getNextUserId(); 
+    employee.UserId = UserId;
+    employee.save();
+
     // 6️⃣ Prepare finalized employee (only refs for role + orgUnit)
     const finalizedData = {
       ...employee.toObject(),
       role: assignedRole._id, // reference only
       orgUnit: orgUnit._id,   // reference only
-      UserId: employee.UserId || employee._id,
+      UserId: UserId,
       profileStatus: {
         submitted: true,
         decision: "Pending",
@@ -504,7 +514,7 @@ export const ApproveEmployee = async (req, res) => {
     finalizedEmployee.passwordHash = passwordHash;
     finalizedEmployee.password = tempPassword;
     finalizedEmployee.OrganizationId = organizationId;
-
+  
     await finalizedEmployee.save();
 
     // 2️⃣ Confirm assignment to OrgUnit
@@ -626,7 +636,7 @@ export const AssignEmployeePost = async (req, res) => {
 
     // Prevent duplicate role in same orgUnit
     const existing = await RoleModel.findOne({
-      UserId: employee._id,
+      employeeId: employee._id,
       roleName,
       orgUnit: orgUnitDoc._id,
     });
@@ -637,7 +647,7 @@ export const AssignEmployeePost = async (req, res) => {
 
     // Create Role
     const newRole = new RoleModel({
-      UserId: employee._id,
+      employeeId: employee._id,
       roleName,
       orgUnit: orgUnitDoc._id,
       permissions: permissionIds,

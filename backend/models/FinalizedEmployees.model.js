@@ -82,7 +82,7 @@ const profileStatusSchema = new mongoose.Schema({
 const finalizedEmployeeSchema = new mongoose.Schema(
   {
     // 1. Personal Details
-    UserId: { type: String, required: true}, //comes from the employee..
+    UserId: { type: String }, //comes from the employee..
     OrganizationId : {type: String}, 
     // this id is assigned when the employee is approved.
 
