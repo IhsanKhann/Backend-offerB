@@ -15,7 +15,7 @@ import {
 
     getSingleFinalizedEmployee,
     getFinalizedEmployees,
-    deleteFinalizedEmployee,
+    deleteEmployeeAndFinalized,
 
     resolveOrgUnit,
 
@@ -40,10 +40,10 @@ router.patch("/employees/approve/:finalizedEmployeeId", ApproveEmployee);
 router.delete("/employees/reject/:finalizedEmployeeId", RejectEmployee);
 
 // Delete finalized + draft together
-router.delete("/employees/delete/:finalizedEmployeeId", deleteFinalizedEmployee);
+router.delete("/employees/delete/:finalizedEmployeeId", deleteEmployeeAndFinalized);
 
 // Delete employee (not finalized)
-router.delete("/deleteEmployee/:id", deleteEmployee);
+router.delete("/deleteEmployee/:employeeId", deleteEmployee);
 
 // ✅ Specific dynamic before generic
 router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", getSingleFinalizedEmployee);

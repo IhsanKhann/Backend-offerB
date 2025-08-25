@@ -61,7 +61,7 @@ const AdminDashboard = () => {
       alert("Failed to reject employee.");
     }
   };
-
+  
   const handleDelete = async (finalizedEmployeeId) => {
     try {
       const res = await axios.delete(
@@ -167,7 +167,8 @@ const AdminDashboard = () => {
                     </p>
                     <p className="text-xs text-gray-400">ID: {emp.UserId}</p>
                     <p className="text-xs text-gray-400">Database Id: {emp._id}</p>
-
+                    <p className="text-xs text-gray-400">Organization Id: {emp.OrganizationId} </p>
+                  
                     <p className="text-xs text-gray-400">
                       Created: {new Date(emp.createdAt).toLocaleDateString()}
                     </p>
@@ -281,8 +282,9 @@ const AdminDashboard = () => {
                 <h3 className="font-semibold text-gray-900 mb-2">
                   Personal Details
                 </h3>
-                <p>Employee ID: {profileView.employeeId}</p>
+                <p>Employee ID: {profileView.UserId}</p>
                 <p>Database ID: {profileView._id} </p>
+                <p>Organization Id: {profileView.OrganizationId} </p>
                 <p>Father Name: {profileView.fatherName}</p>
                 <p>DOB: {new Date(profileView.dob).toLocaleDateString()}</p>
                 <p>Govt ID: {profileView.govtId || "N/A"}</p>

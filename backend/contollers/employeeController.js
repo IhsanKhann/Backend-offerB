@@ -13,6 +13,21 @@ const generatePassword = () => Math.random().toString(36).slice(-8);
 const hashPassword = async (password) => await bcrypt.hash(password, 10);
 const toDate = (val) => (val ? new Date(val) : undefined);
 
+const generateOrganizationId = (finalizedEmployee) => {
+  const userName = finalizedEmployee.individualName;
+
+  // Format DOB as YYYYMMDD (assuming dob is a Date object)
+  const dobObj = new Date(finalizedEmployee.dob);
+  const dobFormatted = `${dobObj.getFullYear()}${String(dobObj.getMonth() + 1).padStart(2, '0')}${String(dobObj.getDate()).padStart(2, '0')}`;
+
+  // Generate 6-digit random number
+  const randomSixDigit = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Combine all to create organization ID
+  const organizationId = userName + dobFormatted + randomSixDigit;
+  return organizationId;
+};
+
 const safeParse = (field, fieldName = "") => {
   try {
     return field ? JSON.parse(field) : undefined;
@@ -69,6 +84,7 @@ const normalizeTransfers = (arr) =>
         date: toDate(t.date),
       }))
     : [];
+
 
 // --------------------------- controllers -------------------------
 export const getAllEmployees = async (req, res) => {
@@ -135,37 +151,54 @@ export const getSingleEmployee = async (req, res) => {
 
 export const deleteEmployee = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { employeeId } = req.params;
+    if (!employeeId) return res.status(400).json({ success: false, message: "employeeId is required" });
 
-    // Find employee first (so we can access image info before deleting)
-    const employee = await EmployeeModel.findById(id);
+    const employee = await EmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
 
-    if (!employee) {
-      return res.status(404).json({ status: false, message: "Employee not found" });
+    // ---------------- Delete avatar from Cloudinary ----------------
+    if (employee.avatar?.public_id) {
+      try {
+        await destroyImageFromCloudinary(employee.avatar.public_id);
+      } catch (err) {
+        console.warn("Failed to delete Cloudinary image:", err.message);
+      }
     }
 
-    // Delete roles associated with employee
-    const postRemoved = await RoleModel.deleteMany({ employeeId: id });
+    // ---------------- Find and delete Role ----------------
+    const role = await RoleModel.findOne({ UserId: employee._id });
+    if (role) {
+      // Delete all permissions referenced by this role
+      if (role.permissions && role.permissions.length > 0) {
+        await PermissionModel.deleteMany({ _id: { $in: role.permissions } });
+      }
 
-    if (!postRemoved) {
-      return res.status(404).json({ status: false, message: "Roles not found" });
+      // Delete the role itself
+      await RoleModel.findByIdAndDelete(role._id);
+
+      // Remove OrgUnit reference inside Role (optional, since role is deleted)
+      if (role.orgUnit) {
+        await OrgUnitModel.findByIdAndUpdate(role.orgUnit, { $unset: { role: "" } });
+      }
     }
 
-    // Delete employee document
-    await EmployeeModel.findByIdAndDelete(id);
-
-    // Destroy image from Cloudinary if exists
-    if (employee.image && employee.image.public_id) {
-      await destroyImageFromCloudinary(employee.image.public_id);
+    // ---------------- Remove OrgUnit reference from employee ----------------
+    if (employee.OrgUnit) {
+      await EmployeeModel.findByIdAndUpdate(employee._id, { $unset: { OrgUnit: "" } });
     }
 
-    return res.status(200).json({
-      status: true,
-      message: "Employee and associated roles deleted successfully",
+    // ---------------- Delete Employee ----------------
+    await EmployeeModel.findByIdAndDelete(employee._id);
+
+    res.status(200).json({
+      success: true,
+      message: "Employee, role, permissions, OrgUnit references, and avatar deleted successfully",
     });
+
   } catch (error) {
-    console.error("Error deleting employee:", error);
-    return res.status(500).json({ status: false, message: "Server error" });
+    console.error("Delete Employee Error:", error);
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
   }
 };
 
@@ -463,12 +496,15 @@ export const ApproveEmployee = async (req, res) => {
     // 🔑 Generate password
     const tempPassword = generatePassword();
     const passwordHash = await hashPassword(tempPassword);
+    const organizationId  = generateOrganizationId(finalizedEmployee);
 
     // 1️⃣ Update finalized employee
     finalizedEmployee.profileStatus.decision = "Approved";
     finalizedEmployee.profileStatus.passwordCreated = true;
     finalizedEmployee.passwordHash = passwordHash;
     finalizedEmployee.password = tempPassword;
+    finalizedEmployee.OrganizationId = organizationId;
+
     await finalizedEmployee.save();
 
     // 2️⃣ Confirm assignment to OrgUnit
@@ -526,10 +562,6 @@ export const RejectEmployee = async (req, res) => {
     return res.status(500).json({ success: false, message: "Failed to reject employee" });
   }
 };
-
-
-
-
 
 // this is for getting the id of the orgunit and orgunit object..
 export const resolveOrgUnit = async (req, res) => {
@@ -721,47 +753,81 @@ export const getSingleFinalizedEmployee = async (req, res) => {
   }
 };
 
-export const deleteFinalizedEmployee = async (req, res) => {
+export const deleteEmployeeAndFinalized = async (req, res) => {
   try {
     const { finalizedEmployeeId } = req.params;
     if (!finalizedEmployeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "finalizedEmployeeId is required",
-      });
+      return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
     }
 
-    // Find finalized employee
-    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
-    if (!finalizedEmployee) {
-      return res.status(404).json({
-        success: false,
-        message: "FinalizedEmployee not found",
-      });
+    // ---------------- Delete Finalized Employee ----------------
+    const finalized = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
+    if (!finalized) {
+      return res.status(404).json({ success: false, message: "Finalized employee not found" });
     }
 
-    // // Get employeeId from finalized record
-    // const employeeId = finalizedEmployee.employeeId;
-    // if (employeeId) {
-    //   // Revert the original employee back to draft
-    //   await EmployeeModel.findByIdAndUpdate(employeeId, {
-    //     status: "draft",
-    //   });
-    // }
+    // Delete finalized avatar
+    if (finalized.avatar?.public_id) {
+      try { await destroyImageFromCloudinary(finalized.avatar.public_id); } 
+      catch (err) { console.warn("Failed to delete finalized image:", err.message); }
+    }
 
-    // Delete the finalized employee record
-    await FinalizedEmployeeModel.findByIdAndDelete(finalizedEmployeeId);
-    
-    return res.status(200).json({
-      success: true,
-      message: "FinalizedEmployee deleted and reverted back to draft",
+    // Delete finalized role & permissions
+    if (finalized.role) {
+      const finalizedRole = await RoleModel.findById(finalized.role);
+      if (finalizedRole) {
+        if (finalizedRole.permissions?.length)
+          await PermissionModel.deleteMany({ _id: { $in: finalizedRole.permissions } });
+        await RoleModel.findByIdAndDelete(finalizedRole._id);
+
+        if (finalizedRole.orgUnit)
+          await OrgUnitModel.findByIdAndUpdate(finalizedRole.orgUnit, { $unset: { role: "" } });
+      }
+    }
+
+    // Remove OrgUnit reference
+    if (finalized.OrgUnit)
+      await FinalizedEmployeeModel.findByIdAndUpdate(finalized._id, { $unset: { OrgUnit: "" } });
+
+    // ---------------- Delete Draft Employee (if exists) ----------------
+   const employee = await EmployeeModel.findOne({ UserId: finalized.UserId });
+    if (employee) {
+      // Delete avatar
+      if (employee.avatar?.public_id)
+        await destroyImageFromCloudinary(employee.avatar.public_id);
+
+      // Delete role & permissions
+      if (employee.role) {
+        const role = await RoleModel.findById(employee.role);
+        if (role) {
+          if (role.permissions?.length)
+            await PermissionModel.deleteMany({ _id: { $in: role.permissions } });
+          await RoleModel.findByIdAndDelete(role._id);
+
+          if (role.orgUnit)
+            await OrgUnitModel.findByIdAndUpdate(role.orgUnit, { $unset: { role: "" } });
+        }
+      }
+
+      // Remove OrgUnit reference
+      if (employee.OrgUnit)
+        await EmployeeModel.findByIdAndUpdate(employee._id, { $unset: { OrgUnit: "" } });
+
+      // Delete draft employee
+      await EmployeeModel.findByIdAndDelete(employee._id);
+    }
+
+    // Delete finalized employee
+    await FinalizedEmployeeModel.findByIdAndDelete(finalized._id);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Employee, finalized employee, avatars, roles, permissions, and OrgUnit references deleted successfully" 
     });
+
   } catch (error) {
-    console.error("🔥 DeleteFinalizedEmployee error:", error.stack || error.message);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete finalized employee",
-    });
+    console.error("🔥 deleteEmployeeAndFinalized error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to delete employee", error: error.message });
   }
 };
 

@@ -33,7 +33,7 @@ export const uploadFileToCloudinary = async (file, folder = "employees") => {
 export const destroyImageFromCloudinary = async (publicId) => {
   try {
     const result = await cloudinary.v2.uploader.destroy(publicId, {
-      resource_type: "auto",
+      resource_type: "image",
     });
 
     if (result.result !== "ok") {
