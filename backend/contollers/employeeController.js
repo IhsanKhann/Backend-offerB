@@ -2,6 +2,8 @@
 import mongoose from "mongoose";
 import EmployeeModel from "../models/Employee.model.js";
 import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
+
 import { uploadFileToCloudinary, destroyImageFromCloudinary } from "../utilis/cloudinary.js";
 import RoleModel from "../models/Role.model.js";
 import FinalizedEmployeeModel from "../models/FinalizedEmployees.model.js";
@@ -9,7 +11,48 @@ import {OrgUnitModel} from "../models/OrgUnit.js";
 import { PermissionModel } from "../models/Permissions.model.js";
 import CounterModel from "../models/Counter.model.js";
 
-// --- helpers ----------------------------------------------------
+// ------------helpers ---------------------
+
+const transporter = nodemailer.createTransport({
+  service: "gmail", // or 'outlook', 'yahoo', etc.
+  auth: {
+    user: process.env.EMAIL_USER, // your Gmail address
+    pass: process.env.EMAIL_PASS, // app password (not your normal Gmail password)
+  },
+});
+
+const SendEmail = async(finalizedEmployee) => {
+          // send email..
+    await transporter.sendMail({
+      from: `"HR Department" <${process.env.EMAIL_USER}>`,
+      to: finalizedEmployee.personalEmail, // ✅ send to personal email
+      subject: "Your Employment Has Been Approved",
+      text: `Dear ${finalizedEmployee.individualName},
+
+    Congratulations! Your registration has been approved.
+
+    Here are your login details:
+    - User ID: ${finalizedEmployee.UserId}
+    - Organization ID: ${finalizedEmployee.OrganizationId}
+    - Password: ${finalizedEmployee.password}
+
+    Please keep this information secure.`,
+
+      html: `
+        <p>Dear <b>${finalizedEmployee.individualName}</b>,</p>
+        <p>Congratulations! Your registration has been <b>approved</b>.</p>
+
+        <p><b>Here are your login details:</b></p>
+        <ul>
+          <li>User ID: <b>${finalizedEmployee.UserId}</b></li>
+          <li>Organization ID: <b>${finalizedEmployee.OrganizationId}</b></li>
+          <li>Password: <b>${finalizedEmployee.password}</b></li>
+        </ul>
+
+        <p><i>Please keep this information secure and do not share it with anyone.</i></p>
+      `,
+    });
+};
 
 export const getNextUserId = async () => {
   const counter = await CounterModel.findOneAndUpdate(
@@ -509,6 +552,10 @@ export const ApproveEmployee = async (req, res) => {
     finalizedEmployee.OrganizationId = organizationId;
     console.log(finalizedEmployee.passwordHash, finalizedEmployee.password, finalizedEmployee.OrganizationId);
   
+    // this will send the email to the email.
+    SendEmail(finalizedEmployee);
+    finalizedEmployee.emailSent = true;
+
     await finalizedEmployee.save();
 
     // 2️⃣ Confirm assignment to OrgUnit
