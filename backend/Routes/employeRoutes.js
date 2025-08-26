@@ -1,58 +1,55 @@
 import express from "express";
 import upload from "../middlewares/mutlerMiddleware.js";
+import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
+
 import {
     RegisterEmployee,
     ApproveEmployee,
     SubmitEmployee,
     RejectEmployee,
-
     AssignEmployeePost,
     getSingleEmployee,
     getSingleRole,
     getAllEmployees,
     getAllRoles,
     deleteEmployee,
-
     getSingleFinalizedEmployee,
     getFinalizedEmployees,
     deleteEmployeeAndFinalized,
-
     resolveOrgUnit,
-
 } from "../contollers/employeeController.js";
 
 const router = express.Router();
 
-// ✅ Static routes first
-router.get("/employees/allfinalized", getFinalizedEmployees);
-router.get("/getAllEmployees", getAllEmployees);
-router.get("/getAllRoles", getAllRoles);
-router.post("/employees/roles", AssignEmployeePost);
+// ✅ Global authentication
+router.use(authenticate);
 
-// Employee creation + submission
-router.post("/employees/register", upload.single("profileImage"), RegisterEmployee);
-// the file upload syntax added to the cloudinary..
+// 🔹 Employee Routes
+router.get("/employees/allfinalized", authorize("view_profiles"), getFinalizedEmployees);
 
-router.post("/submit-employee", SubmitEmployee);
+router.get("/getAllEmployees", authorize("view_profiles"), getAllEmployees);
 
-// Approve / Reject finalized employees
-router.patch("/employees/approve/:finalizedEmployeeId", ApproveEmployee);
-router.delete("/employees/reject/:finalizedEmployeeId", RejectEmployee);
+router.get("/getAllRoles", authorize("view_roles"), getAllRoles);
 
-// Delete finalized + draft together
-router.delete("/employees/delete/:finalizedEmployeeId", deleteEmployeeAndFinalized);
+router.post("/employees/roles", authorize("assign_roles"), AssignEmployeePost);
 
-// Delete employee (not finalized)
-router.delete("/deleteEmployee/:employeeId", deleteEmployee);
+router.post("/employees/register", authorize("create_employee"), upload.single("profileImage"), RegisterEmployee);
 
-// ✅ Specific dynamic before generic
-router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", getSingleFinalizedEmployee);
-router.get("/roles/:employeeId", getSingleRole);
+router.post("/submit-employee", authorize("submit_employee"), SubmitEmployee);
 
-// ✅ Generic dynamic route last
-router.get("/employees/:employeeId", getSingleEmployee);
+router.patch("/employees/approve/:finalizedEmployeeId", authorize("approve_employee"), ApproveEmployee);
 
-// orgUnit resolve routee..
-router.post("/org-units/resolve", resolveOrgUnit);
+router.delete("/employees/reject/:finalizedEmployeeId", authorize("reject_employee"), RejectEmployee);
+
+router.delete("/employees/delete/:finalizedEmployeeId", authorize("delete_finalized_employee"), deleteEmployeeAndFinalized);
+
+router.delete("/deleteEmployee/:employeeId", authorize("delete_employee"), deleteEmployee);
+
+router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", authorize("view_profiles"), getSingleFinalizedEmployee);
+router.get("/roles/:employeeId", authorize("view_roles"), getSingleRole);
+router.get("/employees/:employeeId", authorize("view_profiles"), getSingleEmployee);
+
+// 🔹 OrgUnit Route
+router.post("/org-units/resolve", authorize("resolve_orgunit"), resolveOrgUnit);
 
 export default router;

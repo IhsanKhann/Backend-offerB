@@ -1,4 +1,6 @@
 import express from "express";
+import { authenticate } from "../middlewares/authMiddlewares.js";
+
 import {
     addHierarchy,
     getHierarchy,

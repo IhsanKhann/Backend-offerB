@@ -1,5 +1,9 @@
 // models/finalizedEmployee.model.js
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+
+dotenv.config();
 
 const addressSchema = new mongoose.Schema({
   houseNo: { type: String },
@@ -95,8 +99,10 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     alienRegNo: { type: String },
 
     officialEmail: { type: String, required: true, lowercase: true, trim: true },
+    
     passwordHash: { type: String }, // system-generated
     password: {type:String },
+
     personalEmail: { type: String, required: true, lowercase: true, trim: true },
     previousOrgEmail: { type: String, lowercase: true, trim: true },
 
@@ -143,6 +149,10 @@ const finalizedEmployeeSchema = new mongoose.Schema(
 
     // 11. Final Submission Info
     profileStatus: { type: profileStatusSchema, default: () => ({}) },
+
+     refreshToken: {
+        type: String,
+      }
   },
   { timestamps: true }
 );
@@ -155,5 +165,51 @@ finalizedEmployeeSchema.pre("validate", function (next) {
   }
   next();
 });
+
+// automatically hashes the password..for register
+// finalizedEmployeeSchema.pre("save", async function (next) {
+//     if(!this.isModified("password")) return next();
+
+//     this.password = await bcrypt.hash(this.password, 10)
+//     next()
+// });
+
+finalizedEmployeeSchema.methods.comparePassword = async function(password){
+    return await bcrypt.compare(password, this.password)
+};
+
+finalizedEmployeeSchema.methods.generateAccessToken = function(){
+    console.log("Access Secret:", process.env.ACCESS_TOKEN_SECRET);
+    console.log("Access Expiry:",  process.env.ACCESS_TOKEN_EXPIRY);
+
+    
+    return jwt.sign(
+        {
+            _id: this._id,
+            email: this.personalEmail,
+            OrganizationId: this.OrganizationId,
+            UserId: this.UserId,
+            individualName: this.individualName
+        },
+       process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn:  process.env.ACCESS_TOKEN_EXPIRY
+        }
+    )
+};
+
+finalizedEmployeeSchema.methods.generateRefreshToken = function(){
+        return jwt.sign(
+        {
+            _id: this._id,
+            UserId: this.UserId,
+            OrganizationId: this.OrganizationId,
+        },
+      process.env.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+        }
+    )
+};
 
 export default mongoose.model("FinalizedEmployee", finalizedEmployeeSchema);
