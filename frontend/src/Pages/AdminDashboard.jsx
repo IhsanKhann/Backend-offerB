@@ -31,25 +31,30 @@ const AdminDashboard = () => {
   };
 
   // Fetch employees for a node
-  const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
-    try {
-      setLoading(true);
+// AdminDashboard.jsx
+const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
+  try {
+    setLoading(true);
 
-      if (!orgUnit.parent || isLeaf) {
-        const res = await axios.get(
-          `http://localhost:3000/api/getorgUnit/${orgUnit._id}`
-        );
-        setFinalizedEmployees(res.data.employees || []);
-      } else {
-        // intermediate node → clear
-        setFinalizedEmployees([]);
-      }
-    } catch (err) {
-      console.error("Error fetching employees for node:", err);
-    } finally {
-      setLoading(false);
+    if (isLeaf) {
+      // Fetch only if it's a leaf
+      const res = await axios.get(
+        `http://localhost:3000/api/getorgUnit/${orgUnit._id}`
+      );
+      setFinalizedEmployees(res.data.employees || []);
+    } else {
+      // Clear employees if intermediate node
+      setFinalizedEmployees([]);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching employees for node:", err);
+    setFinalizedEmployees([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   // Approve employee
   const handleApprove = async (finalizedEmployeeId) => {
