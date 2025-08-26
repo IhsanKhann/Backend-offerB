@@ -31,21 +31,15 @@ const AdminDashboard = () => {
   };
 
   // Fetch employees for a node
-// AdminDashboard.jsx
 const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
   try {
     setLoading(true);
 
-    if (isLeaf) {
-      // Fetch only if it's a leaf
-      const res = await axios.get(
-        `http://localhost:3000/api/getorgUnit/${orgUnit._id}`
-      );
-      setFinalizedEmployees(res.data.employees || []);
-    } else {
-      // Clear employees if intermediate node
-      setFinalizedEmployees([]);
-    }
+    // Fetch employees for any node (leaf or intermediate)
+    const res = await axios.get(
+      `http://localhost:3000/api/getorgUnit/${orgUnit._id}`
+    );
+    setFinalizedEmployees(res.data.employees || []);
   } catch (err) {
     console.error("Error fetching employees for node:", err);
     setFinalizedEmployees([]);

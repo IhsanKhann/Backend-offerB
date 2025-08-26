@@ -53,9 +53,9 @@ export const getEmployeesByNode = async (req, res) => {
     }
 
     // 🔎 Find employees belonging to that node only
-    const employees = await EmployeeModel.find({ OrgUnit: orgUnitId })
+    const employees = await EmployeeModel.find({ OrganizationId: orgUnitId })
       .populate("role", "name permissions") // optional: role info
-      .populate("OrgUnit", "name parent");   // optional: orgUnit info
+      .populate("OrganizationId", "name parent");   // optional: orgUnit infoit info
 
     return res.status(200).json({
       success: true,
@@ -69,5 +69,7 @@ export const getEmployeesByNode = async (req, res) => {
       message: "Server error while fetching employees",
       error: error.message,
     });
+  }
+};);
   }
 };
