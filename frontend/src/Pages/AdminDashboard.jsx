@@ -326,11 +326,13 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                   {profileView.individualName}
                 </h2>
                {/* Profile modal role */}
-                <p className="text-gray-600">
-                  Role name: {profileView.role?.roleName}
+                <p className="ml-12 text-xs text-gray-600">
+                  Role: {emp.role?.name || "N/A"}
                 </p>
-                <p className="text-gray-500">
-                  Permissions: {profileView.role?.permissions?.join(", ") || "None"}
+                <p className="ml-12 text-xs text-gray-600">
+                  Permissions: {emp.role?.permissions?.length
+                    ? emp.role.permissions.join(", ")
+                    : "No permissions"}
                 </p>
               <p className="text-gray-500">{profileView.officialEmail}</p>
               </div>

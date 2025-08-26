@@ -1,6 +1,7 @@
 import { OrgUnitModel } from "../models/OrgUnit.js";
 import EmployeeModel from "../models/Employee.model.js";
 import FinalizedEmployeesModel from "../models/FinalizedEmployees.model.js";
+import RoleModel from "../models/Role.model.js";
 
 /**
  * Helper: Build tree recursively
@@ -43,33 +44,34 @@ export const createOrgUnit = async (req, res) => {
 
 // ✅ Fetch employees of a specific hierarchy node (last node reached)
 // controller
-export const getEmployeesByNode = async (req, res) => {
+// Get employees for an OrgUnit (last level only)
+export const getEmployeesByOrgUnit = async (req, res) => {
   try {
     const { orgUnitId } = req.params;
 
     if (!orgUnitId) {
-      return res.status(400).json({
-        success: false,
-        message: "❌ orgUnitId is required to fetch employees",
-      });
+      return res.status(400).json({ success: false, message: "orgUnitId is required" });
     }
 
-    // match correct field name
-const employees = await FinalizedEmployeesModel.find({ orgUnit: orgUnitId })
-  .populate("role", "name permissions")
-  .populate("orgUnit", "name parent");
+    // ✅ Check if this OrgUnit is a leaf (no children)
+    const hasChildren = await OrgUnitModel.exists({ parentId: orgUnitId });
+    if (hasChildren) {
+      return res.status(200).json({ success: true, employees: [] }); 
+    }
 
-    return res.status(200).json({
-      success: true,
-      count: employees.length,
-      employees,
-    });
+    // ✅ Find roles linked to this orgUnit
+    const roles = await RoleModel.find({ orgUnit: orgUnitId }).populate("employeeId");
+
+    // ✅ Extract employees
+    const employees = roles.map(role => ({
+      roleName: role.roleName,
+      employee: role.employeeId, // populated FinalizedEmployee
+      permissions: role.permissions
+    }));
+
+    res.status(200).json({ success: true, employees });
   } catch (error) {
-    console.error("❌ Error fetching employees by node:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error while fetching employees",
-      error: error.message,
-    });
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
