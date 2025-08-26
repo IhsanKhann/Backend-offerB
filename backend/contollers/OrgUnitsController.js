@@ -70,6 +70,4 @@ export const getEmployeesByNode = async (req, res) => {
       error: error.message,
     });
   }
-};);
-  }
 };
