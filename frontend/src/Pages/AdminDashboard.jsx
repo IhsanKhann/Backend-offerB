@@ -224,22 +224,18 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
 
                   <div>
                     <p className="ml-12 text-xs text-gray-600">
-                      Role: {emp.role}
-                    </p>
-                    <p className="ml-12 text-xs text-gray-600">
                       <strong>
                         Decision: {emp.profileStatus?.decision || "N/A"}
                       </strong>
                     </p>
-                    {/* Employee card role */}
-                  <p className="ml-12 text-xs text-gray-600">
-                          Role name: {emp.role?.roleName || "N/A"}
-                        </p>
-                        <p className="ml-12 text-xs text-gray-600">
-                          Permissions: {Array.isArray(emp.role?.permissions) 
-                            ? emp.role.permissions.join(", ") 
-                            : "None"}
-                  </p>
+                    <p className="ml-12 text-xs text-gray-600">
+                      Role name: {emp.role?.roleName || "N/A"}
+                    </p>
+                    <p className="ml-12 text-xs text-gray-600">
+                      Permissions: {Array.isArray(emp.role?.permissions) 
+                        ? emp.role.permissions.join(", ") 
+                        : "None"}
+                    </p>
                   </div>
                 </div>
 

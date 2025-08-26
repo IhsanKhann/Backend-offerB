@@ -4,18 +4,19 @@ import FinalizedEmployeesModel from "../models/FinalizedEmployees.model.js";
 import RoleModel from "../models/Role.model.js";
 
 /**
- * Helper: Build tree recursively
+ * Helper: Build tree recursively -> call itself inside it.
  */
 const buildTree = (units, parentId = null) => {
+  // filter gives me a unit
   return units
     .filter(
-      (u) => String(u.parent) === String(parentId) || (!u.parent && !parentId)
+      (unit) => String(unit.parent) === String(parentId) || (!unit.parent && !parentId)
     )
-    .map((u) => ({
-      _id: u._id,
-      name: u.name,
-      parent: u.parent,
-      children: buildTree(units, u._id),
+    .map((unit) => ({
+      _id: unit._id,
+      name: unit.name,
+      parent: unit.parent,
+      children: buildTree(units, unit._id),
     }));
 };
 
@@ -42,36 +43,34 @@ export const createOrgUnit = async (req, res) => {
   }
 };
 
-// ✅ Fetch employees of a specific hierarchy node (last node reached)
-// controller
-// Get employees for an OrgUnit (last level only)
+const getDescendantUnitIds = async (parentId) => {
+  const children = await OrgUnitModel.find({ parent: parentId }).lean();
+  let ids = children.map((c) => c._id);
+
+  for (let child of children) {
+    const childDescendants = await getDescendantUnitIds(child._id);
+    ids = ids.concat(childDescendants);
+  }
+  return ids;
+};
+
 export const getEmployeesByOrgUnit = async (req, res) => {
   try {
     const { orgUnitId } = req.params;
 
-    if (!orgUnitId) {
-      return res.status(400).json({ success: false, message: "orgUnitId is required" });
-    }
+    // collect all relevant unitIds
+    let orgUnitIds = [orgUnitId];
+    const descendants = await getDescendantUnitIds(orgUnitId);
+    orgUnitIds = orgUnitIds.concat(descendants);
 
-    // ✅ Check if this OrgUnit is a leaf (no children)
-    const hasChildren = await OrgUnitModel.exists({ parentId: orgUnitId });
-    if (hasChildren) {
-      return res.status(200).json({ success: true, employees: [] }); 
-    }
+    // now fetch employees whose orgUnit is in any of those IDs
+    const employees = await FinalizedEmployeesModel.find({
+      orgUnit: { $in: orgUnitIds }
+    }).populate("role orgUnit");
 
-    // ✅ Find roles linked to this orgUnit
-    const roles = await RoleModel.find({ orgUnit: orgUnitId }).populate("employeeId");
-
-    // ✅ Extract employees
-    const employees = roles.map(role => ({
-      roleName: role.roleName,
-      employee: role.employeeId, // populated FinalizedEmployee
-      permissions: role.permissions
-    }));
-
-    res.status(200).json({ success: true, employees });
-  } catch (error) {
-    console.error("Error fetching employees:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.json({ success: true, employees });
+  } catch (err) {
+    console.error("🔥 Error fetching employees by org unit:", err.message);
+    res.status(500).json({ success: false, message: "Failed to fetch employees" });
   }
 };

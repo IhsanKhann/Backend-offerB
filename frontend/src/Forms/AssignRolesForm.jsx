@@ -331,7 +331,7 @@ const handleSubmit = async (e) => {
       <div className=" flex flex-row gap-12 font-bold text-blue-600">
           <h2> Name of Employee: {employee?.individualName || "N/A" } </h2>
           <h2> Database ID: {employee?._id || "N/A" } </h2>
-          {/* this is the auto generated id for the employee.. */}
+          
       </div>
 
       {/* {assigning role..} */}

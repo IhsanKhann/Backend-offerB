@@ -572,7 +572,7 @@ export const resolveOrgUnit = async (req, res) => {
   try {
     const { office, group, division, department, branch, cell, desk } = req.body;
 
-    // Build path
+    // Build path..
     const levels = [office, group, division, department, branch, cell, desk].filter(Boolean);
 
     let parent = null;
@@ -836,8 +836,6 @@ export const deleteEmployeeAndFinalized = async (req, res) => {
 };
 
 
-// to do: edit all the controllers according to the..new forms and new fields..
-// modify the flow,add the new fields, remove the old fields..
 // handle edit..
 // add the file attachements step: (file attachements in the specific step)..
 
