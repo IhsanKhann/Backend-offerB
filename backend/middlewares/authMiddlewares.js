@@ -1,7 +1,8 @@
 import jwt from "jsonwebtoken";
-import FinalizedEmployee from "../models/FinalizedEmployees.model";
+import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
 import RoleModel from "../models/Role.model.js";
-import OrgUnitModel from "../models/OrgUnit.js";
+import {OrgUnitModel} from "../models/OrgUnit.js";
+import dotenv from "dotenv";
 
 dotenv.config();
 

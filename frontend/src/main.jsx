@@ -1,10 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+
 import HomePage from "./Pages/HomePage.jsx";
 import EmployeeRegistrationForm from "./Forms/EmployeeRegistration.jsx";
 import AssignRolesForm from "./Forms/AssignRolesForm.jsx";
 import AdminDashboard from "./Pages/AdminDashboard.jsx";
+import LoginPage from "./Pages/loginPage.jsx";
 
 import "./index.css";
 
@@ -20,6 +22,10 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <HomePage />,
+  },
+  {
+    path: "/login",
+    element: <LoginPage />
   },
   {
     path: "/register-employee",
@@ -40,7 +46,8 @@ const router = createBrowserRouter([
   {
     path: "/admin/dashboard",
     element: <AdminDashboard />
-  }
+  },
+  
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(

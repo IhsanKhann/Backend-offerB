@@ -7,6 +7,7 @@ import connectDB from "./connection/index.js";
 import employeeRouter from "./Routes/employeRoutes.js";
 import HierarchyRouter from "./Routes/HiearchyRoutes.js";
 import orgUnitsRouter from "./Routes/orgUnitsRoutes.js";
+import AuthRouter from "./Routes/authRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -36,6 +37,7 @@ app.get("/api/hello", (req, res) => {
 app.use("/api", employeeRouter);
 app.use("/api", HierarchyRouter);
 app.use("/api", orgUnitsRouter);
+app.use("/api", AuthRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

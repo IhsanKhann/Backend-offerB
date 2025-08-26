@@ -1,5 +1,7 @@
 // login,  logout.
 import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
+import dotenv from "dotenv";
+
 dotenv.config();
 
 export const generateAccessAndRefreshTokens = async(userId) => {
