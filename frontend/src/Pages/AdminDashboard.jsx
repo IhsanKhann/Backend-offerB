@@ -233,10 +233,12 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                     </p>
                     {/* Employee card role */}
                   <p className="ml-12 text-xs text-gray-600">
-                    Role name: {emp.role.roleName}
-                  </p>
-                  <p className="ml-12 text-xs text-gray-600">
-                    Permissions: {emp.role?.permissions?.join(", ") || "None"}
+                          Role name: {emp.role?.roleName || "N/A"}
+                        </p>
+                        <p className="ml-12 text-xs text-gray-600">
+                          Permissions: {Array.isArray(emp.role?.permissions) 
+                            ? emp.role.permissions.join(", ") 
+                            : "None"}
                   </p>
                   </div>
                 </div>
@@ -326,14 +328,14 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                   {profileView.individualName}
                 </h2>
                {/* Profile modal role */}
-                <p className="ml-12 text-xs text-gray-600">
-                  Role: {emp.role?.name || "N/A"}
-                </p>
-                <p className="ml-12 text-xs text-gray-600">
-                  Permissions: {emp.role?.permissions?.length
-                    ? emp.role.permissions.join(", ")
-                    : "No permissions"}
-                </p>
+             <p className="ml-12 text-xs text-gray-600">
+                Role: {profileView.role?.roleName || "N/A"}
+              </p>
+              <p className="ml-12 text-xs text-gray-600">
+                Permissions: {Array.isArray(profileView.role?.permissions)
+                  ? profileView.role.permissions.join(", ")
+                  : "No permissions"}
+              </p>
               <p className="text-gray-500">{profileView.officialEmail}</p>
               </div>
             </div>
