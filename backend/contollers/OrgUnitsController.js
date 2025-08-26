@@ -1,5 +1,6 @@
 import { OrgUnitModel } from "../models/OrgUnit.js";
 import EmployeeModel from "../models/Employee.model.js";
+import FinalizedEmployeesModel from "../models/FinalizedEmployees.model.js";
 
 /**
  * Helper: Build tree recursively
@@ -41,6 +42,7 @@ export const createOrgUnit = async (req, res) => {
 };
 
 // ✅ Fetch employees of a specific hierarchy node (last node reached)
+// controller
 export const getEmployeesByNode = async (req, res) => {
   try {
     const { orgUnitId } = req.params;
@@ -52,10 +54,10 @@ export const getEmployeesByNode = async (req, res) => {
       });
     }
 
-    // 🔎 Find employees belonging to that node only
-    const employees = await EmployeeModel.find({ OrgUnit: orgUnitId })
-      .populate("role", "name permissions") // optional: role info
-      .populate("OrgUnit", "name parent");   // optional: orgUnit info
+    // match correct field name
+const employees = await FinalizedEmployeesModel.find({ orgUnit: orgUnitId })
+  .populate("role", "name permissions")
+  .populate("orgUnit", "name parent");
 
     return res.status(200).json({
       success: true,

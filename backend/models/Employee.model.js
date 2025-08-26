@@ -130,9 +130,9 @@ const employeeSchema = new mongoose.Schema(
 
     role: {
       type: mongoose.Schema.Types.ObjectId, 
-      ref: "Role",
+      ref: "roles",
     },
-    OrgUnit: {
+    orgUnit: {
       type: mongoose.Schema.Types.ObjectId, 
       ref: "OrgUnit",
     },

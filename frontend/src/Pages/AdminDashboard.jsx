@@ -38,7 +38,7 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
 
     // Fetch employees for any node (leaf or intermediate)
     const res = await axios.get(
-      `http://localhost:3000/api/employees/by-node/${orgUnit._id}`
+      `http://localhost:3000/api/getorgUnit/${orgUnit._id}`
     );
     
     if (res.data.success) {
@@ -55,8 +55,6 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
     setLoading(false);
   }
 };
-
-
 
   // Approve employee
   const handleApprove = async (finalizedEmployeeId) => {
@@ -233,6 +231,13 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                         Decision: {emp.profileStatus?.decision || "N/A"}
                       </strong>
                     </p>
+                    {/* Employee card role */}
+                  <p className="ml-12 text-xs text-gray-600">
+                    Role name: {emp.role.roleName}
+                  </p>
+                  <p className="ml-12 text-xs text-gray-600">
+                    Permissions: {emp.role?.permissions?.join(", ") || "None"}
+                  </p>
                   </div>
                 </div>
 
@@ -320,8 +325,14 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                 <h2 className="text-2xl font-bold text-gray-900">
                   {profileView.individualName}
                 </h2>
-                <p className="text-gray-600">{profileView.role}</p>
-                <p className="text-gray-500">{profileView.officialEmail}</p>
+               {/* Profile modal role */}
+                <p className="text-gray-600">
+                  Role name: {profileView.role?.roleName}
+                </p>
+                <p className="text-gray-500">
+                  Permissions: {profileView.role?.permissions?.join(", ") || "None"}
+                </p>
+              <p className="text-gray-500">{profileView.officialEmail}</p>
               </div>
             </div>
 

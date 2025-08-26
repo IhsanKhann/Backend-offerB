@@ -9,7 +9,7 @@ const OrgUnitSchema = new mongoose.Schema({
   },
   role: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Role", // role assigned to this unit
+    ref: "roles", // role assigned to this unit
     required: false
   }
 }, { timestamps: true });
