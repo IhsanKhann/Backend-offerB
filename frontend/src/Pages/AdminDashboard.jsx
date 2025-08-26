@@ -34,12 +34,20 @@ const AdminDashboard = () => {
 const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
   try {
     setLoading(true);
+    console.log("Fetching employees for node:", orgUnit.name, "ID:", orgUnit._id);
 
     // Fetch employees for any node (leaf or intermediate)
     const res = await axios.get(
-      `http://localhost:3000/api/getorgUnit/${orgUnit._id}`
+      `http://localhost:3000/api/employees/by-node/${orgUnit._id}`
     );
-    setFinalizedEmployees(res.data.employees || []);
+    
+    if (res.data.success) {
+      setFinalizedEmployees(res.data.employees || []);
+      console.log(`Found ${res.data.employees.length} employees for node: ${orgUnit.name}`);
+    } else {
+      console.log("No employees found for this node");
+      setFinalizedEmployees([]);
+    }
   } catch (err) {
     console.error("Error fetching employees for node:", err);
     setFinalizedEmployees([]);

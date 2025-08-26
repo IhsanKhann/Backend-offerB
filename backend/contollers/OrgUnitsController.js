@@ -53,9 +53,9 @@ export const getEmployeesByNode = async (req, res) => {
     }
 
     // 🔎 Find employees belonging to that node only
-    const employees = await EmployeeModel.find({ OrganizationId: orgUnitId })
+    const employees = await EmployeeModel.find({ OrgUnit: orgUnitId })
       .populate("role", "name permissions") // optional: role info
-      .populate("OrganizationId", "name parent");   // optional: orgUnit infoit info
+      .populate("OrgUnit", "name parent");   // optional: orgUnit info
 
     return res.status(200).json({
       success: true,
