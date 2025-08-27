@@ -342,7 +342,7 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                 <h3 className="font-semibold text-gray-900 mb-2">
                   Personal Details
                 </h3>
-                <p>Employee ID: {profileView.UserId}</p>
+                <p>UserID: {profileView.UserId}</p>
                 <p>Database ID: {profileView._id} </p>
                 <p>Organization Id: {profileView.OrganizationId} </p>
                 <p>Father Name: {profileView.fatherName}</p>

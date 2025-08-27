@@ -54,7 +54,8 @@ const SendEmail = async(finalizedEmployee) => {
     });
 };
 
-export const getNextUserId = async () => {
+//counter id - organizationId
+export const getNextOrganizationId = async () => {
   const counter = await CounterModel.findOneAndUpdate(
     { name: "employee" },
     { $inc: { seq: 1 } },
@@ -484,7 +485,7 @@ export const SubmitEmployee = async (req, res) => {
         .json({ success: false, message: "Invalid orgUnitId" });
     }
 
-    const OrganizationId = await getNextUserId(); 
+    const OrganizationId = await getNextOrganizationId(); 
     employee.OrganizationId = OrganizationId;
     employee.save();
 
@@ -545,7 +546,7 @@ export const ApproveEmployee = async (req, res) => {
     const passwordHash = await hashPassword(tempPassword);
 
     // generate the organization id..
-    const UserId  = generateOrganizationId(finalizedEmployee);
+    const UserId  = generateUserId(finalizedEmployee);
 
     // 1️⃣ Update finalized employee
     finalizedEmployee.profileStatus.decision = "Approved";

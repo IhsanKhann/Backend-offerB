@@ -46,12 +46,12 @@ function HomePage() {
           </h1>
           <p className="text-gray-600 text-lg">{message || "Loading welcome message..."}</p>
 
-        <button
+        {/* <button
           onClick={handleLogout}
           className="w-64 mt-4 bg-red-500 text-white py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-200"
         >
           Logout
-        </button>
+        </button> */}
 
         </div>
 

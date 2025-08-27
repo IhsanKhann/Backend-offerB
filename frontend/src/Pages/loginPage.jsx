@@ -21,7 +21,7 @@ const LoginPage = () => {
         { UserId, email, password },
         { withCredentials: true }
       );
-       console.log(organizationId,email,password)
+       console.log(UserId,email,password)
       setMessage(response.data.message);
       setLoading(false);
 
