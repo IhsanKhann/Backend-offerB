@@ -1,6 +1,7 @@
 // login,  logout.
 import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
 import dotenv from "dotenv";
+import bcrypt from "bcrypt";
 
 dotenv.config();
 
@@ -8,11 +9,12 @@ export const generateAccessAndRefreshTokens = async(userId) => {
 
     if(!userId) throw new Error("User id is required");
 
-    const user = await FinalizedEmployee.findOne({OrganizationId:userId});
+    const user = await FinalizedEmployee.findById(userId);
+
     if(!user) throw new Error("User not found");
 
-    const accessToken = await FinalizedEmployee.generateAccessToken();
-    const refreshToken = await FinalizedEmployee.generateRefreshToken();
+    const accessToken = await user.generateAccessToken();
+    const refreshToken = await user.generateRefreshToken();
 
     user.refreshToken = refreshToken;
     await user.save({validateBeforeSave: false});
@@ -21,98 +23,97 @@ export const generateAccessAndRefreshTokens = async(userId) => {
 };
 
 export const loginUser = async (req, res) => { 
-    try{
-        const { organizationId, Email, password } = req.body;
-        if(!organizationId || !password || !Email){
+    try {
+        const { organizationId, email, password } = req.body;
+
+        if (!organizationId || !email || !password) {
             return res.status(400).json({
                 status: false,
                 message: "OrganizationId, Email and password are required",
-            })
+            });
         }
-    
-        // find in the db
+
         const user = await FinalizedEmployee.findOne({
-            $or:[{organizationId},{Email}]
+            OrganizationId: organizationId,
+            personalEmail: email,
         });
 
-        if(!user){
-            return res.status(400).json({
-                status: false,
-                message:  "user not found",
-            })
+        if (!user) {
+            return res.status(404).json({ status: false, message: "User not found" });
         }
 
-        // compare passwords:
-        const isPasswordValid = await FinalizedEmployee.comparePassword(password);
-        if(!isPasswordValid){
-            return res.status(400).json({
-                status: false,
-                message: "Invalid password",
-            })
+        const isPasswordValid = await user.comparePassword(password);
+        if (!isPasswordValid) {
+            return res.status(400).json({ status: false, message: "Invalid password" });
         }
 
-        // generate tokens and send them back in cookies (http only cookies.)
-        // now we give back the user and tokens back. Tokens in form of cookies.
-        const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(user.OrganizationId);
+        const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
-        // send cookies and a response
-        return res.cookie("accessToken",accessToken,{
-            httpOnly: true,
-            secure: true,
-        }).cookie("refreshToken",refreshToken,{
-            httpOnly: true,
-            secure: true,
-        }).status(200).json({
-            status: true,
-            message: "User logged in successfully",
-            user,accessToken,refreshToken
-        })
-        
-    }
-    catch(error){
+       return res
+            .cookie("accessToken", accessToken, {
+                httpOnly: true,
+                secure: false,
+                sameSite: "Lax", 
+                maxAge: 15 * 60 * 1000,
+            })
+            .cookie("refreshToken", refreshToken, {
+                httpOnly: true,
+                secure: false,
+                sameSite: "Lax", 
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            })
+            .status(200)
+            .json({
+                status: true,
+                message: "User logged in successfully",
+                user: {
+                _id: user._id,
+                OrganizationId: user.OrganizationId,
+                UserId: user.UserId,
+                personalEmail: user.personalEmail,
+                },
+                accessToken,
+                refreshToken,
+            });
+
+    } catch (error) {
         res.status(500).json({
             status: false,
             message: "Internal server error",
             error: error.message,
-        })
-    }
-};
-
-export const logOut = async (req,res) => {
-    try{
-        
-        const userid = req.user.OrganizationId; // upon decoding.
-
-        const user = await FinalizedEmployee.findByIdAndUpdate(userid,{
-            $set:{
-                refreshToken: "" || undefined,
-            }
         });
-
-        if(!user){
-            return res.status(400).json({
-                status: false,
-                message: "User not found",
-            })
-        }
-
-       res
-        .clearCookie("accessToken", { httpOnly: true, secure: true })
-        .clearCookie("refreshToken", { httpOnly: true, secure: true })
-        .status(200)
-        .json({
-            status: true,
-            message: "User logged out successfully",
-        })
-
-    }catch(error){
-        res.status(500).json({
-            status: false,
-            message: "Internal server error",
-            error: error.message,
-        })
     }
 };
+
+export const logOut = async (req, res) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({ status: false, message: "Unauthorized" });
+    }
+
+    await FinalizedEmployee.findByIdAndUpdate(req.user._id, { refreshToken: "" });
+
+    const isProd = process.env.NODE_ENV === "production";
+
+    return res
+      .clearCookie("accessToken", {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? "None" : "Lax",
+      })
+      .clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? "None" : "Lax",
+      })
+      .status(200)
+      .json({ status: true, message: "User logged out successfully" });
+  } catch (error) {
+    res.status(500).json({ status: false, message: "Internal server error", error: error.message });
+  }
+};
+
+
 
 // in case the employee forget the password -> this will require some logic -> chairman etc might want to improve this..
 export const confirmCurrentPassword = async (req, res) => {

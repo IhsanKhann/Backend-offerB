@@ -24,6 +24,8 @@ const router = express.Router();
 // ✅ Global authentication
 // router.use(authenticate);
 
+
+
 // 🔹 Employee Routes
 router.get("/employees/allfinalized", getFinalizedEmployees);
 

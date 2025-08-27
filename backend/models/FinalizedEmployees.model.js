@@ -167,16 +167,16 @@ finalizedEmployeeSchema.pre("validate", function (next) {
   next();
 });
 
-// automatically hashes the password..for register
-// finalizedEmployeeSchema.pre("save", async function (next) {
-//     if(!this.isModified("password")) return next();
 
-//     this.password = await bcrypt.hash(this.password, 10)
-//     next()
-// });
+finalizedEmployeeSchema.pre("save", async function (next) {
+    if(!this.isModified("password")) return next();
 
-finalizedEmployeeSchema.methods.comparePassword = async function(password){
-    return await bcrypt.compare(password, this.password)
+    this.password = await bcrypt.hash(this.password, 10)
+    next()
+});
+
+finalizedEmployeeSchema.methods.comparePassword = async function(candidatePassword){
+    return await bcrypt.compare(candidatePassword, this.passwordHash)
 };
 
 finalizedEmployeeSchema.methods.generateAccessToken = function(){

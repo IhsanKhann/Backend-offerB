@@ -1,3 +1,4 @@
+// index.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -7,51 +8,72 @@ import EmployeeRegistrationForm from "./Forms/EmployeeRegistration.jsx";
 import AssignRolesForm from "./Forms/AssignRolesForm.jsx";
 import AdminDashboard from "./Pages/AdminDashboard.jsx";
 import LoginPage from "./Pages/loginPage.jsx";
+import ProtectedRoute from "./components/ProtectedRoutes.jsx";
+import DraftDashboard from "./Pages/DraftsDashboard.jsx";
 
 import "./index.css";
 
 // store:
 import store from "./store/store.jsx";
-import {Provider} from "react-redux";
+import { Provider } from "react-redux";
 
-// drafts:
-import DraftDashboard from "./Pages/DraftsDashboard.jsx";
-
-// Routes:
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <HomePage />,
+    element: (
+      <ProtectedRoute>
+        <HomePage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/login",
-    element: <LoginPage />
+    element: <LoginPage />,
   },
   {
     path: "/register-employee",
-    element: <EmployeeRegistrationForm />,
+    element: (
+      <ProtectedRoute>
+        <EmployeeRegistrationForm />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/assign-roles/:employeeId",
-    element: <AssignRolesForm />,
+    element: (
+      <ProtectedRoute>
+        <AssignRolesForm />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/assign-roles",
-    element: <AssignRolesForm />,
+    element: (
+      <ProtectedRoute>
+        <AssignRolesForm />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/DraftDashboard",
-    element: <DraftDashboard/>
+    element: (
+      <ProtectedRoute>
+        <DraftDashboard />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/admin/dashboard",
-    element: <AdminDashboard />
+    element: (
+      <ProtectedRoute>
+        <AdminDashboard />
+      </ProtectedRoute>
+    ),
   },
-  
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-    <Provider store={store}> 
-       <RouterProvider router={router} /> 
-    </Provider>   
+  <Provider store={store}>
+    <RouterProvider router={router} />
+  </Provider>
 );

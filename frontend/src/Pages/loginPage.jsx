@@ -17,13 +17,16 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/auth/login", // replace with your API endpoint
-        { organizationId, Email: email, password },
+       "http://localhost:3000/api/auth/login", 
+        { organizationId, email, password },
         { withCredentials: true }
       );
+       console.log(organizationId,email,password)
       setMessage(response.data.message);
       setLoading(false);
 
+      // Only redirect if login succeeded
+      navigate("/"); 
       
     } catch (error) {
       setMessage(
@@ -32,23 +35,6 @@ const LoginPage = () => {
       setLoading(false);
     }
 
-    // redirected to the home page.
-    navigate("/"); 
-  };
-
-  const handleLogout = async () => {
-    try {
-      const response = await axios.post(
-        "http://localhost:3000/api/auth/logout",
-        {},
-        { withCredentials: true }
-      );
-      setMessage(response.data.message);
-    } catch (error) {
-      setMessage(
-        error.response?.data?.message || "Something went wrong during logout."
-      );
-    }
   };
 
   return (
@@ -98,12 +84,7 @@ const LoginPage = () => {
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
-        <button
-          onClick={handleLogout}
-          className="w-full mt-4 bg-red-500 text-white py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-200"
-        >
-          Logout
-        </button>
+       
         {message && (
           <p className="mt-4 text-center text-gray-700 font-medium">{message}</p>
         )}

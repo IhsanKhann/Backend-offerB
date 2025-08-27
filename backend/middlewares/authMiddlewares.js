@@ -43,6 +43,26 @@ export const authenticate = async (req, res, next) => {
     }
 };
 
+export const checkAuth = async (req, res) => {
+  try {
+    const token = req.cookies.accessToken;
+    if (!token) {
+      return res.status(401).json({ status: false, message: "Not authenticated" });
+    }
+
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    const user = await FinalizedEmployee.findById(decoded._id).select("-password");
+    if (!user) {
+      return res.status(404).json({ status: false, message: "User not found" });
+    }
+
+    return res.status(200).json({ status: true, user });
+  } catch (error) {
+    return res.status(401).json({ status: false, message: "Invalid or expired token" });
+  }
+};
+
 export const authorize = (requiredPermission) => {
   return async (req, res, next) => {
     try {
