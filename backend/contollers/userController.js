@@ -2,9 +2,71 @@
 import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
+// -------------------- helper functions --------------------------
+
+const transporter = nodemailer.createTransport({
+  service: "gmail", // or outlook, yahoo
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Send email helper
+const sendPasswordEmail = async (employee, newPassword) => {
+  await transporter.sendMail({
+    from: `"HR Department" <${process.env.EMAIL_USER}>`,
+    to: employee.personalEmail,
+    subject: "Your Password Has Been Reset",
+    text: `Dear ${employee.individualName},
+
+Your password has been successfully reset.
+
+Here are your login details:
+- User ID: ${employee.UserId}
+- Organization ID: ${employee.OrganizationId}
+- Password: ${newPassword}
+
+Please keep this information secure.`,
+
+    html: `
+      <p>Dear <b>${employee.individualName}</b>,</p>
+      <p>Your password has been successfully <b>reset</b>.</p>
+      <p><b>Login details:</b></p>
+      <ul>
+        <li>User ID: <b>${employee.UserId}</b></li>
+        <li>Organization ID: <b>${employee.OrganizationId}</b></li>
+        <li>Password: <b>${newPassword}</b></li>
+      </ul>
+      <p><i>Please keep this information secure and do not share it with anyone.</i></p>
+    `,
+  });
+};
+
+// Send UserId email
+const sendUserIdEmail = async (employee) => {
+  await transporter.sendMail({
+    from: `"HR Department" <${process.env.EMAIL_USER}>`,
+    to: employee.personalEmail,
+    subject: "Your User ID",
+    text: `Dear ${employee.individualName},
+
+Here is your User ID: ${employee.UserId}
+
+Please keep it secure.`,
+    html: `
+      <p>Dear <b>${employee.individualName}</b>,</p>
+      <p>Here is your <b>User ID</b>: <b>${employee.UserId}</b></p>
+      <p><i>Please keep it secure and do not share it with anyone.</i></p>
+    `,
+  });
+};
+
+// -------------------- functions/controllers ----------------------
 export const generateAccessAndRefreshTokens = async(userId) => {
 
     if(!userId) throw new Error("User id is required");
@@ -113,52 +175,90 @@ export const logOut = async (req, res) => {
   }
 };
 
+// Reset Password Controller
+export const ResetPassword = async (req, res) => {
+  try {
+    const { UserId, email, newPassword } = req.body;
 
+    // 1️⃣ Find employee by UserId and email
+    const employee = await FinalizedEmployee.findOne({
+      UserId,
+      personalEmail: email.toLowerCase(),
+    });
 
-// in case the employee forget the password -> this will require some logic -> chairman etc might want to improve this..
-export const confirmCurrentPassword = async (req, res) => {
-    try {
-        const { oldPassword, newPassword, ConfirmPassword } = req.body;
-
-        const user = await FinalizedEmployee.findById(req.user._id);
-        if (!user) {
-            return res.status(400).json({
-                status: false,
-                message: "User not found",
-            });
-        }
-
-        const isPasswordValid = await FinalizedEmployee.comparePassword(oldPassword);
-        if (!isPasswordValid) {
-            return res.status(400).json({
-                status: false,
-                message: "Invalid old password",
-            });
-        }
-
-        if (newPassword !== ConfirmPassword) {
-            return res.status(400).json({
-                status: false,
-                message: "Passwords do not match",
-            });
-        }
-
-        // Assign and save (pre-save hook will hash password automatically)
-        user.password = newPassword;
-        await user.save();
-
-        res.status(200).json({
-            status: true,
-            message: "Password updated successfully",
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: "Internal server error",
-            error: error.message,
-        });
+    if (!employee) {
+      return res.status(404).json({
+        status: false,
+        message: "User with provided UserId and Email not found",
+      });
     }
+
+    // 2️⃣ Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    employee.password = hashedPassword;
+    employee.passwordHash = newPassword;
+
+    // 3️⃣ Save the updated employee
+    await employee.save();
+
+    // 4️⃣ Send email with new password
+    await sendPasswordEmail(employee, newPassword);
+
+    res.status(200).json({
+      status: true,
+      message: "Password reset successfully. An email has been sent with your new password.",
+    });
+  } catch (error) {
+    console.error("ResetPassword Error:", error);
+    res.status(500).json({
+      status: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+// Forget UserId Controller
+export const ForgetUserId = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1️⃣ Find employee by email
+    const employee = await FinalizedEmployee.findOne({
+      personalEmail: email.toLowerCase(),
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        status: false,
+        message: "User with this email not found",
+      });
+    }
+
+    // 2️⃣ Check password
+    const isValidPassword = await bcrypt.compare(password, employee.password);
+    if (!isValidPassword) {
+      return res.status(400).json({
+        status: false,
+        message: "Incorrect password",
+      });
+    }
+
+    // 3️⃣ Send email with UserId
+    await sendUserIdEmail(employee);
+
+    res.status(200).json({
+      status: true,
+      message: "Your User ID has been sent to your email",
+    });
+  } catch (error) {
+    console.error("ForgetUserId Error:", error);
+    res.status(500).json({
+      status: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
 };
 
 export const refreshToken = async (req, res) => {
@@ -233,4 +333,3 @@ export const refreshToken = async (req, res) => {
     }
 };
 
-// now a function for the checking if the permission exist.

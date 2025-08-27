@@ -40,8 +40,9 @@ useEffect(() => {
       const empRes = await api.get("/getAllEmployees");
       const rolesRes = await api.get("/getAllRoles");
 
-      setEmployees((await empRes.json()).employees || []);
-      setRoles((await rolesRes.json()).roles || []);
+      
+      setEmployees(empRes.employees || []);
+      setRoles(rolesRes.roles || []);
     } catch (error) {
       console.error("Failed to refresh employees or roles:", error);
     }

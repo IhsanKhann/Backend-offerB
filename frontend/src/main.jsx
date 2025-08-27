@@ -10,6 +10,7 @@ import AdminDashboard from "./Pages/AdminDashboard.jsx";
 import LoginPage from "./Pages/loginPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoutes.jsx";
 import DraftDashboard from "./Pages/DraftsDashboard.jsx";
+import {ResetPasswordPage,ForgetUserId} from "./components/ResetLoginPage.jsx";
 
 import "./index.css";
 
@@ -69,6 +70,18 @@ const router = createBrowserRouter([
         <AdminDashboard />
       </ProtectedRoute>
     ),
+  },
+  {
+    path: "/reset-password",
+    element: (
+        <ResetPasswordPage/>
+    )
+  },
+  {
+    path: "/forget-UserId",
+    element: (
+        <ForgetUserId/>
+    )
   },
 ]);
 
