@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
-  const [organizationId, setOrganizationId] = useState("");
+  const [UserId, setUserId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -18,7 +18,7 @@ const LoginPage = () => {
     try {
       const response = await axios.post(
        "http://localhost:3000/api/auth/login", 
-        { organizationId, email, password },
+        { UserId, email, password },
         { withCredentials: true }
       );
        console.log(organizationId,email,password)
@@ -45,12 +45,12 @@ const LoginPage = () => {
         </h2>
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-gray-700 mb-2">Organization ID</label>
+            <label className="block text-gray-700 mb-2"> UserId </label>
             <input
               type="text"
-              value={organizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-              placeholder="Enter your organization ID"
+              value={UserId}
+              onChange={(e) => setUserId(e.target.value)}
+              placeholder="Enter your User Id "
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
               required
             />

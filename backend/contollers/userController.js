@@ -24,9 +24,9 @@ export const generateAccessAndRefreshTokens = async(userId) => {
 
 export const loginUser = async (req, res) => { 
     try {
-        const { organizationId, email, password } = req.body;
+        const { UserId, email, password } = req.body;
 
-        if (!organizationId || !email || !password) {
+        if (!UserId || !email || !password) {
             return res.status(400).json({
                 status: false,
                 message: "OrganizationId, Email and password are required",
@@ -34,7 +34,7 @@ export const loginUser = async (req, res) => {
         }
 
         const user = await FinalizedEmployee.findOne({
-            OrganizationId: organizationId,
+            UserId: UserId,
             personalEmail: email,
         });
 

@@ -67,11 +67,14 @@ const generatePassword = () => Math.random().toString(36).slice(-8);
 const hashPassword = async (password) => await bcrypt.hash(password, 10);
 const toDate = (val) => (val ? new Date(val) : undefined);
 
-const generateOrganizationId = (finalizedEmployee) => {
+const generateUserId = (finalizedEmployee) => {
   const userName = finalizedEmployee.individualName;
 
-  const organizationId = userName + "OBE" + finalizedEmployee.UserId;
-  return organizationId;
+  // Remove all spaces
+  const noSpaceUsername = userName.replace(/\s/g, "");
+
+  const UserId = noSpaceUsername + "OBE" + finalizedEmployee.OrganizationId;
+  return UserId;
 };
 
 const safeParse = (field, fieldName = "") => {
@@ -481,8 +484,8 @@ export const SubmitEmployee = async (req, res) => {
         .json({ success: false, message: "Invalid orgUnitId" });
     }
 
-    const UserId = await getNextUserId(); 
-    employee.UserId = UserId;
+    const OrganizationId = await getNextUserId(); 
+    employee.OrganizationId = OrganizationId;
     employee.save();
 
     // 6️⃣ Prepare finalized employee (only refs for role + orgUnit)
@@ -490,7 +493,7 @@ export const SubmitEmployee = async (req, res) => {
       ...employee.toObject(),
       role: assignedRole._id, // reference only
       orgUnit: orgUnit._id,   // reference only
-      UserId: UserId,
+      OrganizationId: OrganizationId,
       profileStatus: {
         submitted: true,
         decision: "Pending",
@@ -542,14 +545,14 @@ export const ApproveEmployee = async (req, res) => {
     const passwordHash = await hashPassword(tempPassword);
 
     // generate the organization id..
-    const organizationId  = generateOrganizationId(finalizedEmployee);
+    const UserId  = generateOrganizationId(finalizedEmployee);
 
     // 1️⃣ Update finalized employee
     finalizedEmployee.profileStatus.decision = "Approved";
     finalizedEmployee.profileStatus.passwordCreated = true;
     finalizedEmployee.passwordHash = passwordHash;
     finalizedEmployee.password = tempPassword;
-    finalizedEmployee.OrganizationId = organizationId;
+    finalizedEmployee.UserId = UserId;
     console.log(finalizedEmployee.passwordHash, finalizedEmployee.password, finalizedEmployee.OrganizationId);
   
     // this will send the email to the email.
