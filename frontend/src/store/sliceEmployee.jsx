@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import api from "../api/axios";
 
 export const registerEmployeeThunk = createAsyncThunk(
   "employee/register",
@@ -12,11 +13,9 @@ export const registerEmployeeThunk = createAsyncThunk(
 
       console.log("📡 Sending to backend:", formData);
 
-      const response = await axios.post(
-        "http://localhost:3000/api/employees/register", // ✅ fixed port
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+    const response = await api.post("/employees/register",formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
 
       console.log("✅ Backend response:", response.data);
       return response.data;

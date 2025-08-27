@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios";
 
 const DraftDashboard = () => {
   const navigate = useNavigate();
@@ -11,32 +11,34 @@ const DraftDashboard = () => {
   const [submitting, setSubmitting] = useState(null); // track submitting employee
   const [openDropdown, setOpenDropdown] = useState(null); // track which dropdown is open
 
-  // Fetch employees and roles from backend
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const empRes = await fetch("http://localhost:3000/api/getAllEmployees");
-        const rolesRes = await fetch("http://localhost:3000/api/getAllRoles");
+// Fetch employees and roles from backend
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const empRes = await api.get("/getAllEmployees");
+      const rolesRes = await api.get("/getAllRoles");
 
-        const empData = await empRes.json();
-        const rolesData = await rolesRes.json();
+      // ✅ Axios already gives you parsed JSON in .data
+      const empData = empRes.data;
+      const rolesData = rolesRes.data;
 
-        setEmployees(empData.employees || []);
-        setRoles(rolesData.roles || []);
-      } catch (error) {
-        console.error("Failed to fetch employees or roles:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+      setEmployees(empData.employees || []);
+      setRoles(rolesData.roles || []);
+    } catch (error) {
+      console.error("Failed to fetch employees or roles:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, []);
+
 
   // Refresh employees and roles
   const fetchEmployees = async () => {
     try {
-      const empRes = await fetch("http://localhost:3000/api/getAllEmployees");
-      const rolesRes = await fetch("http://localhost:3000/api/getAllRoles");
+      const empRes = await api.get("/getAllEmployees");
+      const rolesRes = await api.get("/getAllRoles");
 
       setEmployees((await empRes.json()).employees || []);
       setRoles((await rolesRes.json()).roles || []);
@@ -62,7 +64,7 @@ const DraftDashboard = () => {
 
       const orgUnitId = employeeRoles[0].orgUnit;
 
-      const response = await axios.post(`http://localhost:3000/api/submit-employee`, {
+      const response = await api.post(`/submit-employee`, {
         employeeId: employeeId,
         orgUnitId: orgUnitId,
       });
@@ -81,9 +83,8 @@ const DraftDashboard = () => {
 
   const handleCancelEmployee = async (employeeId) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/deleteEmployee/${employeeId}`, {
-        method: "DELETE",
-      });
+      const response = await api.delete(`/deleteEmployee/${employeeId}`)
+
       if (response.ok) {
         alert("Employee deleted successfully");
         setEmployees(employees.filter((emp) => emp._id !== employeeId));
@@ -224,9 +225,22 @@ const DraftDashboard = () => {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleSubmitEmployee(emp._id)}
-                          disabled={submitting === emp._id}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                          onClick={() => {
+                          if (
+                            emp?.DraftStatus?.status === "Submitted"
+                          ) {
+                            alert("Already Submitted");
+                            return;
+                          }
+                          handleSubmitEmployee(emp._id);
+                        }}
+                          disabled={ emp?.DraftStatus?.status === "Submitted"}
+                          className={`w-full text-left px-4 py-2 text-sm rounded 
+                          ${
+                             emp?.DraftStatus?.status === "Submitted"
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : "text-gray-700 hover:bg-red-100"
+                          }`}
                         >
                           {submitting === emp._id ? "Submitting..." : "Submit"}
                         </button>

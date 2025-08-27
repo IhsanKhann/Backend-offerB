@@ -1,6 +1,6 @@
 import express from "express";
 import upload from "../middlewares/mutlerMiddleware.js";
-import { authenticate } from "../middlewares/authMiddlewares.js"; // removed authorize
+import { authorize, authenticate } from "../middlewares/authMiddlewares.js"; // removed authorize
 
 import {
     RegisterEmployee,
@@ -21,12 +21,10 @@ import {
 
 const router = express.Router();
 
-// ✅ Global authentication
-// router.use(authenticate);
-
-
-
+router.use(authenticate);
 // 🔹 Employee Routes
+router.post("/employees/register", upload.single("profileImage"), RegisterEmployee);
+
 router.get("/employees/allfinalized", getFinalizedEmployees);
 
 router.get("/getAllEmployees", getAllEmployees);
@@ -34,8 +32,6 @@ router.get("/getAllEmployees", getAllEmployees);
 router.get("/getAllRoles", getAllRoles);
 
 router.post("/employees/roles", AssignEmployeePost);
-
-router.post("/employees/register", upload.single("profileImage"), RegisterEmployee);
 
 router.post("/submit-employee", SubmitEmployee);
 
@@ -48,6 +44,7 @@ router.delete("/employees/delete/:finalizedEmployeeId", deleteEmployeeAndFinaliz
 router.delete("/deleteEmployee/:employeeId", deleteEmployee);
 
 router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", getSingleFinalizedEmployee);
+
 router.get("/roles/:employeeId", getSingleRole);
 router.get("/employees/:employeeId", getSingleEmployee);
 

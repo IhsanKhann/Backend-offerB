@@ -335,7 +335,7 @@ export const RegisterEmployee = async (req, res) => {
     const existingEmployee = await EmployeeModel.findOne({
       $or: [
         { officialEmail }, 
-        { personalEmail }, 
+        // { personalEmail }, 
         { govtId: govtId || null },
         { passportNo: passportNo || null },
         { alienRegNo: alienRegNo || null }
@@ -445,9 +445,8 @@ export const SubmitEmployee = async (req, res) => {
         .json({ success: false, message: "Employee not found" });
     }
 
-    // 2️⃣ Duplicate check in finalized employees
-    const duplicateFinalized = await FinalizedEmployeeModel.findOne({
-      $or: [
+   const duplicateFinalized = await FinalizedEmployeeModel.find({
+    $or: [
         { officialEmail: employee.officialEmail },
         { personalEmail: employee.personalEmail },
         { govtId: employee.govtId },
@@ -456,7 +455,7 @@ export const SubmitEmployee = async (req, res) => {
       ],
     });
 
-    if (duplicateFinalized) {
+    if (duplicateFinalized.length > 0) {   // <-- check length
       return res.status(400).json({
         success: false,
         message: "Duplicate employee exists in finalized employees",

@@ -1,5 +1,6 @@
 // src/pages/LoginPage.jsx
 import React, { useState } from "react";
+import api from "../api/axios";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -12,30 +13,33 @@ const LoginPage = () => {
 
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await axios.post(
-       "http://localhost:3000/api/auth/login", 
-        { UserId, email, password },
-        { withCredentials: true }
-      );
-       console.log(UserId,email,password)
-      setMessage(response.data.message);
-      setLoading(false);
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  try {
+    const response = await axios.post(
+      "http://localhost:3000/api/auth/login",
+      { UserId, email, password },
+      { withCredentials: true } // always try cookies first
+    );
 
-      // Only redirect if login succeeded
-      navigate("/"); 
-      
-    } catch (error) {
-      setMessage(
-        error.response?.data?.message || "Something went wrong. Try again."
-      );
-      setLoading(false);
+    setMessage(response.data.message);
+    setLoading(false);
+
+    // ✅ Save access token to localStorage as fallback
+    if (response.data.accessToken) {
+      localStorage.setItem("accessToken", response.data.accessToken);
     }
 
-  };
+    navigate("/");
+  } catch (error) {
+    setMessage(
+      error.response?.data?.message || "Something went wrong. Try again."
+    );
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center">

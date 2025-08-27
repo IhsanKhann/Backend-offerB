@@ -1,16 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import api from "../api/axios.js";
 
 // submit and creating draft logic....
 import { useDispatch, useSelector } from "react-redux";
 import { setEmployeeFormData, getEmployeeFormData, registerEmployeeThunk } from "../store/sliceEmployee.jsx";
-import { addEmployeeData } from "../store/sliceDraft.jsx";
+
 
 export default function EmployeeRegistrationForm() {
   const [step, setStep] = useState(1);
   
-  const totalSteps = 9;
+
   const navigate = useNavigate();
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
@@ -24,17 +25,17 @@ export default function EmployeeRegistrationForm() {
 
   const stepTitles = [
     "",
-    "Employee Personal Details",
-    "Address Information",
-    "Profile & Employment History",
-    "Employment Status",
-    "Salary & Benefits",
-    "Tenure",
-    "Change of Status",
-    "Transfers",
-    "Final Submission",
-  ];
-
+  "Employee Personal Details",
+  "Address Information",
+  "Profile & Employment History",
+  "Employment Status",
+  "Salary & Benefits",
+  "Tenure",
+  "Change of Status",
+  "Transfers",
+  "Final Submission",
+];
+  const totalSteps = stepTitles.length;
   const nextStep = () => step < totalSteps && setStep(step + 1);
   const prevStep = () => step > 1 && setStep(step - 1);
   
@@ -132,7 +133,7 @@ const OnSubmit = async (data) => {
           </span>
         </div>
 
-        <form onSubmit={handleSubmit(OnSubmit)} encType="multipart/form-data">
+        <form encType="multipart/form-data">
           {/* STEP 1 */}
           {step === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -310,36 +311,6 @@ const OnSubmit = async (data) => {
               </div>
             </div>
           )}
-
-          {/* STEP 5
-          {step === 5 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Select Role *</h3>
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  "Chairman",
-                  "BoD Member",
-                  "Company Secretary",
-                  "Group Head / Division Head / Department Head",
-                  "Branch Manager",
-                  "Officer / Manager / Senior Manager",
-                  "Cell Incharge",
-                  "Executive (Contract / Permanent)",
-                  "Senior Group Head",
-                ].map((role) => (
-                  <label key={role} className="flex items-center space-x-3 bg-gray-50 p-4 rounded-lg hover:bg-gray-100">
-                    <input 
-                      type="radio" 
-                      value={role} 
-                      className="h-5 w-5 text-blue-600" 
-                      {...register("role", { required: true })} 
-                    />
-                    <span className="text-gray-700">{role}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )} */}
 
           {/* STEP 5 */}
        {step === 5 && (
@@ -532,33 +503,36 @@ const OnSubmit = async (data) => {
           )}
 
           {/* Navigation */}
-          <div className="flex justify-between mt-10 pt-6 border-t border-gray-200">
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={prevStep}
-                className="px-6 py-2 rounded-lg bg-gray-300 text-gray-800 hover:bg-gray-400 transition-colors"
-              >
-                Back
-              </button>
-            )}
-            {step < totalSteps ? (
-              <button
-                type="button"
-                onClick={nextStep}
-                className="ml-auto px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                type="submit"
-                className="ml-auto px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
-              >
-                Employee Designation Form 
-              </button>
-            )}
-          </div>
+            <div className="flex justify-between mt-10 pt-6 border-t border-gray-200">
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  className="px-6 py-2 rounded-lg bg-gray-300 text-gray-800 hover:bg-gray-400 transition-colors"
+                >
+                  Back
+                </button>
+              )}
+
+              {step < totalSteps ? (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className="ml-auto px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit(OnSubmit)} // still submit
+                  className="ml-auto px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+                >
+                  Next Form
+                </button>
+              )}
+            </div>
+
         </form>
       </div>
     </div>

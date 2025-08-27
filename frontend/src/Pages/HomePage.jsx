@@ -1,6 +1,6 @@
-// src/Pages/HomePage.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axios.js"; // use central api instance
 
 function HomePage() {
   const navigate = useNavigate();
@@ -9,10 +9,8 @@ function HomePage() {
   useEffect(() => {
     const fetchResponse = async () => {
       try {
-        const response = await fetch("/api/hello");
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
-        setMessage(data.message);
+        const response = await api.get("/hello"); // ✅ cookies + fallback
+        setMessage(response.data.message);
       } catch (error) {
         console.error("Fetch error:", error);
         setMessage("Failed to fetch from backend");
@@ -23,12 +21,13 @@ function HomePage() {
 
   const handleLogout = async () => {
     try {
-      const response = await axios.post(
-        "http://localhost:3000/api/auth/logout",
-        {},
-        { withCredentials: true } // this is for the cookies
-      );
+      const response = await api.post("/auth/logout", {});
       setMessage(response.data.message);
+
+      // ✅ clear fallback access token
+      localStorage.removeItem("accessToken");
+      window.location.reload();
+        
     } catch (error) {
       setMessage(
         error.response?.data?.message || "Something went wrong during logout."
@@ -36,7 +35,7 @@ function HomePage() {
     }
   };
 
-  return (
+ return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -46,12 +45,12 @@ function HomePage() {
           </h1>
           <p className="text-gray-600 text-lg">{message || "Loading welcome message..."}</p>
 
-        {/* <button
+        <button
           onClick={handleLogout}
           className="w-64 mt-4 bg-red-500 text-white py-2 rounded-lg font-semibold hover:bg-red-600 transition duration-200"
         >
           Logout
-        </button> */}
+        </button>
 
         </div>
 

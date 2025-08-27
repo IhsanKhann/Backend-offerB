@@ -1,71 +1,57 @@
 import express from "express";
-import { authenticate } from "../middlewares/authMiddlewares.js";
-
+import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
 import {
-    addHierarchy,
-    getHierarchy,
+  addHierarchy,
+  getHierarchy,
 
-    // Division
-    createDivision,
-    deleteDivision,
-    updateDivision,
-    getAllDivisions,
+  // Division
+  createDivision,
+  deleteDivision,
+  updateDivision,
+  getAllDivisions,
 
-    // Department
-    createDepartment,
-    deleteDepartment,
-    updateDepartment,
+  // Department
+  createDepartment,
+  deleteDepartment,
+  updateDepartment,
 
-    // Group
-    createGroup,
-    deleteGroup,
-    updateGroup,
+  // Group
+  createGroup,
+  deleteGroup,
+  updateGroup,
 
-    // Cell
-    createCell,
-    deleteCell,
-    updateCell
+  // Cell
+  createCell,
+  deleteCell,
+  updateCell
 } from "../contollers/hiearchyController.js";
 
 const router = express.Router();
+router.use(authenticate);
 
-// ====== Hierarchy (Full tree) ======
+// ====== Hierarchy (NO AUTH for testing) ======
 router.post("/hierarchy/add-hierarchy", addHierarchy);
 router.get("/hierarchy/get-hierarchy", getHierarchy);
 
-// ====== Division Routes ======
+// ====== Division Routes (NO AUTH for testing) ======
 router.post("/hierarchy/add-division", createDivision);
-router.post("/hierarchy/delete-division", deleteDivision); // delete by name
-router.put("/hierarchy/division/:id", updateDivision);   // update by ID
+router.post("/hierarchy/delete-division", deleteDivision);
+router.put("/hierarchy/division/:id", updateDivision);
 router.get("/hierarchy/get-divisions", getAllDivisions);
 
 // ===== Department Routes =====
-// Create a department under a division
 router.post("/hierarchy/division/:divisionId/department", createDepartment);
-// Update a department
 router.put("/hierarchy/department/:id", updateDepartment);
-// Delete a department
 router.delete("/hierarchy/department/:departmentId", deleteDepartment);
 
-
 // ====== Group Routes ======
-// Create group inside a department
 router.post("/hierarchy/division/:divisionId/department/:departmentId/group", createGroup);
-
-// Update group
 router.put("/hierarchy/division/:divisionId/department/:departmentId/group/:groupId", updateGroup);
-
-// Delete group
 router.delete("/hierarchy/group/:groupId", deleteGroup);
 
-// ====== Cell Routes =====
-// Create cell inside a group
+// ====== Cell Routes ======
 router.post("/hierarchy/division/:divisionId/department/:departmentId/group/:groupId/cell", createCell);
-
-// Update cell
 router.put("/hierarchy/division/:divisionId/department/:departmentId/group/:groupId/cell/:cellId", updateCell);
-
-// Delete cell
 router.delete("/hierarchy/cell/:cellId", deleteCell);
 
 export default router;

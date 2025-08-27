@@ -49,17 +49,17 @@ export const loginUser = async (req, res) => {
 
         const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
 
-       return res
+       res
             .cookie("accessToken", accessToken, {
                 httpOnly: true,
-                secure: false,
-                sameSite: "Lax", 
+                secure: false,      // must be false for localhost HTTP
+                sameSite: "Lax",    // "Lax" allows cookies to be sent cross-origin in dev
                 maxAge: 15 * 60 * 1000,
             })
             .cookie("refreshToken", refreshToken, {
                 httpOnly: true,
                 secure: false,
-                sameSite: "Lax", 
+                sameSite: "Lax",
                 maxAge: 7 * 24 * 60 * 60 * 1000,
             })
             .status(200)
@@ -98,13 +98,13 @@ export const logOut = async (req, res) => {
     return res
       .clearCookie("accessToken", {
         httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
+        secure: false,
+        sameSite: "Lax",
       })
       .clearCookie("refreshToken", {
         httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? "None" : "Lax",
+        secure: false,
+        sameSite: "Lax",
       })
       .status(200)
       .json({ status: true, message: "User logged out successfully" });

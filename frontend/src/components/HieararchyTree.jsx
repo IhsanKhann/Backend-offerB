@@ -1,7 +1,7 @@
 // HierarchyTree.jsx
 import { TreeNode } from "./TreeNode";
 import { useState,useEffect } from "react";
-import axios from "axios";
+import api from "../api/axios.js";
 
 export const HierarchyTree = ({ onNodeSelect }) => {
   const [treeData, setTreeData] = useState([]);
@@ -9,7 +9,7 @@ export const HierarchyTree = ({ onNodeSelect }) => {
   useEffect(() => {
     const fetchTree = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/getOrgUnits");
+        const res = await api.get("/getOrgUnits");
         setTreeData(res.data);
       } catch (err) {
         console.error("Failed to fetch hierarchy:", err);

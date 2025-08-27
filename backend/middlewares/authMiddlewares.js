@@ -7,52 +7,61 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const authenticate = async (req, res, next) => {
-    try {
-        const token = req.cookies?.accessToken;
-        if (!token) {
-            return res.status(401).json({
-                status: false,
-                message: "Unauthorized - No token provided",
-            });
-        }
+  try {
+    // 1. First try from cookie
+    let token = req.cookies?.accessToken;
 
-        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        if (!decodedToken) {
-            return res.status(401).json({
-                status: false,
-                message: "Invalid token",
-            });
-        }
-
-        const user = await FinalizedEmployee.findById(decodedToken._id);
-        if (!user) {
-            return res.status(404).json({
-                status: false,
-                message: "User not found",
-            });
-        }
-
-        req.user = user;
-        next();
-    } catch (error) {
-        return res.status(401).json({
-            status: false,
-            message: "Token verification failed",
-            error: error.message,
-        });
+    // 2. If no cookie, try from Authorization header (fallback for dev/localStorage)
+    if (!token && req.headers.authorization) {
+      if (req.headers.authorization.startsWith("Bearer ")) {
+        token = req.headers.authorization.split(" ")[1];
+      }
     }
+
+    if (!token) {
+      return res.status(401).json({
+        status: false,
+        message: "Unauthorized - No token provided",
+      });
+    }
+
+    // 3. Verify JWT
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+
+    const user = await FinalizedEmployee.findById(decodedToken._id);
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      status: false,
+      message: "Token verification failed",
+      error: error.message,
+    });
+  }
 };
 
 export const checkAuth = async (req, res) => {
   try {
-    const token = req.cookies.accessToken;
+    let token = req.cookies?.accessToken;
+
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
     if (!token) {
       return res.status(401).json({ status: false, message: "Not authenticated" });
     }
 
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-
     const user = await FinalizedEmployee.findById(decoded._id).select("-password");
+
     if (!user) {
       return res.status(404).json({ status: false, message: "User not found" });
     }

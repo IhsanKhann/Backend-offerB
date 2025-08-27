@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/axios";
 import { HierarchyTree } from "../components/HieararchyTree";
+import axios from "axios";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -15,14 +16,36 @@ const AdminDashboard = () => {
     handleAllEmployees();
   }, []);
 
-  // Fetch ALL employees
+  // Fetch permissions for a given employee
+  const fetchEmployeePermissions = async (employeeId) => {
+    try {
+      // const res = await api.get(`/permissions/getPermissions/${employeeId}`);
+      const res = await axios.get(`/permissions/getPermissions/${employeeId}`);
+      if (res.data.success) {
+        return res.data.permissions || [];
+      }
+      return [];
+    } catch (err) {
+      console.error("Error fetching permissions:", err);
+      return [];
+    }
+  };
+
+    // Fetch ALL employees
   const handleAllEmployees = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        "http://localhost:3000/api/employees/allfinalized"
+      const res = await api.get("/employees/allfinalized");
+      const employees = res.data.data || [];
+
+      const employeesWithPermissions = await Promise.all(
+        employees.map(async (emp) => {
+          const perms = await fetchEmployeePermissions(emp._id);
+          return { ...emp, permissions: perms };
+        })
       );
-      setFinalizedEmployees(res.data.data || []);
+
+      setFinalizedEmployees(employeesWithPermissions);
     } catch (error) {
       console.error("Failed to fetch finalized employees:", error);
     } finally {
@@ -31,36 +54,36 @@ const AdminDashboard = () => {
   };
 
   // Fetch employees for a node
-const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
-  try {
-    setLoading(true);
-    console.log("Fetching employees for node:", orgUnit.name, "ID:", orgUnit._id);
+  const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
+    try {
+      setLoading(true);
+      console.log("Fetching employees for node:", orgUnit.name, "ID:", orgUnit._id);
 
-    // Fetch employees for any node (leaf or intermediate)
-    const res = await axios.get(
-      `http://localhost:3000/api/getorgUnit/${orgUnit._id}`
-    );
-    
-    if (res.data.success) {
-      setFinalizedEmployees(res.data.employees || []);
-      console.log(`Found ${res.data.employees.length} employees for node: ${orgUnit.name}`);
-    } else {
-      console.log("No employees found for this node");
+      // Fetch employees for any node (leaf or intermediate)
+      const res = await api.get(
+        `/getorgUnit/${orgUnit._id}`
+      );
+      
+      if (res.data.success) {
+        setFinalizedEmployees(res.data.employees || []);
+        console.log(`Found ${res.data.employees.length} employees for node: ${orgUnit.name}`);
+      } else {
+        console.log("No employees found for this node");
+        setFinalizedEmployees([]);
+      }
+    } catch (err) {
+      console.error("Error fetching employees for node:", err);
       setFinalizedEmployees([]);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error fetching employees for node:", err);
-    setFinalizedEmployees([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Approve employee
   const handleApprove = async (finalizedEmployeeId) => {
     try {
-      const res = await axios.patch(
-        `http://localhost:3000/api/employees/approve/${finalizedEmployeeId}`
+      const res = await api.patch(
+        `/employees/approve/${finalizedEmployeeId}`
       );
       if (res.status === 200) {
         alert("Employee approved successfully!");
@@ -77,8 +100,8 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
   // Reject employee
   const handleReject = async (finalizedEmployeeId) => {
     try {
-      const res = await axios.delete(
-        `http://localhost:3000/api/employees/reject/${finalizedEmployeeId}`
+      const res = await api.delete(
+        `/employees/reject/${finalizedEmployeeId}`
       );
       if (res.status === 200) {
         alert("Employee rejected successfully!");
@@ -95,8 +118,8 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
   // Delete employee
   const handleDelete = async (finalizedEmployeeId) => {
     try {
-      const res = await axios.delete(
-        `http://localhost:3000/api/employees/delete/${finalizedEmployeeId}`
+      const res = await api.delete(
+        `/employees/delete/${finalizedEmployeeId}`
       );
       if (res.status === 200) {
         alert("Employee deleted successfully!");
@@ -112,18 +135,24 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
 
   // Profile view
   const handleProfileView = async (finalizedEmployeeId) => {
-    try {
-      const res = await axios.get(
-        `http://localhost:3000/api/employees/getSingleFinalizedEmployee/${finalizedEmployeeId}`
-      );
-      if (!res.data) {
-        alert("Profile data could not be fetched.");
-        return;
-      }
-      setProfileView(res.data.finalizedEmployee || res.data);
-    } catch (err) {
-      console.error("Error fetching profile:", err);
+  try {
+    const res = await api.get(
+      `/employees/getSingleFinalizedEmployee/${finalizedEmployeeId}`
+    );
+    if (!res.data) {
+      alert("Profile data could not be fetched.");
+      return;
     }
+    const employeeData = res.data.finalizedEmployee || res.data;
+
+    // Fetch permissions separately
+    const permissions = await fetchEmployeePermissions(finalizedEmployeeId);
+    employeeData.permissions = permissions;
+
+    setProfileView(employeeData);
+  } catch (err) {
+    console.error("Error fetching profile:", err);
+  }
   };
 
   if (loading) {
@@ -232,8 +261,8 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                       Role name: {emp.role?.roleName || "N/A"}
                     </p>
                     <p className="ml-12 text-xs text-gray-600">
-                      Permissions: {Array.isArray(emp.role?.permissions) 
-                        ? emp.role.permissions.join(", ") 
+                     Permissions: {Array.isArray(emp.permissions) 
+                        ? emp.permissions.join(", ") 
                         : "None"}
                     </p>
                   </div>
@@ -252,26 +281,61 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
 
                   {openDropdown === emp._id && (
                     <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                      {/* Approve button */}
                       <button
-                        onClick={() => handleApprove(emp._id)}
+                        onClick={() => {
+                          if (
+                            emp.profileStatus?.decision === "Approved" ||
+                            emp.profileStatus?.decision === "Rejected"
+                          ) {
+                            alert("Approve action is disabled for this employee.");
+                            return;
+                          }
+                          handleApprove(emp._id);
+                        }}
                         disabled={
                           emp.profileStatus?.decision === "Approved" ||
                           emp.profileStatus?.decision === "Rejected"
                         }
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-100"
+                        className={`w-full text-left px-4 py-2 text-sm rounded 
+                          ${
+                            emp.profileStatus?.decision === "Approved" ||
+                            emp.profileStatus?.decision === "Rejected"
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : "text-gray-700 hover:bg-green-100"
+                          }`}
                       >
                         Approve
                       </button>
+
+                      {/* Reject button */}
                       <button
-                        onClick={() => handleReject(emp._id)}
+                        onClick={() => {
+                          if (
+                            emp.profileStatus?.decision === "Approved" ||
+                            emp.profileStatus?.decision === "Rejected"
+                          ) {
+                            alert("Reject action is disabled for this employee.");
+                            return;
+                          }
+                          handleReject(emp._id);
+                        }}
                         disabled={
                           emp.profileStatus?.decision === "Approved" ||
                           emp.profileStatus?.decision === "Rejected"
                         }
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100"
+                        className={`w-full text-left px-4 py-2 text-sm rounded 
+                          ${
+                            emp.profileStatus?.decision === "Approved" ||
+                            emp.profileStatus?.decision === "Rejected"
+                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                              : "text-gray-700 hover:bg-red-100"
+                          }`}
                       >
                         Reject
                       </button>
+
+                      {/* Delete button */}
                       <button
                         onClick={() => handleDelete(emp._id)}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100"
@@ -279,6 +343,7 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                         Delete
                       </button>
 
+                      {/* View Profile button */}
                       <button
                         onClick={() => handleProfileView(emp._id)}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100"
@@ -328,9 +393,9 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
                 Role: {profileView.role?.roleName || "N/A"}
               </p>
               <p className="ml-12 text-xs text-gray-600">
-                Permissions: {Array.isArray(profileView.role?.permissions)
-                  ? profileView.role.permissions.join(", ")
-                  : "No permissions"}
+                  Permissions: {Array.isArray(profileView.permissions)
+                    ? profileView.permissions.join(", ")
+                    : "No permissions"}
               </p>
               <p className="text-gray-500">{profileView.officialEmail}</p>
               </div>
