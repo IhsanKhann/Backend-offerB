@@ -19,12 +19,13 @@ router.post("/hierarchy/add-hierarchy", addHierarchy);
 router.get("/hierarchy/get-hierarchy", getHierarchy);
 
 // Create a new hierarchy level (office, group, division, etc.)
-router.post("/hierarchy", createHierarchyLevel);
+router.post("/hierarchy/createNode", createHierarchyLevel);
 
 // Edit an existing hierarchy level
-router.put("/hierarchy/:id", editHierarchyLevel);
+router.put("/hierarchy/editNode/:id", editHierarchyLevel);
 
 // Delete a hierarchy level
-router.delete("/hierarchy/:id", deleteHierarchyLevel);
+router.delete("/hierarchy/deleteNode/:id", deleteHierarchyLevel);
 
 export default router;
+
