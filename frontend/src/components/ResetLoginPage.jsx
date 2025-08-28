@@ -124,7 +124,7 @@ export const ForgetUserId = () => {
     setMessage("");
 
     try {
-      await axios.post(
+      const res = await axios.post(
         "http://localhost:3000/api/auth/forget-userid",
         { email, password },
         { withCredentials: true } // optional, since no auth required here

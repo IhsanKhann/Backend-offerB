@@ -3,55 +3,28 @@ import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
 import {
   addHierarchy,
   getHierarchy,
-
-  // Division
-  createDivision,
-  deleteDivision,
-  updateDivision,
-  getAllDivisions,
-
-  // Department
-  createDepartment,
-  deleteDepartment,
-  updateDepartment,
-
-  // Group
-  createGroup,
-  deleteGroup,
-  updateGroup,
-
-  // Cell
-  createCell,
-  deleteCell,
-  updateCell
+  createHierarchyLevel,
+  editHierarchyLevel,
+  deleteHierarchyLevel,
 } from "../contollers/hiearchyController.js";
 
 const router = express.Router();
 router.use(authenticate);
 
-// ====== Hierarchy (NO AUTH for testing) ======
+// ====== Hierarchy ======
+// Add full hierarchy (initial setup)
 router.post("/hierarchy/add-hierarchy", addHierarchy);
+
+// Get hierarchy
 router.get("/hierarchy/get-hierarchy", getHierarchy);
 
-// ====== Division Routes (NO AUTH for testing) ======
-router.post("/hierarchy/add-division", createDivision);
-router.post("/hierarchy/delete-division", deleteDivision);
-router.put("/hierarchy/division/:id", updateDivision);
-router.get("/hierarchy/get-divisions", getAllDivisions);
+// Create a new hierarchy level (office, group, division, etc.)
+router.post("/hierarchy", createHierarchyLevel);
 
-// ===== Department Routes =====
-router.post("/hierarchy/division/:divisionId/department", createDepartment);
-router.put("/hierarchy/department/:id", updateDepartment);
-router.delete("/hierarchy/department/:departmentId", deleteDepartment);
+// Edit an existing hierarchy level
+router.put("/hierarchy/:id", editHierarchyLevel);
 
-// ====== Group Routes ======
-router.post("/hierarchy/division/:divisionId/department/:departmentId/group", createGroup);
-router.put("/hierarchy/division/:divisionId/department/:departmentId/group/:groupId", updateGroup);
-router.delete("/hierarchy/group/:groupId", deleteGroup);
-
-// ====== Cell Routes ======
-router.post("/hierarchy/division/:divisionId/department/:departmentId/group/:groupId/cell", createCell);
-router.put("/hierarchy/division/:divisionId/department/:departmentId/group/:groupId/cell/:cellId", updateCell);
-router.delete("/hierarchy/cell/:cellId", deleteCell);
+// Delete a hierarchy level
+router.delete("/hierarchy/:id", deleteHierarchyLevel);
 
 export default router;

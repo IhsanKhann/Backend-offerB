@@ -193,10 +193,9 @@ export const ResetPassword = async (req, res) => {
       });
     }
 
-    // 2️⃣ Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    employee.password = hashedPassword;
-    employee.passwordHash = newPassword;
+    const hashedPassword = await bcrypt.hash(newPassword, 10); 
+    employee.password = newPassword;
+    employee.passwordHash = hashedPassword;
 
     // 3️⃣ Save the updated employee
     await employee.save();
@@ -225,7 +224,7 @@ export const ForgetUserId = async (req, res) => {
 
     // 1️⃣ Find employee by email
     const employee = await FinalizedEmployee.findOne({
-      personalEmail: email.toLowerCase(),
+      personalEmail: email,
     });
 
     if (!employee) {
@@ -236,8 +235,8 @@ export const ForgetUserId = async (req, res) => {
     }
 
     // 2️⃣ Check password
-    const isValidPassword = await bcrypt.compare(password, employee.password);
-    if (!isValidPassword) {
+      const isPasswordValid = await employee.comparePassword(password);
+    if (!isPasswordValid) {
       return res.status(400).json({
         status: false,
         message: "Incorrect password",

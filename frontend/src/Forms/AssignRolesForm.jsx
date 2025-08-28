@@ -1,23 +1,28 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import api from "../api/axios.js";
 
-// Redux actions
 import { assignRolesDraft } from "../store/sliceRoles.jsx";
-import {
-  addRolesData,
-  addDraft,
-  updateDraft,
-  cancelEdit,
-  addEmployeeData,
-} from "../store/sliceDraft.jsx";
-import axios from "axios";
+import { addRolesData, addDraft, updateDraft, cancelEdit, addEmployeeData } from "../store/sliceDraft.jsx";
 
 const AssignRolesForm = () => {
   const { employeeId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  const [hierarchy, setHierarchy] = useState({ offices: [] });
+  const [loading, setLoading] = useState(false);
+  const [employeeError, setEmployeeError] = useState(null);
+  const [actionModal, setActionModal] = useState({ type: null, level: null, name: "", id: null, open: false });
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const employeeData = useSelector((state) => state.draft.employeeData);
+  const editingDraft = useSelector((state) => state.draft.editingDraft);
+  const isEditing = !!editingDraft;
+
+  const [employee, setEmployee] = useState("");
+  const [roles, setRoles] = useState([]);
 
   const [office, setOffice] = useState("");
   const [group, setGroup] = useState("");
@@ -26,98 +31,52 @@ const AssignRolesForm = () => {
   const [branch, setBranch] = useState("");
   const [cell, setCell] = useState("");
   const [desk, setDesk] = useState("");
+
   const [role_dropdown, setRoleDropdown] = useState("");
   const [allPermissions, setAllPermissions] = useState([]);
 
-  const [loading, setLoading] = useState(false);
-  const [hierarchy, setHierarchy] = useState({ offices: [] });
-  const [employeeError, setEmployeeError] = useState(null);
+  // ------------------ Fetch Data ------------------
+  const fetchHierarchy = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/hierarchy/get-hierarchy");
+      if (res.data?.data?.offices) setHierarchy(res.data.data);
+      else if (Array.isArray(res.data?.data)) setHierarchy({ offices: res.data.data });
+      else setHierarchy({ offices: [] });
+    } catch (err) {
+      console.error(err);
+      setHierarchy({ offices: [] });
+    } finally { setLoading(false); }
+  };
 
-  const employeeData = useSelector((state) => state.draft.employeeData);
-  const editingDraft = useSelector((state) => state.draft.editingDraft);
-  const isEditing = !!editingDraft;
-
-  const [employee, setEmployee] = useState("");
-  const [roles, setRoles] = useState("");
-
-  // Available permissions
-  const availablePermissions = [
-    "view_all_employees",
-    "view_single_employee",
-    "register_employee",
-    "approve_employee",
-    "reject_employee",
-    "delete_employee",
-    "assign_employee_role",
-    "view_all_roles",
-    "resolve_org_unit",
-    "create_org_unit",
-    "view_org_units",
-    "view_employees_by_org_unit",
-    "view_all_finalized_employees",
-  ];
-
-  // Fetch Employee
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
         const res = await api.get(`/employees/${employeeId}`);
-        // const res = await axios.get(`/employees/${employeeId}`);
         if (res.data?.employee) {
           setEmployee(res.data.employee);
           dispatch(addEmployeeData({ employeeData: res.data.employee }));
-        } else {
-          setEmployeeError("No employee found. Please create one first.");
-        }
+        } else setEmployeeError("No employee found. Please create one first.");
       } catch (err) {
-        console.error("Error fetching employee:", err);
+        console.error(err);
         setEmployeeError("Failed to fetch employee data.");
       }
     };
-    if (employeeId) fetchEmployee();
-  }, [employeeId, dispatch]);
 
-  // Fetch Roles
-  useEffect(() => {
     const fetchRoles = async () => {
       try {
         const res = await api.get(`/roles/${employeeId}`);
-        // const res = await axios.get(`/roles/${employeeId}`);
         if (res.data?.roles) {
           setRoles(res.data.roles);
           dispatch(addRolesData({ rolesData: res.data.roles }));
-        } else {
-          setRoles([]);
         }
-      } catch (err) {
-        console.warn("No roles found yet.");
-        setRoles([]);
-      }
+      } catch { setRoles([]); }
     };
-    if (employeeId) fetchRoles();
+
+    if (employeeId) { fetchEmployee(); fetchRoles(); }
+    fetchHierarchy();
   }, [employeeId, dispatch]);
 
-  // Fetch hierarchy
-  useEffect(() => {
-    const fetchHierarchy = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get("/hierarchy/get-hierarchy");
-        // const res = await axios.get("http://localhost:3000/api/hierarchy/get-hierarchy");
-        if (res.data?.data?.offices) setHierarchy(res.data.data);
-        else if (Array.isArray(res.data?.data)) setHierarchy({ offices: res.data.data });
-        else setHierarchy({ offices: [] });
-      } catch (err) {
-        console.error("Error fetching hierarchy:", err);
-        setHierarchy({ offices: [] });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHierarchy();
-  }, []);
-
-  // Prefill when editing draft
   useEffect(() => {
     if (editingDraft?.roles?.role) {
       const { office, group, division, department, branch, cell, desk } = editingDraft.roles.role;
@@ -132,196 +91,199 @@ const AssignRolesForm = () => {
     }
   }, [editingDraft]);
 
-  // Reset dependent dropdowns
+  // ------------------ Hierarchy Helpers ------------------
   const resetDependentFields = (level) => {
-    if (level === "office") { setGroup(""); setDivision(""); setDepartment(""); setBranch(""); setCell(""); setDesk(""); }
-    else if (level === "group") { setDivision(""); setDepartment(""); setBranch(""); setCell(""); setDesk(""); }
-    else if (level === "division") { setDepartment(""); setBranch(""); setCell(""); setDesk(""); }
-    else if (level === "department") { setBranch(""); setCell(""); setDesk(""); }
-    else if (level === "branch") { setCell(""); setDesk(""); }
-    else if (level === "cell") { setDesk(""); }
+    const map = { office:["group","division","department","branch","cell","desk"],
+                  group:["division","department","branch","cell","desk"],
+                  division:["department","branch","cell","desk"],
+                  department:["branch","cell","desk"],
+                  branch:["cell","desk"],
+                  cell:["desk"] };
+    (map[level]||[]).forEach(l => { if(l==="group") setGroup(""); if(l==="division") setDivision(""); if(l==="department") setDepartment(""); if(l==="branch") setBranch(""); if(l==="cell") setCell(""); if(l==="desk") setDesk(""); });
   };
 
-  // Role options
-  const rolesOptions = [
-    { id: 1, name: "Chairman" }, { id: 2, name: "BoD Member" },
-    { id: 3, name: "Company Secretary" }, { id: 4, name: "Group Head" },
-    { id: 5, name: "Divison Head"}, { id: 6, name: "Department Head"},
-    { id: 7, name: "Branch Manager" }, { id: 8, name: "Officer" },
-    { id: 9, name: "Manager"}, { id: 10, name: "Senior Manager"},
-    { id: 11, name: "Cell Incharge" }, { id: 12, name: "Executive (Contract)" },
-    { id: 13, name: "Executive (Permanent)" }, { id: 14, name: "Senior Group Head" },
-  ];
+  const getOptions = (level) => {
+    const o = hierarchy.offices || [];
+    const officeObj = o.find(x=>x.name===office);
+    const groupObj = officeObj?.groups?.find(x=>x.name===group);
+    const divisionObj = groupObj?.divisions || officeObj?.divisions?.filter(d=>d.name===division) || [];
+    const departmentObj = divisionObj?.departments || officeObj?.departments?.filter(d=>d.name===department) || [];
+    const branchObj = departmentObj?.branches || officeObj?.branches?.filter(b=>b.name===branch) || [];
+    const cellObj = branchObj?.cells || departmentObj?.cells || divisionObj?.cells || officeObj?.cells || [];
+    const deskObj = cellObj?.desks || branchObj?.desks || departmentObj?.desks || divisionObj?.desks || officeObj?.desks || [];
 
-  // Derived hierarchy options
-  const officesOptions = hierarchy?.offices || [];
-  const groupsOptions = officesOptions.find((o) => o.name === office)?.groups || [];
-  const divisionsOptions = [
-    ...(groupsOptions.find((g) => g.name === group)?.divisions || []),
-    ...(officesOptions.find((o) => o.name === office)?.divisions || []),
-  ];
-  const departmentsOptions = [
-    ...(divisionsOptions.find((d) => d.name === division)?.departments || []),
-    ...(officesOptions.find((o) => o.name === office)?.departments || []),
-  ];
-  const branchesOptions = [
-    ...(departmentsOptions.find((d) => d.name === department)?.branches || []),
-    ...(officesOptions.find((o) => o.name === office)?.branches || []),
-  ];
-  const cellsOptions = [
-    ...(branchesOptions.find((b) => b.name === branch)?.cells || []),
-    ...(departmentsOptions.find((d) => d.name === department)?.cells || []),
-    ...(divisionsOptions.find((d) => d.name === division)?.cells || []),
-    ...(officesOptions.find((o) => o.name === office)?.cells || []),
-  ];
-  const desksOptions = [
-    ...(cellsOptions.find((c) => c.name === cell)?.desks || []),
-    ...(branchesOptions.find((b) => b.name === branch)?.desks || []),
-    ...(departmentsOptions.find((d) => d.name === department)?.desks || []),
-    ...(divisionsOptions.find((d) => d.name === division)?.desks || []),
-    ...(officesOptions.find((o) => o.name === office)?.desks || []),
-  ];
+    return { office:o, group:officeObj?.groups||[], division:divisionObj, department:departmentObj, branch:branchObj, cell:cellObj, desk:deskObj };
+  };
 
-  // Handle submit
+  const options = getOptions();
+
+  // ------------------ Modal Actions ------------------
+  const openActionModal = (type, level, val, opts) => {
+    let selected = opts?.find(o=>o.name===val || o._id===val) || { name:"", _id:null };
+    setActionModal({ type, level, name:selected.name, id:selected._id, open:true });
+  };
+  const closeActionModal = () => setActionModal({ type:null, level:null, name:"", id:null, open:false });
+
+  const generatePath = () => {
+    const path = [];
+    if(office) path.push({ level:"office", name:office });
+    if(group) path.push({ level:"group", name:group });
+    if(division) path.push({ level:"division", name:division });
+    if(department) path.push({ level:"department", name:department });
+    if(branch) path.push({ level:"branch", name:branch });
+    if(cell) path.push({ level:"cell", name:cell });
+    return path;
+  };
+
+  const submitCreate = async (name) => {
+    try { setActionLoading(true);
+      await api.post("/hierarchy", { name, level: actionModal.level, path: generatePath() });
+      await fetchHierarchy();
+      closeActionModal();
+    } catch(err){ console.error(err); alert(err.response?.data?.message || "Create failed"); }
+    finally { setActionLoading(false); }
+  };
+  const submitEdit = async (name) => {
+    try { setActionLoading(true);
+      await api.put(`/hierarchy/${actionModal.id}`, { name, level:actionModal.level, path:generatePath() });
+      await fetchHierarchy();
+      closeActionModal();
+    } catch(err){ console.error(err); alert(err.response?.data?.message || "Edit failed"); }
+    finally { setActionLoading(false); }
+  };
+  const submitDelete = async () => {
+    if(!confirm(`Delete ${actionModal.level} "${actionModal.name}"?`)) return;
+    try { setActionLoading(true);
+      await api.delete(`/hierarchy/${actionModal.id}`, { data:{ level:actionModal.level, path:generatePath() } });
+      await fetchHierarchy();
+      closeActionModal();
+    } catch(err){ console.error(err); alert(err.response?.data?.message || "Delete failed"); }
+    finally { setActionLoading(false); }
+  };
+
+  // ------------------ Submit ------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!employeeData) return alert("No employee found. Please create one first.");
-    try {
+    if(!employeeData) return alert("No employee found. Please create one first.");
+    try{
       setLoading(true);
-
-      const orgUnitRes = await api.post("/org-units/resolve", {
-        office, group, division, department, branch, cell, desk
-      });
+      const orgUnitRes = await api.post("/org-units/resolve", { office, group, division, department, branch, cell, desk });
       const orgUnitId = orgUnitRes.data?.orgUnitId;
-      if (!orgUnitId) throw new Error("OrgUnit resolution failed");
+      if(!orgUnitId) throw new Error("OrgUnit resolution failed");
 
-      const rolesData = {
-        employeeId: employeeData._id,
-        roleName: role_dropdown,
-        orgUnit: orgUnitId,
-        permissions: allPermissions,
-      };
+      const rolesData = { employeeId:employeeData._id, roleName:role_dropdown, orgUnit:orgUnitId, permissions:allPermissions };
 
-      if (isEditing) dispatch(updateDraft({ draftId: editingDraft.draftId, roles: rolesData }));
-      else {
-        dispatch(assignRolesDraft(rolesData));
-        dispatch(addDraft());
-        await api.post("/employees/roles", rolesData);
-      }
+      if(isEditing) dispatch(updateDraft({ draftId:editingDraft.draftId, roles:rolesData }));
+      else { dispatch(assignRolesDraft(rolesData)); dispatch(addDraft()); await api.post("/employees/roles", rolesData); }
 
       navigate("/DraftDashboard");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save draft.");
-    } finally {
-      setLoading(false);
-    }
+    } catch(err){ console.error(err); alert("Failed to save draft."); }
+    finally{ setLoading(false); }
   };
+  const handleCancel = () => { if(isEditing) dispatch(cancelEdit()); navigate("/DraftDashboard"); };
 
-  const handleCancel = () => {
-    if (isEditing) dispatch(cancelEdit());
-    navigate("/DraftDashboard");
-  };
-
-  if (loading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
-  if (employeeError) return (
+  if(loading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  if(employeeError) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
       <h2 className="text-xl text-red-600 mb-4">{employeeError}</h2>
-      <button onClick={() => navigate("/admin/dashboard")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Admin Dashboard</button>
-      <button onClick={() => navigate("/register-employee")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create New Employee</button>
+      <button onClick={()=>navigate("/admin/dashboard")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-2">Admin Dashboard</button>
+      <button onClick={()=>navigate("/register-employee")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create New Employee</button>
     </div>
   );
 
+  // ------------------ Render ------------------
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto p-6 bg-white shadow rounded-lg space-y-4">
-      <h2 className="text-xl font-semibold text-gray-700 mb-4">Assign Role</h2>
-      <div className="flex flex-row gap-12 font-bold text-blue-600">
-        <h2>Name: {employee?.individualName || "N/A"}</h2>
-        <h2>Database ID: {employee?._id || "N/A"}</h2>
+    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-8 bg-white shadow-md rounded-xl space-y-6 border-t-4 border-blue-600">
+      <div className="flex flex-col gap-2">
+        <h2 className="text-2xl font-bold text-blue-600">Assign Roles</h2>
+        <p className="text-gray-600">Employee: <span className="font-semibold">{employee?.individualName || "N/A"}</span></p>
+        <p className="text-gray-600">ID: <span className="font-semibold">{employee?._id || "N/A"}</span></p>
       </div>
 
-      {/* Role dropdown */}
-      <Dropdown label="Role" value={role_dropdown} onChange={setRoleDropdown} options={rolesOptions} />
-
-      {/* Permissions multi-select dropdown */}
-      <MultiSelectDropdown
-        label="Permissions"
-        options={availablePermissions}
-        selected={allPermissions}
-        setSelected={setAllPermissions}
+      {/* Role Dropdown */}
+      <DropdownWithActions
+        label="Role"
+        value={role_dropdown}
+        onChange={setRoleDropdown}
+        options={[
+          "Chairman","BoD Member","Company Secretary","Group Head","Division Head",
+          "Department Head","Branch Manager","Officer","Manager","Senior Manager",
+          "Cell Incharge","Executive (Contract)","Executive (Permanent)","Senior Group Head"
+        ]}
+        level="role"
+        selectedValue={role_dropdown}
+        onCreate={()=>openActionModal("create","role")}
+        onEdit={(opts,val)=>openActionModal("edit","role",val,opts)}
+        onDelete={(opts,val)=>openActionModal("delete","role",val,opts)}
       />
 
+      {/* Permissions */}
+      <div className="flex flex-col gap-2">
+        <label className="font-semibold">Permissions</label>
+        <select value="" onChange={e=>{const val=e.target.value;if(val&&!allPermissions.includes(val)) setAllPermissions([...allPermissions,val]);}} className="border rounded px-3 py-2 w-full">
+          <option value="">Select Permission</option>
+          {[
+            "view_all_employees","view_single_employee","register_employee","approve_employee","reject_employee",
+            "delete_employee","assign_employee_role","view_all_roles","resolve_org_unit","create_org_unit",
+            "view_org_units","view_employees_by_org_unit","view_all_finalized_employees"
+          ].map(p=><option key={p} value={p}>{p}</option>)}
+        </select>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {allPermissions.map(p=>(
+            <span key={p} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+              {p} <span onClick={()=>setAllPermissions(allPermissions.filter(x=>x!==p))} className="cursor-pointer font-bold">×</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
       {/* Hierarchy Dropdowns */}
-      <Dropdown label="Office" value={office} onChange={(val) => { setOffice(val); resetDependentFields("office"); }} options={officesOptions} />
-      <Dropdown label="Group" value={group} onChange={(val) => { setGroup(val); resetDependentFields("group"); }} options={groupsOptions} />
-      <Dropdown label="Division" value={division} onChange={(val) => { setDivision(val); resetDependentFields("division"); }} options={divisionsOptions} />
-      <Dropdown label="Department" value={department} onChange={(val) => { setDepartment(val); resetDependentFields("department"); }} options={departmentsOptions} />
-      <Dropdown label="Branch" value={branch} onChange={(val) => { setBranch(val); resetDependentFields("branch"); }} options={branchesOptions} />
-      <Dropdown label="Cell" value={cell} onChange={(val) => { setCell(val); resetDependentFields("cell"); }} options={cellsOptions} />
-      <Dropdown label="Desk" value={desk} onChange={setDesk} options={desksOptions} />
+      {["office","group","division","department","branch","cell","desk"].map(level=>{
+        const opts = options[level];
+        const value = {office,group,division,department,branch,cell,desk}[level];
+        const setValue = {office:setOffice,group:setGroup,division:setDivision,department:setDepartment,branch:setBranch,cell:setCell,desk:setDesk}[level];
+        return <DropdownWithActions key={level} label={level.charAt(0).toUpperCase()+level.slice(1)} value={value} onChange={val=>{setValue(val);resetDependentFields(level);}} options={opts} level={level} selectedValue={value} onCreate={()=>openActionModal("create",level)} onEdit={(o,v)=>openActionModal("edit",level,v,o)} onDelete={(o,v)=>openActionModal("delete",level,v,o)} />;
+      })}
 
       {/* Actions */}
-      <div className="flex justify-end space-x-3 pt-4">
-        <button type="button" onClick={handleCancel} className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Cancel</button>
-        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
+      <div className="flex justify-end gap-4 pt-4">
+        <button type="button" onClick={handleCancel} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Cancel</button>
+        <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
       </div>
+
+      {/* Modal */}
+      {actionModal.open && <ActionModal type={actionModal.type} level={actionModal.level} name={actionModal.name} onClose={closeActionModal} onSubmit={actionModal.type==="create"?submitCreate:actionModal.type==="edit"?submitEdit:submitDelete} loading={actionLoading} />}
     </form>
   );
 };
 
-// Basic Dropdown component
-const Dropdown = ({ label, value, onChange, options }) => (
-  <div>
-    <label className="block text-gray-600 mb-1">{label}</label>
-    <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+// ------------------ Components ------------------
+const DropdownWithActions = ({ label, value, onChange, options, level, selectedValue, onCreate, onEdit, onDelete }) => (
+  <div className="flex items-center gap-3 mt-3">
+    <label className="w-36 font-semibold">{label}</label>
+    <select className="flex-1 border shadow-sm rounded px-3 py-2" value={value} onChange={e=>onChange(e.target.value)}>
       <option value="">Select {label}</option>
-      {options.map((opt) => (
-        <option key={opt._id || opt.name} value={opt.name}>{opt.name}</option>
-      ))}
+      {options.map(opt=><option key={opt._id||opt.name||opt} value={opt.name||opt}>{opt.name||opt}</option>)}
     </select>
+    <button type="button" onClick={onCreate} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Create</button>
+    <button type="button" onClick={()=>onEdit(options,selectedValue)} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
+    <button type="button" onClick={()=>onDelete(options,selectedValue)} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Delete</button>
   </div>
 );
 
-// MultiSelect dropdown
-const MultiSelectDropdown = ({ label, options, selected, setSelected }) => {
-  const [open, setOpen] = useState(false);
-  const wrapperRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const toggleOption = (opt) => {
-    if (selected.includes(opt)) setSelected(selected.filter((s) => s !== opt));
-    else setSelected([...selected, opt]);
-  };
-
+const ActionModal = ({ type, level, name, onClose, onSubmit, loading }) => {
+  const [input, setInput] = useState(name);
+  useEffect(()=>setInput(name),[name]);
   return (
-    <div ref={wrapperRef} className="relative">
-      <label className="block text-gray-600 mb-1">{label}</label>
-      <div onClick={() => setOpen(!open)} className="border border-gray-300 rounded-lg p-2 cursor-pointer flex flex-wrap gap-1 min-h-[40px]">
-        {selected.length === 0 && <span className="text-gray-400">Select permissions...</span>}
-        {selected.map((s) => (
-          <div key={s} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex items-center gap-1">
-            {s} <span onClick={(e) => { e.stopPropagation(); toggleOption(s); }} className="cursor-pointer font-bold text-red-500">×</span>
-          </div>
-        ))}
-      </div>
-      {open && (
-        <div className="absolute z-10 bg-white border border-gray-300 mt-1 w-full max-h-60 overflow-y-auto rounded shadow">
-          {options.map((opt) => (
-            <div key={opt} onClick={() => toggleOption(opt)} className={`px-3 py-2 cursor-pointer hover:bg-blue-100 ${selected.includes(opt) ? "bg-blue-50" : ""}`}>
-              {opt}
-            </div>
-          ))}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+        <h3 className="text-lg font-bold mb-3">{type.charAt(0).toUpperCase()+type.slice(1)} {level}</h3>
+        {type!=="delete" && <input type="text" value={input} onChange={e=>setInput(e.target.value)} className="w-full border rounded px-3 py-2 mb-3" placeholder={`Enter ${level} name`} />}
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
+          <button type="button" onClick={()=>onSubmit(input)} disabled={loading} className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 ${loading?"opacity-70 cursor-not-allowed":""}`}>{type.charAt(0).toUpperCase()+type.slice(1)}</button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
