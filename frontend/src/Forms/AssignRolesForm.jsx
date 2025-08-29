@@ -380,6 +380,7 @@ const AssignRolesForm = () => {
       <h2 className="text-xl text-red-600 mb-4">{employeeError}</h2>
       <button onClick={() => navigate("/admin/dashboard")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-2">Admin Dashboard</button>
       <button onClick={() => navigate("/register-employee")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create New Employee</button>
+      <button onClick={() => navigate("/Permission-handler")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"> Manage Permissions </button>
     </div>
   );
 

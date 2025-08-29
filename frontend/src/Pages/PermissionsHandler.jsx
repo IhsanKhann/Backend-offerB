@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiMoreVertical, FiX, FiEdit2, FiPlus, FiCheck, FiXCircle, FiTrash2 } from 'react-icons/fi';
+import { FiMoreVertical, FiX, FiEdit2, FiPlus, FiTrash2 } from 'react-icons/fi';
 import api from '../api/axios';
 
 const PermissionHandler = () => {
-
   const [permissions, setPermissions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingPermission, setEditingPermission] = useState(null);
@@ -12,21 +11,18 @@ const PermissionHandler = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeMenu, setActiveMenu] = useState(null);
 
-  // Simulate fetching permissions from backend
   useEffect(() => {
     const fetchPermissions = async () => {
-      try{
+      try {
         setIsLoading(true);
         const response = await api.get("/permissions/AllPermissions");
-        setPermissions(response.data.Permissions);
-      }catch(error){
-        console.log("Error was caused: ",error);
-      }
-      finally{
+        setPermissions(response.data.permissions);
+      } catch (error) {
+        console.log("Error fetching permissions: ", error);
+      } finally {
         setIsLoading(false);
       }
     };
-
     fetchPermissions();
   }, []);
 
@@ -37,66 +33,53 @@ const PermissionHandler = () => {
 
   const handleSaveEdit = () => {
     if (!editingPermission.name.trim() || !editingPermission.description.trim()) return;
-    
-    setPermissions(permissions.map(p => 
-      p.id === editingPermission.id ? editingPermission : p
+
+    setPermissions(permissions.map(p =>
+      p._id === editingPermission._id ? editingPermission : p
     ));
     setEditingPermission(null);
-    
-    // In a real app, you would send the update to the backend here
-    // updatePermission(editingPermission);
+
+    // send update to backend if needed
   };
 
-const handleDelete = async (permission) => {
-  setIsLoading(true);
-  try {
-    const response = await api.delete(`/permissions/removePermission/${permission.id}`);
-
-    // Use the updated array returned by backend (with IDs reassigned)
-    setPermissions(response.data.updatedPermissions);
-
-    setDeleteConfirm(null);
-  } catch (error) {
-    console.log(error.response?.data?.message || "Failed to delete permission");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  const handleDelete = async (permission) => {
+    setIsLoading(true);
+    try {
+      await api.delete(`/permissions/removePermission/${permission._id}`);
+      setPermissions(permissions.filter(p => p._id !== permission._id));
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.log(error.response?.data?.message || "Failed to delete permission");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCreate = async () => {
-  if (!newPermission.name.trim() || !newPermission.description.trim()) return;
+    if (!newPermission.name.trim() || !newPermission.description.trim()) return;
 
-  setIsLoading(true);
-
-  try {
-    const response = await api.post("/permissions/createPermission", newPermission);
-
-    // Append the newly created permission returned by backend
-    setPermissions([...permissions, response.data.permission]);
-    setNewPermission({ name: "", description: "" });
-    setShowCreateModal(false);
-  } catch (error) {
-    console.log(error.response?.data?.message || "Something went wrong. Try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+    try {
+      const response = await api.post("/permissions/createPermission", newPermission);
+      setPermissions([...permissions, response.data.permission]);
+      setNewPermission({ name: "", description: "" });
+      setShowCreateModal(false);
+    } catch (error) {
+      console.log(error.response?.data?.message || "Something went wrong.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const toggleMenu = (id, e) => {
     e.stopPropagation();
     setActiveMenu(activeMenu === id ? null : id);
   };
 
-  // Close menus when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => {
-      setActiveMenu(null);
-    };
-    
+    const handleClickOutside = () => setActiveMenu(null);
     document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
+    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
   return (
@@ -105,7 +88,7 @@ const handleDelete = async (permission) => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Permission Management</h1>
-            <p className="text-gray-600 mt-2">Manage user permissions and access levels and prevligies </p>
+            <p className="text-gray-600 mt-2">Manage user permissions and access levels</p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
@@ -126,36 +109,26 @@ const handleDelete = async (permission) => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-8 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Permission Name
-                  </th>
-                  <th scope="col" className="px-8 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th scope="col" className="px-8 py-5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-8 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permission Name</th>
+                  <th className="px-8 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-8 py-5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {permissions.map((permission) => (
-                  <tr key={permission.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{permission.name}</div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="text-sm text-gray-600">{permission.description}</div>
-                    </td>
+                {permissions.map(permission => (
+                  <tr key={permission._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">{permission.name}</td>
+                    <td className="px-8 py-5 text-sm text-gray-600">{permission.description}</td>
                     <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
                       <div className="relative inline-block text-left">
                         <button
-                          onClick={(e) => toggleMenu(permission.id, e)}
+                          onClick={(e) => toggleMenu(permission._id, e)}
                           className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
                         >
                           <FiMoreVertical size={18} />
                         </button>
-                        
-                        {activeMenu === permission.id && (
+
+                        {activeMenu === permission._id && (
                           <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                             <div className="py-1" role="menu" aria-orientation="vertical">
                               <button
