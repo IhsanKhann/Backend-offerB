@@ -11,10 +11,31 @@ const AdminDashboard = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [profileView, setProfileView] = useState(null);
 
+  const [managePermissionsView, setManagePermissionsView] = useState(null);
+  const [allPermissionsList, setAllPermissionsList] = useState([]);
+
   // Fetch finalized employees on mount
   useEffect(() => {
     handleAllEmployees();
   }, []);
+
+//Fetch all permissions when modal opens:
+const fetchAllPermissions = async () => {
+  try {
+    const res = await api.get("/permissions/AllPermissions");
+    if (res.data.status) {
+      setAllPermissionsList(res.data.Permissions);
+    }
+  } catch (err) {
+    console.error("Error fetching all permissions", err);
+  }
+};
+
+useEffect(() => {
+  if (managePermissionsView) {
+    fetchAllPermissions();
+  }
+}, [managePermissionsView]);
 
   // Fetch permissions for a given employee
   const fetchEmployeePermissions = async (employeeId) => {
@@ -155,6 +176,52 @@ const AdminDashboard = () => {
   }
   };
 
+  const handleAddPermission = async (employeeId, permissionName) => {
+  try {
+    await api.post(`/employees/addEmployeePermission`, { employeeId, permissionName });
+    alert("Permission added!");
+    fetchEmployeePermissions(employeeId); // refresh
+  } catch (err) {
+    console.error(err);
+    alert("Failed to add permission");
+  }
+};
+
+const handleDeletePermission = async (employeeId, permissionName) => {
+  try {
+    await api.post(`/employees/deleteEmployeePermission`, { employeeId, permissionName });
+    alert("Permission deleted!");
+    fetchEmployeePermissions(employeeId); // refresh
+  } catch (err) {
+    console.error(err);
+    alert("Failed to delete permission");
+  }
+};
+
+// Open Manage Permissions modal
+const handleManagePermissions = async (employeeId) => {
+  try {
+    // get employee info
+    const res = await api.get(`/employees/getSingleFinalizedEmployee/${employeeId}`);
+    if (!res.data) {
+      alert("Failed to fetch employee details.");
+      return;
+    }
+    const employeeData = res.data.finalizedEmployee || res.data;
+
+    // fetch their permissions
+    const permissions = await fetchEmployeePermissions(employeeId);
+    employeeData.permissions = permissions;
+
+    // open modal
+    setManagePermissionsView(employeeData);
+  } catch (err) {
+    console.error("Error opening manage permissions modal:", err);
+    alert("Error fetching employee details.");
+  }
+};
+
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -260,9 +327,9 @@ const AdminDashboard = () => {
                     <p className="ml-12 text-xs text-gray-600">
                       Role name: {emp.role?.roleName || "N/A"}
                     </p>
-                    <p className="ml-12 text-xs text-gray-600">
-                     Permissions: {Array.isArray(emp.permissions) 
-                        ? emp.permissions.join(", ") 
+                   <p className="ml-12 text-xs text-gray-600">
+                      Permissions: {Array.isArray(emp.permissions) && emp.permissions.length > 0
+                        ? emp.permissions.map(p => p.name).join(", ")
                         : "None"}
                     </p>
                   </div>
@@ -350,6 +417,15 @@ const AdminDashboard = () => {
                       >
                         View Profile
                       </button>
+
+                      <button
+                        onClick={() => handleManagePermissions(emp._id)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100"
+                      >
+                        Manage Permissions
+                      </button>
+
+
                     </div>
                   )}
                 </div>
@@ -393,9 +469,9 @@ const AdminDashboard = () => {
                 Role: {profileView.role?.roleName || "N/A"}
               </p>
               <p className="ml-12 text-xs text-gray-600">
-                  Permissions: {Array.isArray(profileView.permissions)
-                    ? profileView.permissions.join(", ")
-                    : "No permissions"}
+                Permissions: {Array.isArray(profileView.permissions) && profileView.permissions.length > 0
+                  ? profileView.permissions.map(p => p.name).join(", ")
+                  : "No permissions"}
               </p>
               <p className="text-gray-500">{profileView.officialEmail}</p>
               </div>
@@ -462,6 +538,101 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+    {/* manage profile window */}
+    {managePermissionsView && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg w-4/5 max-h-[90vh] overflow-y-auto relative p-6">
+              {/* Close */}
+              <button
+                onClick={() => setManagePermissionsView(null)}
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              >
+                ✖
+              </button>
+
+              <h2 className="text-xl font-bold mb-4">
+                Manage Permissions for {managePermissionsView.individualName}
+              </h2>
+
+              {/* Top: Employee Permissions */}
+              <div className="flex flex-wrap gap-2 mb-6">
+              {Array.isArray(managePermissionsView.permissions) && managePermissionsView.permissions.length > 0 ? (
+                  managePermissionsView.permissions.map((perm) => (
+                    <span
+                      key={perm._id}
+                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                    >
+                      {perm.name}
+                    </span>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No permissions assigned.</p>
+                )}
+              </div>
+
+              {/* Bottom: Two-column layout */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* Left side: Add / Delete */}
+                <div className="space-y-4">
+                  {/* Add Permission */}
+                  <div className="p-4 border rounded-lg shadow-sm">
+                    <h3 className="font-semibold mb-2">Add Permission</h3>
+                    <input
+                      type="text"
+                      placeholder="Permission name"
+                      id="addPermInput"
+                      className="border rounded px-3 py-2 w-full mb-2"
+                    />
+                    <button
+                      onClick={() =>
+                        handleAddPermission(managePermissionsView._id, document.getElementById("addPermInput").value)
+                      }
+                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  {/* Delete Permission */}
+                  <div className="p-4 border rounded-lg shadow-sm">
+                    <h3 className="font-semibold mb-2">Delete Permission</h3>
+                    <input
+                      type="text"
+                      placeholder="Permission name"
+                      id="delPermInput"
+                      className="border rounded px-3 py-2 w-full mb-2"
+                    />
+                    <button
+                      onClick={() =>
+                        handleDeletePermission(managePermissionsView._id, document.getElementById("delPermInput").value)
+                      }
+                      className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right side: All Permissions */}
+                <div className="p-4 border rounded-lg shadow-sm">
+                  <h3 className="font-semibold mb-4">All Permissions</h3>
+                  <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                   {Array.isArray(allPermissionsList) && allPermissionsList.length > 0 ? (
+                      allPermissionsList.map((perm) => (
+                        <div key={perm._id} className="p-2 border rounded text-sm flex justify-between">
+                          <span>{perm.name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-500">No permissions found.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 };

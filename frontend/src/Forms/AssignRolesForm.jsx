@@ -10,6 +10,7 @@ const AssignRolesForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const [fetchedPermissions,setFetchedPermissions] = useState([]);
   const [hierarchy, setHierarchy] = useState({ offices: [] });
   const [loading, setLoading] = useState(false);
   const [employeeError, setEmployeeError] = useState(null);
@@ -76,6 +77,23 @@ const AssignRolesForm = () => {
   useEffect(() => {
     fetchHierarchy();
   }, []);
+
+  useEffect(()=>{
+  const fetchEmployeePermissions = async() => {
+    try{
+        setLoading(true);
+        const response = await api.get("/permissions/AllPermissions");
+        setFetchedPermissions(response.data.permissions);
+      }catch(error){
+        console.log(error);
+        setFetchedPermissions([]);
+      }
+      finally{
+          setLoading(false);
+      }
+    };
+    fetchEmployeePermissions();
+  },[])
 
   // ---------------- Reset Dependent Fields ----------------
   const resetDependentFields = (level) => {
@@ -408,15 +426,19 @@ const AssignRolesForm = () => {
       {/* Permissions Selector */}
       <div className="flex flex-col gap-2">
         <label className="font-semibold">Permissions</label>
-        <select value="" onChange={e => { 
+      <select
+        value=""
+        onChange={e => { 
           const val = e.target.value; 
           if(val && !allPermissions.includes(val)) setAllPermissions([...allPermissions,val]); 
-        }} className="border rounded px-3 py-2 w-full">
-          <option value="">Select Permission</option>
-          {["view_all_employees","view_single_employee","register_employee","approve_employee","reject_employee","delete_employee","assign_employee_role","view_all_roles","resolve_org_unit","create_org_unit","view_org_units","view_employees_by_org_unit","view_all_finalized_employees"].map(p => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
+        }}
+        className="border rounded px-3 py-2 w-full"
+      >
+        <option value="">Select Permission</option>
+        {fetchedPermissions.map(p => (
+          <option key={p._id} value={p._id}>{p.name}</option>
+        ))}
+      </select>
         <div className="flex flex-wrap gap-2 mt-2">
           {allPermissions.map(p => (
             <span key={p} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
