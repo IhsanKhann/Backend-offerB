@@ -1,6 +1,5 @@
 import express from "express";
 import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
-
 import { 
     getOrgUnits, 
     createOrgUnit,
@@ -9,13 +8,15 @@ import {
 
 const router = express.Router();
 
-
 router.use(authenticate);
-// Apply authorization individually per route
-router.get("/getOrgUnits", getOrgUnits);
 
-router.post("/createOrgUnit", createOrgUnit);
+// View all org units
+router.get("/getOrgUnits", authorize("view_org_units"), getOrgUnits);
 
-router.get("/getorgUnit/:orgUnitId", getEmployeesByOrgUnit);
+// Create a new org unit
+router.post("/createOrgUnit", authorize("create_org_unit"), createOrgUnit);
+
+// View employees by org unit
+router.get("/getorgUnit/:orgUnitId", authorize("view_employees_by_org_unit"), getEmployeesByOrgUnit);
 
 export default router;

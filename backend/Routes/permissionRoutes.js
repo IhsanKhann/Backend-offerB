@@ -12,24 +12,45 @@ import {authenticate,authorize} from "../middlewares/authMiddlewares.js";
 const router = express.Router()
 router.use(authenticate);
 
-// add a permission to a specific employee..
-router.post("/permissions/addEmployeePermission", addEmployeePermission);
+router.post(
+  "/permissions/addEmployeePermission",
+  authorize("assign_permission_to_employee"),
+  addEmployeePermission
+);
 
-// remove a permission from a an employee..
-router.post("/permissions/removeEmployeePermission", removeEmployeePermission);
+// remove a permission from an employee..
+router.post(
+  "/permissions/removeEmployeePermission",
+  authorize("remove_permission_from_employee"),
+  removeEmployeePermission
+);
 
-// get a specific employee permission..
-router.get("/permissions/getPermissions/:employeeId" , getEmployeePermissions);
+// get a specific employee's permissions..
+router.get(
+  "/permissions/getPermissions/:employeeId",
+  authorize("view_employee_permissions"),
+  getEmployeePermissions
+);
 
-// view permissions:
-router.get("/permissions/AllPermissions", AllPermissions);
+// view all permissions..
+router.get(
+  "/permissions/AllPermissions",
+  authorize("view_permissions"),  // new one
+  AllPermissions
+);
 
-// create/add permissions:
-router.post("/permissions/createPermission",createPermission);
+// create/add a new permission..
+router.post(
+  "/permissions/createPermission",
+  authorize("create_permission"),  // new one
+  createPermission
+);
 
-// remove permissions..
-router.delete("/permissions/removePermission/:id",removePermission);
-
-
+// remove a permission (system-level)..
+router.delete(
+  "/permissions/removePermission/:id",
+  authorize("delete_permission"), // new one
+  removePermission
+);
 
 export default router;

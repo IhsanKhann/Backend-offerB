@@ -1,6 +1,6 @@
 import express from "express";
 import upload from "../middlewares/mutlerMiddleware.js";
-import { authorize, authenticate } from "../middlewares/authMiddlewares.js"; // removed authorize
+import { authorize, authenticate } from "../middlewares/authMiddlewares.js";
 
 import {
     RegisterEmployee,
@@ -22,33 +22,47 @@ import {
 const router = express.Router();
 
 router.use(authenticate);
-// 🔹 Employee Routes
-router.post("/employees/register", upload.single("profileImage"), RegisterEmployee);
 
-router.get("/employees/allfinalized", getFinalizedEmployees);
+// Register new employee
+router.post("/employees/register", authorize("register_employee"), upload.single("profileImage"), RegisterEmployee);
 
-router.get("/getAllEmployees", getAllEmployees);
+// Submit employee for approval
+router.post("/submit-employee", authorize("submit_employee"), SubmitEmployee);
 
-router.get("/getAllRoles", getAllRoles);
+// Approve employee
+router.patch("/employees/approve/:finalizedEmployeeId", authorize("approve_employee"), ApproveEmployee);
 
-router.post("/employees/roles", AssignEmployeePost);
+// Reject employee
+router.delete("/employees/reject/:finalizedEmployeeId", authorize("reject_employee"), RejectEmployee);
 
-router.post("/submit-employee", SubmitEmployee);
+// Delete employee
+router.delete("/deleteEmployee/:employeeId", authorize("delete_employee"), deleteEmployee);
 
-router.patch("/employees/approve/:finalizedEmployeeId", ApproveEmployee);
+// Delete both employee + finalized record
+router.delete("/employees/delete/:finalizedEmployeeId", authorize("delete_finalized_employee"), deleteEmployeeAndFinalized);
 
-router.delete("/employees/reject/:finalizedEmployeeId", RejectEmployee);
+// View all employees
+router.get("/getAllEmployees", authorize("view_all_employees"), getAllEmployees);
 
-router.delete("/employees/delete/:finalizedEmployeeId", deleteEmployeeAndFinalized);
+// View all finalized employees
+router.get("/employees/allfinalized", authorize("view_all_finalized_employees"), getFinalizedEmployees);
 
-router.delete("/deleteEmployee/:employeeId", deleteEmployee);
+// View single employee
+router.get("/employees/:employeeId", authorize("view_single_employee"), getSingleEmployee);
 
-router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", getSingleFinalizedEmployee);
+// View single finalized employee
+router.get("/employees/getSingleFinalizedEmployee/:finalizedEmployeeId", authorize("view_single_finalized_employee"), getSingleFinalizedEmployee);
 
-router.get("/roles/:employeeId", getSingleRole);
-router.get("/employees/:employeeId", getSingleEmployee);
+// Assign employee role
+router.post("/employees/roles", authorize("assign_employee_role"), AssignEmployeePost);
 
-// 🔹 OrgUnit Route
-router.post("/org-units/resolve", resolveOrgUnit);
+// View all roles
+router.get("/getAllRoles", authorize("view_all_roles"), getAllRoles);
+
+// View single role
+router.get("/roles/:employeeId", authorize("view_single_role"), getSingleRole);
+
+// Resolve Org Unit conflicts
+router.post("/org-units/resolve", authorize("resolve_org_unit"), resolveOrgUnit);
 
 export default router;

@@ -37,7 +37,6 @@ export async function KeepPermissionsUpdated() {
   }
 };
 
-
 // ✅ Get an employee's permissions (from their role)
 export const getEmployeePermissions = async (req, res) => {
   try {

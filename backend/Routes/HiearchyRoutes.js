@@ -11,21 +11,19 @@ import {
 const router = express.Router();
 router.use(authenticate);
 
-// ====== Hierarchy ======
-// Add full hierarchy (initial setup)
-router.post("/hierarchy/add-hierarchy", addHierarchy);
+// Add full hierarchy
+router.post("/hierarchy/add-hierarchy", authorize("add_hierarchy"), addHierarchy);
 
 // Get hierarchy
-router.get("/hierarchy/get-hierarchy", getHierarchy);
+router.get("/hierarchy/get-hierarchy", authorize("view_hierarchy"), getHierarchy);
 
-// Create a new hierarchy level (office, group, division, etc.)
-router.post("/hierarchy/createNode", createHierarchyLevel);
+// Create a new hierarchy level
+router.post("/hierarchy/createNode", authorize("add_hierarchy_level"), createHierarchyLevel);
 
 // Edit an existing hierarchy level
-router.put("/hierarchy/editNode/:id", editHierarchyLevel);
+router.put("/hierarchy/editNode/:id", authorize("edit_hierarchy_level"), editHierarchyLevel);
 
 // Delete a hierarchy level
-router.delete("/hierarchy/deleteNode/:id", deleteHierarchyLevel);
+router.delete("/hierarchy/deleteNode/:id", authorize("delete_hierarchy_level"), deleteHierarchyLevel);
 
 export default router;
-
