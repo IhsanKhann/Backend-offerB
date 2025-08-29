@@ -59,7 +59,7 @@ const findNodeById = (root, id) => {
   return null;
 };
 
-// ---------------------- Create Level ----------------------
+// ---------------------- Create Level (Fixed) ----------------------
 export const createHierarchyLevel = async (req, res) => {
   try {
     const { level, name, parentId } = req.body;
@@ -70,24 +70,20 @@ export const createHierarchyLevel = async (req, res) => {
     const hierarchy = await HierarchyModel.findOne();
     if (!hierarchy) return res.status(404).json({ message: "Hierarchy not found", success: false });
 
-    // Find parent
-    let parent, parentKey;
+    // ---------------- Find Parent ----------------
+    let parent;
     if (!parentId) {
-      parent = hierarchy;
-      parentKey = "offices";
+      parent = hierarchy; // top-level, i.e., offices
     } else {
       const parentResult = findNodeById(hierarchy, parentId);
       if (!parentResult) return res.status(404).json({ message: "Parent not found", success: false });
-
       parent = parentResult.node;
-      parentKey = level; // new child will be added under this key
     }
 
-    // Ensure child array exists
-    if (!Array.isArray(parent[parentKey])) parent[parentKey] = [];
+    // ---------------- Ensure child array exists ----------------
+    if (!Array.isArray(parent[level])) parent[level] = [];
 
-    // Create new node
-    const newNode = { _id: new mongoose.Types.ObjectId(), name };
+    // ---------------- Build new node with nested empty arrays ----------------
     const childArrays = {
       offices: ["groups", "divisions", "departments", "branches", "cells", "desks"],
       groups: ["divisions", "departments", "cells", "desks"],
@@ -98,15 +94,17 @@ export const createHierarchyLevel = async (req, res) => {
       desks: []
     };
 
+    const newNode = { _id: new mongoose.Types.ObjectId(), name };
     if (childArrays[level]) {
-      childArrays[level].forEach((key) => {
-        newNode[key] = [];
-      });
+      childArrays[level].forEach((key) => newNode[key] = []);
     }
 
-    parent[parentKey].push(newNode);
+    // ---------------- Add new node ----------------
+    parent[level].push(newNode);
 
-    hierarchy.markModified(parentKey);
+    // ---------------- Ensure Mongoose saves nested changes ----------------
+    hierarchy.markModified("offices"); // always mark top-level 'offices' as modified
+
     await hierarchy.save();
 
     res.status(201).json({ message: `${level} created successfully`, success: true, nodeId: newNode._id });
@@ -115,6 +113,7 @@ export const createHierarchyLevel = async (req, res) => {
     res.status(500).json({ message: "Create failed", success: false, error: err.message });
   }
 };
+
 
 // ---------------------- Edit Level ----------------------
 export const editHierarchyLevel = async (req, res) => {

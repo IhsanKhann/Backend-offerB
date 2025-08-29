@@ -10,6 +10,7 @@ import AdminDashboard from "./Pages/AdminDashboard.jsx";
 import LoginPage from "./Pages/loginPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoutes.jsx";
 import DraftDashboard from "./Pages/DraftsDashboard.jsx";
+import PermissionHandler from "./Pages/PermissionsHandler.jsx";
 import {ResetPasswordPage,ForgetUserId} from "./components/ResetLoginPage.jsx";
 
 import "./index.css";
@@ -81,6 +82,12 @@ const router = createBrowserRouter([
     path: "/forget-UserId",
     element: (
         <ForgetUserId/>
+    )
+  },
+    {
+    path: "/Permission-handler",
+    element: (
+        <PermissionHandler/>
     )
   },
 ]);
