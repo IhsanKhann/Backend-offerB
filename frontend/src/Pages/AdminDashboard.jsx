@@ -176,11 +176,21 @@ useEffect(() => {
   }
   };
 
-  const handleAddPermission = async (employeeId, permissionName) => {
+const handleAddPermission = async (employeeId, permissionName) => {
   try {
-    await api.post(`/employees/addEmployeePermission`, { employeeId, permissionName });
+    await api.post(`/permissions/addEmployeePermission`, { employeeId, permissionName });
     alert("Permission added!");
-    fetchEmployeePermissions(employeeId); // refresh
+
+    const updatedPerms = await fetchEmployeePermissions(employeeId);
+    setManagePermissionsView((prev) => ({ ...prev, permissions: updatedPerms }));
+    setFinalizedEmployees((prev) =>
+      prev.map((emp) =>
+        emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp
+      )
+    );
+
+    // ✅ Clear the input after success
+    document.getElementById("addPermInput").value = "";
   } catch (err) {
     console.error(err);
     alert("Failed to add permission");
@@ -189,9 +199,19 @@ useEffect(() => {
 
 const handleDeletePermission = async (employeeId, permissionName) => {
   try {
-    await api.post(`/employees/deleteEmployeePermission`, { employeeId, permissionName });
+    await api.post(`/permissions/removeEmployeePermission`, { employeeId, permissionName });
     alert("Permission deleted!");
-    fetchEmployeePermissions(employeeId); // refresh
+
+    const updatedPerms = await fetchEmployeePermissions(employeeId);
+    setManagePermissionsView((prev) => ({ ...prev, permissions: updatedPerms }));
+    setFinalizedEmployees((prev) =>
+      prev.map((emp) =>
+        emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp
+      )
+    );
+
+    // ✅ Clear the input after success
+    document.getElementById("delPermInput").value = "";
   } catch (err) {
     console.error(err);
     alert("Failed to delete permission");
