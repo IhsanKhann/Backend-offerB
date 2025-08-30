@@ -348,11 +348,7 @@ const handleSubmit = async (e) => {
   e.preventDefault();
   console.log("Submitting form...");
 
-  console.log("Selected Role:", roleDropdown);
-  console.log("Employee Data:", employeeData);
-
   if (!roleDropdown.trim()) {
-    console.log("Role name is empty!");
     return alert("Role name is required");
   }
 
@@ -371,22 +367,21 @@ const handleSubmit = async (e) => {
 
     console.log("OrgUnit resolve request body:", resolveBody);
 
-    // 2️⃣ Resolve leaf orgUnit
-    const resolveRes = await api.post("/employees/org-units/resolve", resolveBody);
-    console.log("OrgUnit resolve response:", resolveRes.data);
+    // 2️⃣ Resolve leaf orgUnit using api (Axios)
+    const resolveRes = await api.post("/orgUnits/resolve/orgUnits", resolveBody);
+    const resolveData = resolveRes.data;
+    console.log("OrgUnit resolve response:", resolveData);
 
-    if (!resolveRes.data?.orgUnitId) {
+    if (!resolveData?.orgUnitId) {
       setLoading(false);
-      console.log("Failed to resolve OrgUnit");
       return alert("Failed to resolve OrgUnit. Check your selection.");
     }
 
-    const orgUnitId = resolveRes.data.orgUnitId;
+    const orgUnitId = resolveData.orgUnitId;
     console.log("Resolved OrgUnit ID:", orgUnitId);
 
     // 3️⃣ Prepare permissions IDs
-    const permissionIds = allPermissions.map(p => p._id);
-    console.log("Selected permissions:", allPermissions);
+    const permissionIds = allPermissions.map((p) => p._id);
     console.log("Permission IDs:", permissionIds);
 
     // 4️⃣ Send role assignment request
@@ -402,13 +397,10 @@ const handleSubmit = async (e) => {
     console.log("Role assign response:", assignRes.data);
 
     if (assignRes.data.success) {
-      console.log("Role assigned successfully!");
       alert("Role assigned successfully!");
     } else {
-      console.log("Failed to assign role:", assignRes.data.message);
       alert(assignRes.data.message || "Failed to assign role");
     }
-
   } catch (error) {
     console.error("Error assigning role:", error);
     alert("Server error. Check console for details.");
@@ -416,6 +408,7 @@ const handleSubmit = async (e) => {
     setLoading(false);
   }
 };
+
 
 
   const handleCancel = () => navigate("/DraftDashboard");

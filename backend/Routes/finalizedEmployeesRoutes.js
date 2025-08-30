@@ -44,7 +44,6 @@ router.delete(
 // View all finalized employees
 router.get(
   "/all",
-  setResourceOrgUnit,
   authorize("view_all_finalized_employees"),
   getFinalizedEmployees
 );

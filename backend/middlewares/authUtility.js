@@ -1,38 +1,52 @@
-import FinalizedEmployeesModel from "../models/FinalizedEmployees.model.js";
-import { OrgUnitModel } from "../models/OrgUnit.js";
-import RoleModel from "../models/Role.model.js";
-import { PermissionModel } from "../models/Permissions.model.js";
 import EmployeeModel from "../models/Employee.model.js";
+import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
+import {PermissionModel} from "../models/Permissions.model.js";
+import RoleModel from "../models/Role.model.js";
+import {OrgUnitModel} from "../models/OrgUnit.js";
 import { HierarchyModel } from "../models/Hiearchy.model.js";
 
-/**
- * Middleware to automatically detect and attach resourceOrgUnit
- * based on the current route/resource being accessed.
- */
+const modelMap = {
+  employees: { model: EmployeeModel, keys: ["employeeId", "id"] },
+  finalizedEmployees: { model: FinalizedEmployee, keys: ["finalizedEmployeeId", "id"] },
+  permissions: { model: PermissionModel, keys: ["permissionId", "id"] },
+  roles: { model: RoleModel, keys: ["roleId", "id"] },
+  "org-units": { model: OrgUnitModel, keys: ["orgUnitId", "id"] },
+  hierarchy: { model: HierarchyModel, keys: ["hierarchyId", "id"] },
+};
+
+// Middleware
 export const setResourceOrgUnit = async (req, res, next) => {
   try {
     let orgUnitId = null;
 
-    // Safe helper
-    const id = (key) => req.params?.[key] || req.body?.[key];
+    // 🔹 Extract resource name from baseUrl (first segment after /api if present)
+    const resource = req.baseUrl.split("/").filter(Boolean).pop(); 
+    // e.g. "/api/employees" → "employees"
 
-    if (req.baseUrl.includes("/employees")) {
-      const employee = await EmployeeModel.findById(id("employeeId") || id("id"));
-      if (employee) orgUnitId = employee.orgUnit;
-    } else if (req.baseUrl.includes("/finalizedEmployees")) {
-      const finalized = await FinalizedEmployee.findById(id("finalizedEmployeeId") || id("id"));
-      if (finalized) orgUnitId = finalized.orgUnit;
-    } else if (req.baseUrl.includes("/permissions")) {
-      const permission = await PermissionModel.findById(id("permissionId") || id("id"));
-      if (permission) orgUnitId = permission.orgUnit;
-    } else if (req.baseUrl.includes("/roles")) {
-      const role = await RoleModel.findById(id("roleId") || id("id"));
-      if (role) orgUnitId = role.orgUnit;
-    } else if (req.baseUrl.includes("/org-units") || req.baseUrl.includes("/hierarchy")) {
-      orgUnitId = id("orgUnitId") || id("id");
+    // Safe helper to fetch IDs
+    const getId = (keys) =>
+      keys?.map((key) => req.params?.[key] || req.body?.[key]).find(Boolean);
+
+    if (modelMap[resource]) {
+      // DB-backed resources
+      const { model, keys } = modelMap[resource];
+      const id = getId(keys);
+      if (id) {
+        const doc = await model.findById(id);
+        if (doc) orgUnitId = doc.orgUnit;
+      }
+    } else if (["org-units", "hierarchy"].includes(resource)) {
+      // Direct resources → orgUnitId comes directly
+      orgUnitId = getId(["orgUnitId", "id"]);
     }
 
-    req.resourceOrgUnit = orgUnitId || null;
+    if (!orgUnitId) {
+      return res
+        .status(400)
+        .json({ message: `Unable to resolve orgUnit for ${resource}` });
+    }
+
+    req.resourceOrgUnit = orgUnitId.toString();
     next();
   } catch (err) {
     console.error("setResourceOrgUnit error:", err);
@@ -40,12 +54,11 @@ export const setResourceOrgUnit = async (req, res, next) => {
   }
 };
 
-
 /**
  * Recursively fetch all employees under an orgUnit and its children.
  */
 export const getAllDescendents = async (orgUnitId) => {
-  let employees = await FinalizedEmployeesModel.find({ orgUnit: orgUnitId }).populate("role");
+  let employees = await FinalizedEmployee.find({ orgUnit: orgUnitId }).populate("role");
 
   const children = await OrgUnitModel.find({ parent: orgUnitId });
 

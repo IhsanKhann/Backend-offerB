@@ -18,7 +18,6 @@ router.use(authenticate);
 // Add permission to employee
 router.post(
   "/addEmployeePermission",
-  setResourceOrgUnit,
   authorize("assign_permission_to_employee"),
   addEmployeePermission
 );
@@ -26,7 +25,6 @@ router.post(
 // Remove a permission from an employee
 router.post(
   "/removeEmployeePermission",
-  setResourceOrgUnit,
   authorize("remove_permission_from_employee"),
   removeEmployeePermission
 );
@@ -34,7 +32,6 @@ router.post(
 // Get a specific employee's permissions
 router.get(
   "/getPermissions/:employeeId",
-  setResourceOrgUnit,
   authorize("view_employee_permissions"),
   getEmployeePermissions
 );
@@ -42,7 +39,6 @@ router.get(
 // View all permissions (system-level)
 router.get(
   "/AllPermissions",
-  setResourceOrgUnit,
   authorize("view_Permissions"),
   AllPermissions
 );
@@ -50,24 +46,21 @@ router.get(
 // Create/add a new permission (system-level)
 router.post(
   "/createPermission",
-  setResourceOrgUnit,
-  authorize("create_permission"),
+  authorize("add_Permissions"),
   createPermission
 );
 
 // Remove a permission (system-level)
 router.delete(
-  "/removePermission/:id",
-  setResourceOrgUnit,
-  authorize("delete_permission"),
+  "/removePermission/:permissionId",
+  authorize("delete_Permissions"),
   removePermission
 );
 
 // Update a permission (system-level)
 router.put(
-  "/updatePermission/:id",
-  setResourceOrgUnit,
-  authorize("update_permission"),
+  "/updatePermission/:permissionId",
+  authorize("update_Permissions"),
   updatePermission
 );
 

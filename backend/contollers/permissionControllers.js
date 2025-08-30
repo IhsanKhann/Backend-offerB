@@ -273,7 +273,7 @@ export const createPermission = async (req, res) => {
 // for permission handler
 export const removePermission = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { permissionId } = req.params;
 
     const deletedPermission = await PermissionModel.findByIdAndDelete(id);
 
@@ -300,7 +300,7 @@ export const removePermission = async (req, res) => {
 
 export const updatePermission = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { permissionId } = req.params;
     const { name, description } = req.body;
 
     if (!name?.trim() || !description?.trim()) {
@@ -319,7 +319,7 @@ export const updatePermission = async (req, res) => {
     }
 
     await KeepPermissionsUpdated();
-    
+
     res.status(200).json({
       message: "Permission updated successfully",
       permission: updatedPermission,

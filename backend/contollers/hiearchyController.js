@@ -118,7 +118,7 @@ export const createHierarchyLevel = async (req, res) => {
 // ---------------------- Edit Level ----------------------
 export const editHierarchyLevel = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { hierarchyId } = req.params;
     const { updateData, path = [], level } = req.body;
 
     if (!updateData || !level) return res.status(400).json({ message: "Level and updateData required", success: false });
@@ -157,7 +157,7 @@ export const editHierarchyLevel = async (req, res) => {
 // ---------------------- Delete Level ----------------------
 export const deleteHierarchyLevel = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { hierarchyId } = req.params;
 
     const hierarchy = await HierarchyModel.findOne();
     if (!hierarchy) return res.status(404).json({ message: "Hierarchy not found", success: false });

@@ -1,6 +1,7 @@
 import express from "express";
 import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
-import { setResourceOrgUnit } from "../middlewares/authUtility.js";
+import { resolveOrgUnit } from "../contollers/employeeController.js";
+
 import { 
     getOrgUnits, 
     createOrgUnit,
@@ -9,12 +10,18 @@ import {
 
 const router = express.Router();
 
+
+// Resolve Org Unit conflicts
+router.post(
+  "/resolve/orgUnits",resolveOrgUnit
+//   authorize("resolve_org_unit"),
+);
+
 router.use(authenticate);
 
 // View all org units
 router.get(
   "/getOrgUnits",
-  setResourceOrgUnit,
   authorize("view_org_units"),
   getOrgUnits
 );
@@ -22,7 +29,6 @@ router.get(
 // Create a new org unit
 router.post(
   "/createOrgUnit",
-  setResourceOrgUnit,
   authorize("create_org_unit"),
   createOrgUnit
 );
@@ -30,9 +36,11 @@ router.post(
 // View employees by org unit
 router.get(
   "/getorgUnit/:orgUnitId",
-  setResourceOrgUnit,
+//   setResourceOrgUnit,
   authorize("view_employees_by_org_unit"),
   getEmployeesByOrgUnit
 );
+
+// ------------------- Org Unit Routes -------------------
 
 export default router;

@@ -18,6 +18,13 @@ import {
 const router = express.Router();
 
 // 🔐 Authentication middleware
+// Assign employee role
+router.post(
+  "/roles",
+  authorize("assign_employee_role"),
+  AssignEmployeePost
+);
+
 router.use(authenticate);
 
 // ------------------- Employee Routes -------------------
@@ -25,7 +32,6 @@ router.use(authenticate);
 // Register new employee
 router.post(
   "/register",
-  setResourceOrgUnit,
   authorize("register_employee"),
   upload.single("profileImage"),
   RegisterEmployee
@@ -34,7 +40,6 @@ router.post(
 // Submit employee for approval
 router.post(
   "/submit-employee",
-  setResourceOrgUnit,
   authorize("submit_employee"),
   SubmitEmployee
 );
@@ -42,7 +47,7 @@ router.post(
 // Delete employee (before finalized)
 router.delete(
   "/deleteEmployee/:employeeId",
-  setResourceOrgUnit,
+//   setResourceOrgUnit,
   authorize("delete_employee"),
   deleteEmployee
 );
@@ -50,7 +55,6 @@ router.delete(
 // View all employees
 router.get(
   "/getAllEmployees",
-  setResourceOrgUnit,
   authorize("view_all_employees"),
   getAllEmployees
 );
@@ -58,25 +62,15 @@ router.get(
 // View single employee
 router.get(
   "/:employeeId",
-  setResourceOrgUnit,
+//   setResourceOrgUnit,
   authorize("view_single_employee"),
   getSingleEmployee
 );
 
 // ------------------- Role Routes -------------------
-
-// Assign employee role
-router.post(
-  "/roles",
-  setResourceOrgUnit,
-  authorize("assign_employee_role"),
-  AssignEmployeePost
-);
-
 // View all roles
 router.get(
   "/getAllRoles",
-  setResourceOrgUnit,
   authorize("view_all_roles"),
   getAllRoles
 );
@@ -84,19 +78,11 @@ router.get(
 // View single role
 router.get(
   "/roles/:roleId",
-  setResourceOrgUnit,
+//   setResourceOrgUnit,
   authorize("view_single_role"),
   getSingleRole
 );
 
-// ------------------- Org Unit Routes -------------------
 
-// Resolve Org Unit conflicts
-router.post(
-  "/org-units/resolve",
-  setResourceOrgUnit,
-  authorize("resolve_org_unit"),
-  resolveOrgUnit
-);
 
 export default router;
