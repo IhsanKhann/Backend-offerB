@@ -372,7 +372,7 @@ const handleSubmit = async (e) => {
     const resolveData = resolveRes.data;
     console.log("OrgUnit resolve response:", resolveData);
 
-    if (!resolveData?.orgUnitId) {
+    if (!resolveData?.success || !resolveData?.orgUnitId) {
       setLoading(false);
       return alert("Failed to resolve OrgUnit. Check your selection.");
     }
@@ -393,7 +393,7 @@ const handleSubmit = async (e) => {
     };
     console.log("Role assign request body:", assignBody);
 
-    const assignRes = await api.post("/roles/assign", assignBody);
+    const assignRes = await api.post("/employees/roles/assign", assignBody);
     console.log("Role assign response:", assignRes.data);
 
     if (assignRes.data.success) {

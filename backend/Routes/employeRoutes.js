@@ -17,15 +17,14 @@ import {
 
 const router = express.Router();
 
-// 🔐 Authentication middleware
+router.use(authenticate);
+
 // Assign employee role
 router.post(
-  "/roles",
+  "/roles/assign",
   authorize("assign_employee_role"),
   AssignEmployeePost
 );
-
-router.use(authenticate);
 
 // ------------------- Employee Routes -------------------
 

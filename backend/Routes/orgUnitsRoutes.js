@@ -11,10 +11,10 @@ import {
 const router = express.Router();
 
 
-// Resolve Org Unit conflicts
+// Resolve Org Unit conflicts - moved before authentication middleware
 router.post(
-  "/resolve/orgUnits",resolveOrgUnit
-//   authorize("resolve_org_unit"),
+  "/resolve/orgUnits",
+  resolveOrgUnit
 );
 
 router.use(authenticate);

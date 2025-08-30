@@ -686,6 +686,16 @@ export const AssignEmployeePost = async (req, res) => {
   try {
     const { employeeId, roleName, orgUnit, permissions = [] } = req.body;
 
+    console.log("AssignEmployeePost request body:", req.body);
+
+    // Validate required fields
+    if (!employeeId || !roleName || !orgUnit) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "employeeId, roleName, and orgUnit are required" 
+      });
+    }
+
     // Validate employeeId
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       return res.status(400).json({ success: false, message: "Invalid employeeId" });
@@ -705,24 +715,42 @@ export const AssignEmployeePost = async (req, res) => {
       ? permissions.filter(p => mongoose.Types.ObjectId.isValid(p))
       : [];
 
-    // Prevent duplicate role in same orgUnit
-    const existing = await RoleModel.findOne({
-      employeeId,
-      roleName,
-      orgUnit: orgUnitDoc._id,
-    });
-    if (existing) return res.status(400).json({ success: false, message: "Role already assigned here" });
+    // Check for existing role assignment for this employee
+    const existing = await RoleModel.findOne({ employeeId });
+    if (existing) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Employee already has a role assigned. Delete existing role first." 
+      });
+    }
 
     // Create role
-    const newRole = new RoleModel({ employeeId, roleName, orgUnit: orgUnitDoc._id, permissions: permissionIds });
+    const newRole = new RoleModel({ 
+      employeeId, 
+      roleName, 
+      orgUnit: orgUnitDoc._id, 
+      permissions: permissionIds 
+    });
+    
+    // Update employee status
     employee.DraftStatus.PostStatus = "Assigned";
     await employee.save();
     await newRole.save();
 
-    return res.status(200).json({ success: true, message: "Role assigned successfully", role: newRole });
+    console.log("Role assigned successfully:", newRole);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Role assigned successfully", 
+      role: newRole 
+    });
   } catch (error) {
     console.error("🔥 AssignEmployeePost error:", error);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error", 
+      error: error.message 
+    });
   }
 };
 
