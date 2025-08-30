@@ -56,7 +56,7 @@ useEffect(() => {
   const handleAllEmployees = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/employees/allfinalized");
+      const res = await api.get("/finalizedEmployees/allfinalized");
       const employees = res.data.data || [];
 
       const employeesWithPermissions = await Promise.all(
@@ -104,7 +104,7 @@ useEffect(() => {
   const handleApprove = async (finalizedEmployeeId) => {
     try {
       const res = await api.patch(
-        `/employees/approve/${finalizedEmployeeId}`
+        `/finalizedEmployees/approve/${finalizedEmployeeId}`
       );
       if (res.status === 200) {
         alert("Employee approved successfully!");
@@ -122,7 +122,7 @@ useEffect(() => {
   const handleReject = async (finalizedEmployeeId) => {
     try {
       const res = await api.delete(
-        `/employees/reject/${finalizedEmployeeId}`
+        `/finalizedEmployees/reject/${finalizedEmployeeId}`
       );
       if (res.status === 200) {
         alert("Employee rejected successfully!");
@@ -140,7 +140,7 @@ useEffect(() => {
   const handleDelete = async (finalizedEmployeeId) => {
     try {
       const res = await api.delete(
-        `/employees/delete/${finalizedEmployeeId}`
+        `/finalizedEmployees/delete/${finalizedEmployeeId}`
       );
       if (res.status === 200) {
         alert("Employee deleted successfully!");
@@ -158,7 +158,7 @@ useEffect(() => {
   const handleProfileView = async (finalizedEmployeeId) => {
   try {
     const res = await api.get(
-      `/employees/getSingleFinalizedEmployee/${finalizedEmployeeId}`
+      `/finalizedEmployees/getSingleFinalizedEmployee/${finalizedEmployeeId}`
     );
     if (!res.data) {
       alert("Profile data could not be fetched.");
@@ -222,7 +222,7 @@ const handleDeletePermission = async (employeeId, permissionName) => {
 const handleManagePermissions = async (employeeId) => {
   try {
     // get employee info
-    const res = await api.get(`/employees/getSingleFinalizedEmployee/${employeeId}`);
+    const res = await api.get(`/finalizedEmployees/getSingleFinalizedEmployee/${employeeId}`);
     if (!res.data) {
       alert("Failed to fetch employee details.");
       return;

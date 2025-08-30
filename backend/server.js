@@ -9,6 +9,7 @@ import HierarchyRouter from "./Routes/HiearchyRoutes.js";
 import orgUnitsRouter from "./Routes/orgUnitsRoutes.js";
 import AuthRouter from "./Routes/authRoutes.js";
 import PermissionRouter from "./Routes/permissionRoutes.js";
+import FinalizedEmployeesRouter from "./Routes/finalizedEmployeesRoutes.js"
 
 
 dotenv.config();
@@ -36,12 +37,12 @@ app.get("/api/hello", (req, res) => {
   })
 });
 
-app.use("/api", AuthRouter);
-app.use("/api", employeeRouter);
-app.use("/api", HierarchyRouter);
-app.use("/api", orgUnitsRouter);
-app.use("/api", PermissionRouter);
-
+app.use("/api/auth", AuthRouter);
+app.use("/api/employees", employeeRouter);
+app.use("/api/hierarchy", HierarchyRouter);
+app.use("/api/orgUnits", orgUnitsRouter);
+app.use("/api/permissions", PermissionRouter);
+app.use("/api/finalizedEmployees", FinalizedEmployeesRouter);
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {

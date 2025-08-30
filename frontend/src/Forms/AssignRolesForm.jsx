@@ -78,6 +78,8 @@ const AssignRolesForm = () => {
     fetchHierarchy();
   }, []);
 
+  // reminder -> fetch roles if needed.
+  
   useEffect(()=>{
   const fetchEmployeePermissions = async() => {
     try{

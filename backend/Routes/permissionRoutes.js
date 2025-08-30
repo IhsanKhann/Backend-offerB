@@ -5,7 +5,8 @@ import {
     createPermission,
     removePermission,
     removeEmployeePermission,
-    addEmployeePermission
+    addEmployeePermission,
+    updatePermission,
 } from "../contollers/permissionControllers.js";
 import {authenticate,authorize} from "../middlewares/authMiddlewares.js";
 
@@ -53,4 +54,5 @@ router.delete(
   removePermission
 );
 
+router.put("/permissions/updatePermission/:id", updatePermission);
 export default router;

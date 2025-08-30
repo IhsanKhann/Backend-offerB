@@ -9,7 +9,7 @@ export const HierarchyTree = ({ onNodeSelect }) => {
   useEffect(() => {
     const fetchTree = async () => {
       try {
-        const res = await api.get("/getOrgUnits");
+        const res = await api.get("orgUnits/getOrgUnits");
         setTreeData(res.data);
       } catch (err) {
         console.error("Failed to fetch hierarchy:", err);

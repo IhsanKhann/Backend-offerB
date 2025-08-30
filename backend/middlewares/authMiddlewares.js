@@ -2,6 +2,8 @@ import jwt from "jsonwebtoken";
 import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
 import RoleModel from "../models/Role.model.js";
 import {OrgUnitModel} from "../models/OrgUnit.js";
+import {getRootOrgUnit,getPermissionsForUser,getAllDescendents} from "../middlewares/authUtility.js";
+
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -72,51 +74,30 @@ export const checkAuth = async (req, res) => {
   }
 };
 
-export const authorize = (requiredPermission) => {
-  return async (req, res, next) => {
-    try {
-      const { role, orgUnit } = req.user;
-      if (!role || !orgUnit) {
-        return res.status(401).json({ message: "User role or orgUnit missing" });
+export const authorize = (requiredPermission) => async (req, res, next) => {
+  try {
+    const user = req.user; // from authenticate middleware
+
+    // 1️⃣ Get all permissions including descendants
+    const permissions = await getPermissionsForUser(user);
+
+    // 2️⃣ Departmental isolation
+    if (req.resourceOrgUnit) {
+      const userRoot = await getRootOrgUnit(user.orgUnit);
+      const resourceRoot = await getRootOrgUnit(req.resourceOrgUnit);
+      if (userRoot._id.toString() !== resourceRoot._id.toString()) {
+        return res.status(403).json({ message: "Forbidden: department isolation" });
       }
-
-      let permissions = new Set();
-
-      // --- Helper: collect permissions from a role directly
-      const collectRolePermissions = async (roleId) => {
-        const roleDoc = await RoleModel.findById(roleId).populate("permissions");
-        if (roleDoc?.permissions) {
-          roleDoc.permissions.forEach((p) => permissions.add(p.name));
-        }
-        return roleDoc;
-      };
-
-      // --- Step 1: Start with user’s direct role
-      await collectRolePermissions(role);
-
-      // --- Step 2: Traverse orgUnit hierarchy upwards
-      let currentOrgUnit = await OrgUnitModel.findById(orgUnit).populate("role");
-      while (currentOrgUnit) {
-        if (currentOrgUnit.role) {
-          await collectRolePermissions(currentOrgUnit.role);
-        }
-        if (!currentOrgUnit.parent) break;
-        currentOrgUnit = await OrgUnitModel.findById(currentOrgUnit.parent).populate("role");
-      }
-
-      // --- Step 3: Check if required permission exists
-      if (!permissions.has(requiredPermission)) {
-        return res.status(403).json({ message: "Forbidden: Missing permission" });
-      }
-
-      next();
-    } catch (err) {
-      console.error("Authorization error:", err);
-      return res.status(500).json({
-        message: "Authorization error",
-        error: err.message,
-      });
     }
-  };
-};
 
+    // 3️⃣ Check permission
+    if (!permissions.has(requiredPermission)) {
+      return res.status(403).json({ message: "Forbidden: missing permission" });
+    }
+
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Authorization error", error: err.message });
+  }
+};

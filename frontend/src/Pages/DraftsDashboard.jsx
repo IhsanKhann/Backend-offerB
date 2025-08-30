@@ -15,8 +15,8 @@ const DraftDashboard = () => {
 useEffect(() => {
   const fetchData = async () => {
     try {
-      const empRes = await api.get("/getAllEmployees");
-      const rolesRes = await api.get("/getAllRoles");
+      const empRes = await api.get("employees/getAllEmployees");
+      const rolesRes = await api.get("employees/getAllRoles");
 
       // ✅ Axios already gives you parsed JSON in .data
       const empData = empRes.data;
@@ -37,8 +37,8 @@ useEffect(() => {
   // Refresh employees and roles
   const fetchEmployees = async () => {
     try {
-      const empRes = await api.get("/getAllEmployees");
-      const rolesRes = await api.get("/getAllRoles");
+      const empRes = await api.get("employees/getAllEmployees");
+      const rolesRes = await api.get("employees/getAllRoles");
 
       
       setEmployees(empRes.employees || []);
@@ -65,7 +65,7 @@ useEffect(() => {
 
       const orgUnitId = employeeRoles[0].orgUnit;
 
-      const response = await api.post(`/submit-employee`, {
+      const response = await api.post(`/employees/submit-employee`, {
         employeeId: employeeId,
         orgUnitId: orgUnitId,
       });
@@ -84,7 +84,8 @@ useEffect(() => {
 
   const handleCancelEmployee = async (employeeId) => {
     try {
-      const response = await api.delete(`/deleteEmployee/${employeeId}`)
+      const response = await api.delete(`/employees/deleteEmployee/${employeeId}`)
+
 
       if (response.ok) {
         alert("Employee deleted successfully");
