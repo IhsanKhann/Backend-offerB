@@ -174,7 +174,19 @@ export const getSingleEmployee = async (req, res) => {
       });
     }
 
-    const employee = await EmployeeModel.findById(employeeId); // ✅ use findById
+    const employee = await EmployeeModel.findById(employeeId)
+      .populate({
+        path: "role",
+        select: "roleName permissions",
+        populate: {
+          path: "permissions",
+          select: "name description", // pick the fields you want from permissions
+        },
+      })
+      .populate({
+        path: "orgUnit",
+        select: "name level", // optional if you want orgUnit info
+      });
 
     if (!employee) {
       return res.status(404).json({
@@ -618,124 +630,130 @@ export const RejectEmployee = async (req, res) => {
 };
 
 // this is for getting the id of the orgunit and orgunit object..
+// Accepts either names or IDs for each level and returns the leaf OrgUnit
 export const resolveOrgUnit = async (req, res) => {
   try {
     const { office, group, division, department, branch, cell, desk } = req.body;
 
-    // Build path..
-    const levels = [office, group, division, department, branch, cell, desk].filter(Boolean);
+    // Level order
+    const levels = [
+      { key: "office", value: office },
+      { key: "group", value: group },
+      { key: "division", value: division },
+      { key: "department", value: department },
+      { key: "branch", value: branch },
+      { key: "cell", value: cell },
+      { key: "desk", value: desk },
+    ];
 
     let parent = null;
     let orgUnit = null;
 
-    for (let level of levels) {
-      orgUnit = await OrgUnitModel.findOne({ name: level, parent: parent?._id });
+    for (let { key, value } of levels) {
+      if (!value) continue;
 
-      if (!orgUnit) {
-        orgUnit = await OrgUnitModel.create({ name: level, parent: parent?._id });
+      // Check if value is a valid ObjectId
+      if (mongoose.Types.ObjectId.isValid(value)) {
+        // Try to find by ID first
+        orgUnit = await OrgUnitModel.findById(value);
+        if (!orgUnit) {
+          return res.status(404).json({ success: false, message: `${key} with provided ID not found` });
+        }
+      } else {
+        // Treat value as name, check by name + parent
+        orgUnit = await OrgUnitModel.findOne({ name: value, parent: parent?._id });
+        if (!orgUnit) {
+          // Create new node if not exists
+          orgUnit = await OrgUnitModel.create({ name: value, parent: parent?._id });
+        }
       }
 
       parent = orgUnit;
     }
 
-    // keeps checking the orgUnits/nodes until the leaf Node is reached, we return the leaf node..
-    
+    if (!orgUnit) {
+      return res.status(400).json({ success: false, message: "No OrgUnit could be resolved" });
+    }
+
     return res.status(200).json({ success: true, orgUnitId: orgUnit._id, orgUnit });
   } catch (error) {
+    console.error("🔥 resolveOrgUnit error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// roles or assigning posts functions.
 export const AssignEmployeePost = async (req, res) => {
   try {
     const { employeeId, roleName, orgUnit, permissions = [] } = req.body;
-    console.log(employeeId) ;
-    
-    // Validate employee
-    const employee = await EmployeeModel.findById(employeeId);
-    if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
+
+    // Validate employeeId
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return res.status(400).json({ success: false, message: "Invalid employeeId" });
     }
+    const employee = await EmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
 
-    // Validate orgUnit
-    const orgUnitDoc = await OrgUnitModel.findById(orgUnit);
-    // the orgUnit is created if not existing in the above function and then fetched from frontend..
-
-    if (!orgUnitDoc) {
+    // Validate orgUnitId
+    if (!mongoose.Types.ObjectId.isValid(orgUnit)) {
       return res.status(400).json({ success: false, message: "Invalid orgUnitId" });
     }
+    const orgUnitDoc = await OrgUnitModel.findById(orgUnit);
+    if (!orgUnitDoc) return res.status(400).json({ success: false, message: "OrgUnit not found" });
 
-    // Handle permissions
-    let permissionIds = [];
-    if (Array.isArray(permissions) && permissions.length > 0) {
-      permissionIds = await Promise.all(
-        permissions.map(async (perm) => {
-          let p = await PermissionModel.findOne({ name: perm });
-          if (!p) p = await PermissionModel.create({ name: perm });
-          return p._id;
-        })
-      );
-    }
+    // Use IDs from frontend
+    const permissionIds = Array.isArray(permissions)
+      ? permissions.filter(p => mongoose.Types.ObjectId.isValid(p))
+      : [];
 
     // Prevent duplicate role in same orgUnit
     const existing = await RoleModel.findOne({
-      employeeId: employee._id,
+      employeeId,
       roleName,
       orgUnit: orgUnitDoc._id,
     });
+    if (existing) return res.status(400).json({ success: false, message: "Role already assigned here" });
 
-    if (existing) {
-      return res.status(400).json({ success: false, message: "Role already assigned here" });
-    }
-
-    // Create Role
-    const newRole = new RoleModel({
-      employeeId: employee._id,
-      roleName,
-      orgUnit: orgUnitDoc._id,
-      permissions: permissionIds,
-    });
-
+    // Create role
+    const newRole = new RoleModel({ employeeId, roleName, orgUnit: orgUnitDoc._id, permissions: permissionIds });
     employee.DraftStatus.PostStatus = "Assigned";
     await employee.save();
     await newRole.save();
 
-    return res.status(200).json({
-      success: true,
-      message: "Role assigned successfully",
-      role: newRole,
-    });
+    return res.status(200).json({ success: true, message: "Role assigned successfully", role: newRole });
   } catch (error) {
     console.error("🔥 AssignEmployeePost error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
+
 export const getAllRoles = async (req, res) => {
   try {
     const roles = await RoleModel.find();
 
-    if (roles.length > 0) {
-      return res.status(200).json({
-        status: true,
-        message: "Roles fetched successfully",
-        roles,
-      });
-    } else {
+    if (!roles || roles.length === 0) {
       return res.status(404).json({
         status: false,
         message: "No roles found",
+        roles: [],
       });
     }
+
+    return res.status(200).json({
+      status: true,
+      message: "Roles fetched successfully",
+      roles,
+    });
   } catch (error) {
     console.error("Error fetching roles:", error);
     return res.status(500).json({
       status: false,
       message: "Internal server error",
+      error: error.message, // optional: include the error message for debugging
     });
   }
 };
+
 
 export const getSingleRole = async (req, res) => {
   try {
@@ -748,7 +766,10 @@ export const getSingleRole = async (req, res) => {
     }
 
     console.log("id check in getSingleRole:", employeeId);
-
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return res.status(400).json({ status: false, message: "Invalid employee ID" });
+    }
+    
     const roles = await RoleModel.findOne({ employeeId });
 
     if (!roles) {

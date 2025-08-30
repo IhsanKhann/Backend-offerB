@@ -3,20 +3,20 @@ import RoleModel from "../models/Role.model.js";
 import { PermissionModel } from "../models/Permissions.model.js";
 import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
 
-
 // helper function to keep the special employees permissions updated..
 export async function KeepPermissionsUpdated() {
   try {
     const alwaysUpdateRoles = ["Chairman", "BoD Member"];
 
-    // Fetch all permissions
+    // 1️⃣ Fetch all permissions
     const allPermissions = await PermissionModel.find({});
     if (!allPermissions.length) {
       console.warn("No permissions found in DB.");
       return;
     }
+    const allPermissionIds = allPermissions.map((p) => p._id.toString());
 
-    // Fetch roles using `roleName` instead of `name`
+    // 2️⃣ Fetch roles that need to always have all permissions
     const roles = await RoleModel.find({ roleName: { $in: alwaysUpdateRoles } });
 
     if (!roles.length) {
@@ -24,11 +24,22 @@ export async function KeepPermissionsUpdated() {
       return;
     }
 
-    // Update each role
+    // 3️⃣ Update each role only if needed
     for (const role of roles) {
-      role.permissions = allPermissions.map((p) => p._id); // assign ALL permissions
-      await role.save();
-      console.log(`Updated role '${role.roleName}' with latest permissions.`);
+      const currentIds = role.permissions.map((id) => id.toString());
+
+      // Compare arrays (skip save if already up-to-date)
+      const isDifferent =
+        currentIds.length !== allPermissionIds.length ||
+        !currentIds.every((id) => allPermissionIds.includes(id));
+
+      if (isDifferent) {
+        role.permissions = allPermissionIds;
+        await role.save();
+        console.log(`Updated role '${role.roleName}' with latest permissions.`);
+      } else {
+        console.log(`Role '${role.roleName}' is already up-to-date.`);
+      }
     }
 
     console.log("KeepPermissionsUpdated finished successfully!");
@@ -307,6 +318,8 @@ export const updatePermission = async (req, res) => {
       return res.status(404).json({ message: "Permission not found." });
     }
 
+    await KeepPermissionsUpdated();
+    
     res.status(200).json({
       message: "Permission updated successfully",
       permission: updatedPermission,

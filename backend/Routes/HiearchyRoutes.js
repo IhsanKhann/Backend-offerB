@@ -1,5 +1,6 @@
 import express from "express";
 import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
+import { setResourceOrgUnit } from "../middlewares/authUtility.js";
 import {
   addHierarchy,
   getHierarchy,
@@ -11,19 +12,46 @@ import {
 const router = express.Router();
 router.use(authenticate);
 
+// ------------------- Hierarchy Routes -------------------
+
 // Add full hierarchy
-router.post("/hierarchy/add-hierarchy", authorize("add_hierarchy"), addHierarchy);
+router.post(
+  "/add-hierarchy",
+  setResourceOrgUnit,
+  authorize("add_hierarchy"),
+  addHierarchy
+);
 
 // Get hierarchy
-router.get("/hierarchy/get-hierarchy", authorize("view_hierarchy"), getHierarchy);
+router.get(
+  "/get-hierarchy",
+  setResourceOrgUnit,
+  authorize("view_hierarchy"),
+  getHierarchy
+);
 
 // Create a new hierarchy level
-router.post("/hierarchy/createNode", authorize("add_hierarchy_level"), createHierarchyLevel);
+router.post(
+  "/createNode",
+  setResourceOrgUnit,
+  authorize("add_hierarchy_level"),
+  createHierarchyLevel
+);
 
 // Edit an existing hierarchy level
-router.put("/hierarchy/editNode/:id", authorize("edit_hierarchy_level"), editHierarchyLevel);
+router.put(
+  "/editNode/:id",
+  setResourceOrgUnit,
+  authorize("edit_hierarchy_level"),
+  editHierarchyLevel
+);
 
 // Delete a hierarchy level
-router.delete("/hierarchy/deleteNode/:id", authorize("delete_hierarchy_level"), deleteHierarchyLevel);
+router.delete(
+  "/deleteNode/:id",
+  setResourceOrgUnit,
+  authorize("delete_hierarchy_level"),
+  deleteHierarchyLevel
+);
 
 export default router;

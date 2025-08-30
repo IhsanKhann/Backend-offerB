@@ -1,6 +1,7 @@
 import express from "express";
 import upload from "../middlewares/mutlerMiddleware.js";
 import { authorize, authenticate } from "../middlewares/authMiddlewares.js";
+import { setResourceOrgUnit } from "../middlewares/authUtility.js";
 
 import {
   RegisterEmployee,
@@ -19,31 +20,83 @@ const router = express.Router();
 // 🔐 Authentication middleware
 router.use(authenticate);
 
+// ------------------- Employee Routes -------------------
+
 // Register new employee
-router.post("/register", authorize("register_employee"), upload.single("profileImage"), RegisterEmployee);
+router.post(
+  "/register",
+  setResourceOrgUnit,
+  authorize("register_employee"),
+  upload.single("profileImage"),
+  RegisterEmployee
+);
 
 // Submit employee for approval
-router.post("/submit-employee", authorize("submit_employee"), SubmitEmployee);
+router.post(
+  "/submit-employee",
+  setResourceOrgUnit,
+  authorize("submit_employee"),
+  SubmitEmployee
+);
 
 // Delete employee (before finalized)
-router.delete("/deleteEmployee/:employeeId", authorize("delete_employee"), deleteEmployee);
+router.delete(
+  "/deleteEmployee/:employeeId",
+  setResourceOrgUnit,
+  authorize("delete_employee"),
+  deleteEmployee
+);
 
 // View all employees
-router.get("/getAllEmployees", authorize("view_all_employees"), getAllEmployees);
+router.get(
+  "/getAllEmployees",
+  setResourceOrgUnit,
+  authorize("view_all_employees"),
+  getAllEmployees
+);
 
 // View single employee
-router.get("/:employeeId", authorize("view_single_employee"), getSingleEmployee);
+router.get(
+  "/:employeeId",
+  setResourceOrgUnit,
+  authorize("view_single_employee"),
+  getSingleEmployee
+);
+
+// ------------------- Role Routes -------------------
 
 // Assign employee role
-router.post("/roles", authorize("assign_employee_role"), AssignEmployeePost);
+router.post(
+  "/roles",
+  setResourceOrgUnit,
+  authorize("assign_employee_role"),
+  AssignEmployeePost
+);
 
 // View all roles
-router.get("/getAllRoles", authorize("view_all_roles"), getAllRoles);
+router.get(
+  "/getAllRoles",
+  setResourceOrgUnit,
+  authorize("view_all_roles"),
+  getAllRoles
+);
 
 // View single role
-router.get("/roles/:employeeId", authorize("view_single_role"), getSingleRole);
+router.get(
+  "/roles/:roleId",
+  setResourceOrgUnit,
+  authorize("view_single_role"),
+  getSingleRole
+);
+
+// ------------------- Org Unit Routes -------------------
 
 // Resolve Org Unit conflicts
-router.post("/org-units/resolve", authorize("resolve_org_unit"), resolveOrgUnit);
+router.post(
+  "/org-units/resolve",
+  setResourceOrgUnit,
+  authorize("resolve_org_unit"),
+  resolveOrgUnit
+);
 
 export default router;

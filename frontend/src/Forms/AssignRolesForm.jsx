@@ -85,7 +85,7 @@ const AssignRolesForm = () => {
     try{
         setLoading(true);
         const response = await api.get("/permissions/AllPermissions");
-        setFetchedPermissions(response.data.permissions);
+        setFetchedPermissions(response.data.Permissions);
       }catch(error){
         console.log(error);
         setFetchedPermissions([]);
@@ -344,53 +344,79 @@ const AssignRolesForm = () => {
     }
   };
 
-  // ---------------- Handle Form Submit ----------------
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!employeeData) return alert("No employee found");
-    try {
-      setLoading(true);
-      
-      // Get names for all selected levels
-      const officeName = findNodeById(hierarchy.offices, officeId)?.name || "";
-      const groupName = findNodeById(hierarchy.offices, groupId)?.name || "";
-      const divisionName = findNodeById(hierarchy.offices, divisionId)?.name || "";
-      const departmentName = findNodeById(hierarchy.offices, departmentId)?.name || "";
-      const branchName = findNodeById(hierarchy.offices, branchId)?.name || "";
-      const cellName = findNodeById(hierarchy.offices, cellId)?.name || "";
-      const deskName = findNodeById(hierarchy.offices, deskId)?.name || "";
-      
-      const orgUnitRes = await api.post("/org-units/resolve", { 
-        office: officeName, 
-        group: groupName, 
-        division: divisionName, 
-        department: departmentName, 
-        branch: branchName, 
-        cell: cellName, 
-        desk: deskName 
-      });
-      
-      const orgUnitId = orgUnitRes.data?.orgUnitId;
-      if (!orgUnitId) throw new Error("OrgUnit resolution failed");
-      
-      const rolesData = { 
-        employeeId: employeeData._id, 
-        roleName: roleDropdown, 
-        orgUnit: orgUnitId, 
-        permissions: allPermissions 
-      };
-      
-      dispatch(assignRolesDraft(rolesData));
-      dispatch(addDraft());
-      await api.post("/employees/roles", rolesData);
-      navigate("/DraftDashboard");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save draft.");
-    } finally { 
-      setLoading(false); 
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  console.log("Submitting form...");
+
+  console.log("Selected Role:", roleDropdown);
+  console.log("Employee Data:", employeeData);
+
+  if (!roleDropdown.trim()) {
+    console.log("Role name is empty!");
+    return alert("Role name is required");
+  }
+
+  setLoading(true);
+
+  try {
+    // 1️⃣ Prepare IDs for orgUnit resolve
+    const resolveBody = {};
+    if (officeId) resolveBody.office = officeId;
+    if (groupId) resolveBody.group = groupId;
+    if (divisionId) resolveBody.division = divisionId;
+    if (departmentId) resolveBody.department = departmentId;
+    if (branchId) resolveBody.branch = branchId;
+    if (cellId) resolveBody.cell = cellId;
+    if (deskId) resolveBody.desk = deskId;
+
+    console.log("OrgUnit resolve request body:", resolveBody);
+
+    // 2️⃣ Resolve leaf orgUnit
+    const resolveRes = await api.post("/employees/org-units/resolve", resolveBody);
+    console.log("OrgUnit resolve response:", resolveRes.data);
+
+    if (!resolveRes.data?.orgUnitId) {
+      setLoading(false);
+      console.log("Failed to resolve OrgUnit");
+      return alert("Failed to resolve OrgUnit. Check your selection.");
     }
-  };
+
+    const orgUnitId = resolveRes.data.orgUnitId;
+    console.log("Resolved OrgUnit ID:", orgUnitId);
+
+    // 3️⃣ Prepare permissions IDs
+    const permissionIds = allPermissions.map(p => p._id);
+    console.log("Selected permissions:", allPermissions);
+    console.log("Permission IDs:", permissionIds);
+
+    // 4️⃣ Send role assignment request
+    const assignBody = {
+      employeeId: employeeData._id,
+      roleName: roleDropdown,
+      orgUnit: orgUnitId,
+      permissions: permissionIds,
+    };
+    console.log("Role assign request body:", assignBody);
+
+    const assignRes = await api.post("/roles/assign", assignBody);
+    console.log("Role assign response:", assignRes.data);
+
+    if (assignRes.data.success) {
+      console.log("Role assigned successfully!");
+      alert("Role assigned successfully!");
+    } else {
+      console.log("Failed to assign role:", assignRes.data.message);
+      alert(assignRes.data.message || "Failed to assign role");
+    }
+
+  } catch (error) {
+    console.error("Error assigning role:", error);
+    alert("Server error. Check console for details.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleCancel = () => navigate("/DraftDashboard");
 
@@ -429,22 +455,25 @@ const AssignRolesForm = () => {
       <div className="flex flex-col gap-2">
         <label className="font-semibold">Permissions</label>
       <select
-        value=""
-        onChange={e => { 
-          const val = e.target.value; 
-          if(val && !allPermissions.includes(val)) setAllPermissions([...allPermissions,val]); 
-        }}
-        className="border rounded px-3 py-2 w-full"
-      >
-        <option value="">Select Permission</option>
-        {fetchedPermissions.map(p => (
-          <option key={p._id} value={p._id}>{p.name}</option>
-        ))}
-      </select>
+  value=""
+  onChange={e => { 
+    const selectedPermission = fetchedPermissions.find(p => p._id === e.target.value);
+    if (selectedPermission && !allPermissions.some(p => p._id === selectedPermission._id)) {
+      setAllPermissions([...allPermissions, selectedPermission]);
+    }
+  }}
+  className="border rounded px-3 py-2 w-full"
+>
+  <option value="">Select Permission</option>
+  {fetchedPermissions.map(p => (
+    <option key={p._id} value={p._id}>{p.name}</option>
+  ))}
+</select>
         <div className="flex flex-wrap gap-2 mt-2">
           {allPermissions.map(p => (
-            <span key={p} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
-              {p} <span onClick={() => setAllPermissions(allPermissions.filter(x => x !== p))} className="cursor-pointer font-bold">×</span>
+            <span key={p._id} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+              {p.name} 
+              <span onClick={() => setAllPermissions(allPermissions.filter(x => x._id !== p._id))} className="cursor-pointer font-bold">×</span>
             </span>
           ))}
         </div>

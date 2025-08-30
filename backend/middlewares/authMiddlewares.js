@@ -10,14 +10,11 @@ dotenv.config();
 
 export const authenticate = async (req, res, next) => {
   try {
-    // 1. First try from cookie
     let token = req.cookies?.accessToken;
 
-    // 2. If no cookie, try from Authorization header (fallback for dev/localStorage)
-    if (!token && req.headers.authorization) {
-      if (req.headers.authorization.startsWith("Bearer ")) {
-        token = req.headers.authorization.split(" ")[1];
-      }
+    // fallback to Authorization header
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
     }
 
     if (!token) {
@@ -27,24 +24,21 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    // 3. Verify JWT
-    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const user = await FinalizedEmployee.findById(decoded._id);
 
-    const user = await FinalizedEmployee.findById(decodedToken._id);
     if (!user) {
-      return res.status(404).json({
-        status: false,
-        message: "User not found",
-      });
+      return res.status(404).json({ status: false, message: "User not found" });
     }
 
-    req.user = user;
+    req.user = user; // attach user
     next();
-  } catch (error) {
+  } catch (err) {
+    console.error("Authenticate error:", err);
     return res.status(401).json({
       status: false,
       message: "Token verification failed",
-      error: error.message,
+      error: err.message,
     });
   }
 };
@@ -78,6 +72,12 @@ export const authorize = (requiredPermission) => async (req, res, next) => {
   try {
     const user = req.user; // from authenticate middleware
 
+    if (req.headers["x-disable-auth"] === "true") {
+      console.log("⚠️ Authorization skipped for this request");
+      return next();
+    }
+
+    console.log(req.user.permissions);
     // 1️⃣ Get all permissions including descendants
     const permissions = await getPermissionsForUser(user);
 

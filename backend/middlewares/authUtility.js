@@ -1,117 +1,92 @@
-import FinalizedEmployeesModel from "../models/FinalizedEmployees.model";
-import { OrgUnitModel } from "../models/OrgUnit.model";
-import RoleModel from "../models/Role.model";
-import { PermissionModel } from "../models/Permissions.model";
-import EmployeeModel from "../models/Employee.model";
-import { HierarchyModel } from "../models/Hiearchy.model";
+import FinalizedEmployeesModel from "../models/FinalizedEmployees.model.js";
+import { OrgUnitModel } from "../models/OrgUnit.js";
+import RoleModel from "../models/Role.model.js";
+import { PermissionModel } from "../models/Permissions.model.js";
+import EmployeeModel from "../models/Employee.model.js";
+import { HierarchyModel } from "../models/Hiearchy.model.js";
 
 /**
  * Middleware to automatically detect and attach resourceOrgUnit
  * based on the current route/resource being accessed.
- * 
  */
-
 export const setResourceOrgUnit = async (req, res, next) => {
   try {
     let orgUnitId = null;
 
-    // ✅ Check which route/resource is being used
+    // Safe helper
+    const id = (key) => req.params?.[key] || req.body?.[key];
+
     if (req.baseUrl.includes("/employees")) {
-      // Employee route → find employee's orgUnit
-      const employee = await EmployeeModel.findById(req.params.id || req.body.employeeId);
+      const employee = await EmployeeModel.findById(id("employeeId") || id("id"));
       if (employee) orgUnitId = employee.orgUnit;
-    }
-    else if (req.baseUrl.includes("/finalizedEmployees")) {
-      // Permission route → link to employee/orgUnit
-      const permission = await FinalizedEmployeesModel.findById(req.params.id);
+    } else if (req.baseUrl.includes("/finalizedEmployees")) {
+      const finalized = await FinalizedEmployee.findById(id("finalizedEmployeeId") || id("id"));
+      if (finalized) orgUnitId = finalized.orgUnit;
+    } else if (req.baseUrl.includes("/permissions")) {
+      const permission = await PermissionModel.findById(id("permissionId") || id("id"));
       if (permission) orgUnitId = permission.orgUnit;
-    }  
-    else if (req.baseUrl.includes("/permissions")) {
-      // Permission route → link to employee/orgUnit
-      const permission = await PermissionModel.findById(req.params.id);
-      if (permission) orgUnitId = permission.orgUnit;
-    } 
-    else if (req.baseUrl.includes("/roles")) {
-      // Role route → usually tied to orgUnit
-      const role = await RoleModel.findById(req.params.id);
+    } else if (req.baseUrl.includes("/roles")) {
+      const role = await RoleModel.findById(id("roleId") || id("id"));
       if (role) orgUnitId = role.orgUnit;
-    } 
-    else if (req.baseUrl.includes("/orgUnits") || req.baseUrl.includes("/hierarchy")) {
-      // OrgUnit/Hierarchy routes
-      orgUnitId = req.params.id || req.body.orgUnitId;
+    } else if (req.baseUrl.includes("/org-units") || req.baseUrl.includes("/hierarchy")) {
+      orgUnitId = id("orgUnitId") || id("id");
     }
 
-    // Attach detected orgUnitId to request
-    req.resourceOrgUnit = orgUnitId;
-
+    req.resourceOrgUnit = orgUnitId || null;
     next();
-  } catch (error) {
-    console.error("setResourceOrgUnit error:", error);
+  } catch (err) {
+    console.error("setResourceOrgUnit error:", err);
     return res.status(500).json({ message: "Error resolving resource orgUnit" });
   }
 };
 
-export const getAllDescendents = async(orgUnitId) => {
-    const children = await OrgUnitModel.find({
-        parent: orgUnitId
-    });
 
-    const employees = await FinalizedEmployeesModel.find({
-        orgUnit: orgUnitId
-    }).populate("role");
+/**
+ * Recursively fetch all employees under an orgUnit and its children.
+ */
+export const getAllDescendents = async (orgUnitId) => {
+  let employees = await FinalizedEmployeesModel.find({ orgUnit: orgUnitId }).populate("role");
 
-    for(const child of children){
-        const childEmployees = await getAllDescendents(child._id);
+  const children = await OrgUnitModel.find({ parent: orgUnitId });
 
-        employees = employees.concat(childEmployees);
-    }
+  for (const child of children) {
+    const childEmployees = await getAllDescendents(child._id);
+    employees = employees.concat(childEmployees);
+  }
 
-    return employees;
+  return employees;
 };
 
-// descendents -> employees.
-// getDescendentsEmployees -> employees -> return employees.
+/**
+ * Get all permissions for a user including their descendents.
+ */
+export const getPermissionsForUser = async (user) => {
+  const permissions = new Set();
 
-// start -> const employees = await getDescendentsEmployees(orgUnitId);
+  // User's own role permissions
+  const userRole = await RoleModel.findById(user.role).populate("permissions");
+  if (userRole) {
+    userRole.permissions.forEach(p => permissions.add(p.name));
+  }
 
-// 2- getAllThePermissions..
-export const getPermissionsForUser = async(user) => {
-    const permissions = new Set(); 
-    // ensure uniqueness, is an object with unique keys, thus unique values.
+  // Descendent employees' permissions
+  const descendents = await getAllDescendents(user.orgUnit);
+  const roles = await Promise.all(descendents.map(d => RoleModel.findById(d.role).populate("permissions")));
 
-    const userRole = await RoleModel.findById(user.role).populate("permissions");
+  roles.forEach(r => {
+    if (r) r.permissions.forEach(p => permissions.add(p.name));
+  });
 
-    if(userRole){
-        userRole.permissions.forEach(permission => {
-            permissions.add(permission.name);
-        });
-    }
-
-    const descendents = await getAllDescendents(user.orgUnit);
-
-    for(const descendent of descendents){
-        const descendentRole = await RoleModel.findById(descendent.role).populate("permissions");
-
-        if(descendentRole){
-            descendentRole.permissions.forEach(permission => {
-                permissions.add(permission.name);
-            });
-        }
-    }
-
-    return permissions;
+  return permissions;
 };
 
-// main authorize -> give us full user from req.user;
-// we take the user. We find all its descendents.. after finding descentents.. we find their roles.. after finding their roles.. we find their permissions.. after finding their permissions.. we return the permissions added with the user own permissions that is.
-
-// so permissions user + descendents permissions.
-
+/**
+ * Get the root org unit for a given orgUnitId
+ */
 export async function getRootOrgUnit(orgUnitId) {
   let current = await OrgUnitModel.findById(orgUnitId);
-  while (current.parent) {
+  while (current && current.parent) {
     current = await OrgUnitModel.findById(current.parent);
   }
   return current;
 }
-

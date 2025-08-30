@@ -86,14 +86,11 @@ useEffect(() => {
     try {
       const response = await api.delete(`/employees/deleteEmployee/${employeeId}`)
 
-
-      if (response.ok) {
-        alert("Employee deleted successfully");
-        setEmployees(employees.filter((emp) => emp._id !== employeeId));
-        setRoles(roles.filter((role) => role.employeeId !== employeeId));
-      } else {
-        alert("Failed to delete employee");
-      }
+if (response.data.success) {
+  alert("Employee deleted successfully");
+  setEmployees(employees.filter((emp) => emp._id !== employeeId));
+  setRoles(roles.filter((role) => role.employeeId.toString() !== employeeId));
+}
     } catch (error) {
       console.error("Error deleting employee:", error);
       alert("An error occurred while deleting the employee");

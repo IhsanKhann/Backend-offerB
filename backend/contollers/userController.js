@@ -84,68 +84,78 @@ export const generateAccessAndRefreshTokens = async(userId) => {
     return {accessToken,refreshToken};
 };
 
-export const loginUser = async (req, res) => { 
-    try {
-        const { UserId, email, password } = req.body;
+export const loginUser = async (req, res) => {
+  try {
+    const { UserId, email, password } = req.body;
 
-        if (!UserId || !email || !password) {
-            return res.status(400).json({
-                status: false,
-                message: "OrganizationId, Email and password are required",
-            });
-        }
-
-        const user = await FinalizedEmployee.findOne({
-            UserId: UserId,
-            personalEmail: email,
-        });
-
-        if (!user) {
-            return res.status(404).json({ status: false, message: "User not found" });
-        }
-
-        const isPasswordValid = await user.comparePassword(password);
-        if (!isPasswordValid) {
-            return res.status(400).json({ status: false, message: "Invalid password" });
-        }
-
-        const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id);
-
-       res
-            .cookie("accessToken", accessToken, {
-                httpOnly: true,
-                secure: false,      // must be false for localhost HTTP
-                sameSite: "Lax",    // "Lax" allows cookies to be sent cross-origin in dev
-                maxAge: 15 * 60 * 1000,
-            })
-            .cookie("refreshToken", refreshToken, {
-                httpOnly: true,
-                secure: false,
-                sameSite: "Lax",
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-            })
-            .status(200)
-            .json({
-                status: true,
-                message: "User logged in successfully",
-                user: {
-                _id: user._id,
-                OrganizationId: user.OrganizationId,
-                UserId: user.UserId,
-                personalEmail: user.personalEmail,
-                },
-                accessToken,
-                refreshToken,
-            });
-
-    } catch (error) {
-        res.status(500).json({
-            status: false,
-            message: "Internal server error",
-            error: error.message,
-        });
+    if (!UserId || !email || !password) {
+      return res.status(400).json({
+        status: false,
+        message: "OrganizationId, Email and password are required",
+      });
     }
+
+    const user = await FinalizedEmployee.findOne({
+      UserId,
+      personalEmail: email,
+    });
+
+    if (!user) {
+      return res.status(404).json({ status: false, message: "User not found" });
+    }
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ status: false, message: "Invalid password" });
+    }
+
+    // Generate tokens
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    console.log("🔹 Generated Access Token:", accessToken);
+    console.log("🔹 Generated Refresh Token:", refreshToken);
+
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    // Send tokens as cookies + JSON response
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: false,  // false for localhost
+        sameSite: "Lax",
+        maxAge: 15 * 60 * 1000, // 15 min
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "Lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      })
+      .status(200)
+      .json({
+        status: true,
+        message: "User logged in successfully",
+        user: {
+          _id: user._id,
+          OrganizationId: user.OrganizationId,
+          UserId: user.UserId,
+          personalEmail: user.personalEmail,
+        },
+        accessToken,
+        refreshToken,
+      });
+  } catch (error) {
+    console.error("❌ loginUser error:", error);
+    res.status(500).json({
+      status: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
 };
+
 
 export const logOut = async (req, res) => {
   try {

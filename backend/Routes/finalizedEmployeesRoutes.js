@@ -1,5 +1,6 @@
 import express from "express";
 import { authorize, authenticate } from "../middlewares/authMiddlewares.js";
+import { setResourceOrgUnit } from "../middlewares/authUtility.js";
 
 import {
   ApproveEmployee,
@@ -14,19 +15,46 @@ const router = express.Router();
 // 🔐 Authentication middleware
 router.use(authenticate);
 
+// ------------------- Finalized Employee Routes -------------------
+
 // Approve employee (finalize)
-router.patch("/approve/:finalizedEmployeeId", authorize("approve_employee"), ApproveEmployee);
+router.patch(
+  "/approve/:finalizedEmployeeId",
+  setResourceOrgUnit,
+  authorize("approve_employee"),
+  ApproveEmployee
+);
 
 // Reject employee
-router.delete("/reject/:finalizedEmployeeId", authorize("reject_employee"), RejectEmployee);
+router.delete(
+  "/reject/:finalizedEmployeeId",
+  setResourceOrgUnit,
+  authorize("reject_employee"),
+  RejectEmployee
+);
 
 // Delete both employee + finalized record
-router.delete("/delete/:finalizedEmployeeId", authorize("delete_finalized_employee"), deleteEmployeeAndFinalized);
+router.delete(
+  "/delete/:finalizedEmployeeId",
+  setResourceOrgUnit,
+  authorize("delete_finalized_employee"),
+  deleteEmployeeAndFinalized
+);
 
 // View all finalized employees
-router.get("/all", authorize("view_all_finalized_employees"), getFinalizedEmployees);
+router.get(
+  "/all",
+  setResourceOrgUnit,
+  authorize("view_all_finalized_employees"),
+  getFinalizedEmployees
+);
 
 // View single finalized employee
-router.get("/:finalizedEmployeeId", authorize("view_single_finalized_employee"), getSingleFinalizedEmployee);
+router.get(
+  "/:finalizedEmployeeId",
+  setResourceOrgUnit,
+  authorize("view_single_finalized_employee"),
+  getSingleFinalizedEmployee
+);
 
 export default router;

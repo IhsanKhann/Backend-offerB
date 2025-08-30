@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import connectDB from "./connection/index.js";
 
+import { KeepPermissionsUpdated } from "./contollers/permissionControllers.js";
+
 import employeeRouter from "./Routes/employeRoutes.js";
 import HierarchyRouter from "./Routes/HiearchyRoutes.js";
 import orgUnitsRouter from "./Routes/orgUnitsRoutes.js";
@@ -28,6 +30,9 @@ app.use(express.json());
 
 // db connection:
 connectDB();
+
+// this ensure permissions are loaded to all the top level employees.
+await KeepPermissionsUpdated(); 
 
 // Routes
 app.get("/api/hello", (req, res) => {

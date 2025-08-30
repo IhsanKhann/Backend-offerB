@@ -1,4 +1,6 @@
 import express from "express";
+import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
+import { setResourceOrgUnit } from "../middlewares/authUtility.js";
 import {
     getEmployeePermissions,
     AllPermissions,
@@ -8,51 +10,65 @@ import {
     addEmployeePermission,
     updatePermission,
 } from "../contollers/permissionControllers.js";
-import {authenticate,authorize} from "../middlewares/authMiddlewares.js";
 
-const router = express.Router()
+const router = express.Router();
+
 router.use(authenticate);
 
+// Add permission to employee
 router.post(
-  "/permissions/addEmployeePermission",
+  "/addEmployeePermission",
+  setResourceOrgUnit,
   authorize("assign_permission_to_employee"),
   addEmployeePermission
 );
 
-// remove a permission from an employee..
+// Remove a permission from an employee
 router.post(
-  "/permissions/removeEmployeePermission",
+  "/removeEmployeePermission",
+  setResourceOrgUnit,
   authorize("remove_permission_from_employee"),
   removeEmployeePermission
 );
 
-// get a specific employee's permissions..
+// Get a specific employee's permissions
 router.get(
-  "/permissions/getPermissions/:employeeId",
+  "/getPermissions/:employeeId",
+  setResourceOrgUnit,
   authorize("view_employee_permissions"),
   getEmployeePermissions
 );
 
-// view all permissions..
+// View all permissions (system-level)
 router.get(
-  "/permissions/AllPermissions",
-  authorize("view_permissions"),  // new one
+  "/AllPermissions",
+  setResourceOrgUnit,
+  authorize("view_Permissions"),
   AllPermissions
 );
 
-// create/add a new permission..
+// Create/add a new permission (system-level)
 router.post(
-  "/permissions/createPermission",
-  authorize("create_permission"),  // new one
+  "/createPermission",
+  setResourceOrgUnit,
+  authorize("create_permission"),
   createPermission
 );
 
-// remove a permission (system-level)..
+// Remove a permission (system-level)
 router.delete(
-  "/permissions/removePermission/:id",
-  authorize("delete_permission"), // new one
+  "/removePermission/:id",
+  setResourceOrgUnit,
+  authorize("delete_permission"),
   removePermission
 );
 
-router.put("/permissions/updatePermission/:id", updatePermission);
+// Update a permission (system-level)
+router.put(
+  "/updatePermission/:id",
+  setResourceOrgUnit,
+  authorize("update_permission"),
+  updatePermission
+);
+
 export default router;
