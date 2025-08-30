@@ -17,7 +17,13 @@ router.use(authenticate);
 
 // ------------------- Finalized Employee Routes -------------------
 
-// Approve employee (finalize)
+// View all finalized employees
+router.get(
+  "/all",
+  authorize("view_all_finalized_employees"),
+  getFinalizedEmployees
+);
+
 router.patch(
   "/approve/:finalizedEmployeeId",
   setResourceOrgUnit,
@@ -41,16 +47,10 @@ router.delete(
   deleteEmployeeAndFinalized
 );
 
-// View all finalized employees
-router.get(
-  "/all",
-  authorize("view_all_finalized_employees"),
-  getFinalizedEmployees
-);
 
 // View single finalized employee
 router.get(
-  "/:finalizedEmployeeId",
+  "/getSingleFinalizedEmployee/:finalizedEmployeeId",
   setResourceOrgUnit,
   authorize("view_single_finalized_employee"),
   getSingleFinalizedEmployee

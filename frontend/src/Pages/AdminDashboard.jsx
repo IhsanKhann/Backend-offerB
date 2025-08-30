@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { HierarchyTree } from "../components/HieararchyTree";
 import axios from "axios";
+import Sidebar from "../components/Sidebar";
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [finalizedEmployees, setFinalizedEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -13,6 +14,28 @@ const AdminDashboard = () => {
 
   const [managePermissionsView, setManagePermissionsView] = useState(null);
   const [allPermissionsList, setAllPermissionsList] = useState([]);
+
+    // Fetch ALL employees
+const handleAllEmployees = async () => {
+  try {
+    setLoading(true);
+    const res = await api.get("/finalizedEmployees/all");
+    const employees = res.data.data || [];
+
+    const employeesWithPermissions = await Promise.all(
+      employees.map(async (emp) => {
+        const perms = await fetchEmployeePermissions(emp._id);
+        return { ...emp, permissions: perms };
+      })
+    );
+
+    setFinalizedEmployees(employeesWithPermissions);
+  } catch (error) {
+    console.error("Failed to fetch finalized employees:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Fetch finalized employees on mount
   useEffect(() => {
@@ -52,28 +75,6 @@ useEffect(() => {
     }
   };
 
-    // Fetch ALL employees
-  const handleAllEmployees = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get("/finalizedEmployees/allfinalized");
-      const employees = res.data.data || [];
-
-      const employeesWithPermissions = await Promise.all(
-        employees.map(async (emp) => {
-          const perms = await fetchEmployeePermissions(emp._id);
-          return { ...emp, permissions: perms };
-        })
-      );
-
-      setFinalizedEmployees(employeesWithPermissions);
-    } catch (error) {
-      console.error("Failed to fetch finalized employees:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Fetch employees for a node
   const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
     try {
@@ -82,7 +83,8 @@ useEffect(() => {
 
       // Fetch employees for any node (leaf or intermediate)
       const res = await api.get(
-        `/getorgUnit/${orgUnit._id}`
+        `/orgUnits/getorgUnit/${orgUnit._id}`
+
       );
       
       if (res.data.success) {
@@ -155,18 +157,18 @@ useEffect(() => {
   };
 
   // Profile view
-  const handleProfileView = async (finalizedEmployeeId) => {
+const handleProfileView = async (finalizedEmployeeId) => {
   try {
     const res = await api.get(
       `/finalizedEmployees/getSingleFinalizedEmployee/${finalizedEmployeeId}`
     );
+
     if (!res.data) {
       alert("Profile data could not be fetched.");
       return;
     }
-    const employeeData = res.data.finalizedEmployee || res.data;
 
-    // Fetch permissions separately
+    const employeeData = res.data.finalizedEmployee || res.data;
     const permissions = await fetchEmployeePermissions(finalizedEmployeeId);
     employeeData.permissions = permissions;
 
@@ -174,22 +176,22 @@ useEffect(() => {
   } catch (err) {
     console.error("Error fetching profile:", err);
   }
-  };
+};
 
 const handleAddPermission = async (employeeId, permissionName) => {
   try {
     await api.post(`/permissions/addEmployeePermission`, { employeeId, permissionName });
-    alert("Permission added!");
 
     const updatedPerms = await fetchEmployeePermissions(employeeId);
+
+    // Update modal view
     setManagePermissionsView((prev) => ({ ...prev, permissions: updatedPerms }));
+
+    // Update main employee list
     setFinalizedEmployees((prev) =>
-      prev.map((emp) =>
-        emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp
-      )
+      prev.map((emp) => (emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp))
     );
 
-    // ✅ Clear the input after success
     document.getElementById("addPermInput").value = "";
   } catch (err) {
     console.error(err);
@@ -197,20 +199,21 @@ const handleAddPermission = async (employeeId, permissionName) => {
   }
 };
 
+
 const handleDeletePermission = async (employeeId, permissionName) => {
   try {
     await api.post(`/permissions/removeEmployeePermission`, { employeeId, permissionName });
-    alert("Permission deleted!");
 
     const updatedPerms = await fetchEmployeePermissions(employeeId);
+
+    // Update modal view
     setManagePermissionsView((prev) => ({ ...prev, permissions: updatedPerms }));
+
+    // Update main employee list
     setFinalizedEmployees((prev) =>
-      prev.map((emp) =>
-        emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp
-      )
+      prev.map((emp) => (emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp))
     );
 
-    // ✅ Clear the input after success
     document.getElementById("delPermInput").value = "";
   } catch (err) {
     console.error(err);
@@ -221,19 +224,13 @@ const handleDeletePermission = async (employeeId, permissionName) => {
 // Open Manage Permissions modal
 const handleManagePermissions = async (employeeId) => {
   try {
-    // get employee info
     const res = await api.get(`/finalizedEmployees/getSingleFinalizedEmployee/${employeeId}`);
-    if (!res.data) {
-      alert("Failed to fetch employee details.");
-      return;
-    }
-    const employeeData = res.data.finalizedEmployee || res.data;
+    if (!res.data) return alert("Failed to fetch employee details.");
 
-    // fetch their permissions
+    const employeeData = res.data.finalizedEmployee || res.data;
     const permissions = await fetchEmployeePermissions(employeeId);
     employeeData.permissions = permissions;
 
-    // open modal
     setManagePermissionsView(employeeData);
   } catch (err) {
     console.error("Error opening manage permissions modal:", err);
@@ -253,43 +250,12 @@ const handleManagePermissions = async (employeeId) => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100 relative">
+     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-72 bg-gray-300 shadow-lg flex-shrink-0 overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Admin Dashboard</h2>
-        </div>
-
-        {/* Org Hierarchy Tree */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <HierarchyTree onNodeSelect={fetchEmployeesByNode} />
-        </div>
-
-        {/* Show all employees button */}
-        <button
-          onClick={handleAllEmployees}
-          className="w-[80%]  text-xs px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors ml-8 mt-8"
-        >
-          Show All Employees
-        </button>
-
-        <nav className="px-6 py-4 space-y-2">
-          <button
-            onClick={() => navigate("/DraftDashboard")}
-            className="w-full text-left px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            Move to Drafts
-          </button>
-
-          <button
-            onClick={() => navigate("/register-employee")}
-            className="w-full text-left px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-          >
-            Register Employee
-          </button>
-        </nav>
-      </aside>
-
+      <div className="bg-gray-900 text-gray-100 h-screen sticky top-0 flex flex-col">
+        <Sidebar fetchEmployeesByNode={fetchEmployeesByNode}/>
+      </div>
+     
       {/* Main Content */}
       <main className="flex-1 p-6 overflow-auto">
 

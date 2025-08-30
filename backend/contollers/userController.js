@@ -342,3 +342,26 @@ export const refreshToken = async (req, res) => {
     }
 };
 
+export const getLoggedInUser = async (req, res) => {
+  try {
+    const user = req.user; // req.user is populated by the auth middleware
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    // Fetch full user data from database using both _id and email for safety
+    const employee = await FinalizedEmployee.findOne({
+      $or: [{ _id: user._id }, { personalEmail: user.personalEmail }]
+    });
+
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    return res.status(200).json({ success: true, employee });
+  } catch (err) {
+    console.error("getLoggedInUser error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};

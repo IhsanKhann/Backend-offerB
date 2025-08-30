@@ -87,7 +87,9 @@ const router = createBrowserRouter([
     {
     path: "/Permission-handler",
     element: (
-        <PermissionHandler/>
+        <ProtectedRoute>
+          <PermissionHandler/>
+        </ProtectedRoute>
     )
   },
 ]);

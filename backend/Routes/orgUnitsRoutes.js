@@ -13,7 +13,7 @@ const router = express.Router();
 
 // Resolve Org Unit conflicts - moved before authentication middleware
 router.post(
-  "/resolve/orgUnits",
+"/org-units/resolve",
   resolveOrgUnit
 );
 

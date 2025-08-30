@@ -6,6 +6,7 @@ import { FiLogOut } from "react-icons/fi";
 function HomePage() {
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     const fetchResponse = async () => {
@@ -17,17 +18,27 @@ function HomePage() {
         setMessage("Failed to fetch from backend");
       }
     };
+
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        if (res.data.success) setProfile(res.data.employee);
+      } catch (err) {
+        console.error("Error fetching profile", err);
+      }
+    };
+
     fetchResponse();
+    fetchProfile();
   }, []);
 
   const handleLogout = async () => {
     try {
-      const response = await api.post("/auth/logout", {});
-      setMessage(response.data.message);
+      await api.post("/auth/logout", {});
       localStorage.removeItem("accessToken");
       window.location.reload();
     } catch (error) {
-      setMessage(error.response?.data?.message || "Logout failed");
+      console.error(error);
     }
   };
 
@@ -66,22 +77,44 @@ function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-10">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-1">OfferBerries Dashboard</h1>
+      {/* Top Header */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+        <div className="flex items-center justify-between">
+          {/* Profile Card */}
+          {profile && (
+            <div className="bg-white shadow-lg rounded-xl flex flex-row items-center gap-2 px-4 py-3 w-86">
+              <img
+                src={profile.avatar?.url || "https://via.placeholder.com/50"}
+                alt="Profile"
+                className="w-16 h-16 rounded-full object-cover"
+              />
+              <div className="text-center">
+                <p className="font-semibold text-gray-900">{profile.individualName}</p>
+                <p className="text-gray-500 text-sm">{profile.personalEmail || profile.officialEmail}</p>
+                <p className="text-gray-400 text-xs">ID: {profile.UserId}</p>
+                <p className="text-gray-400 text-xs mt-1">Logged in as: {profile.role?.roleName || "N/A"}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Logo / Title */}
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900">OfferBerries Dashboard</h1>
             <p className="text-gray-600 text-lg">{message || "Loading welcome message..."}</p>
           </div>
+
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="mt-4 md:mt-0 flex items-center bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition duration-200"
+            className="flex items-center bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition duration-200"
           >
             <FiLogOut className="mr-2" /> Logout
           </button>
         </div>
+      </div>
 
-        {/* Dashboard Cards */}
+      {/* Dashboard Cards */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {cards.map((card, index) => (
             <div

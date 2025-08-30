@@ -29,6 +29,21 @@ router.post(
 // ------------------- Employee Routes -------------------
 
 // Register new employee
+// View all roles
+router.get(
+  "/getAllRoles",
+  authorize("view_all_roles"),
+  getAllRoles
+);
+
+
+// View all employees
+router.get(
+  "/getAllEmployees",
+  authorize("view_all_employees"),
+  getAllEmployees
+);
+
 router.post(
   "/register",
   authorize("register_employee"),
@@ -51,12 +66,6 @@ router.delete(
   deleteEmployee
 );
 
-// View all employees
-router.get(
-  "/getAllEmployees",
-  authorize("view_all_employees"),
-  getAllEmployees
-);
 
 // View single employee
 router.get(
@@ -67,17 +76,10 @@ router.get(
 );
 
 // ------------------- Role Routes -------------------
-// View all roles
-router.get(
-  "/getAllRoles",
-  authorize("view_all_roles"),
-  getAllRoles
-);
 
 // View single role
 router.get(
-  "/roles/:roleId",
-//   setResourceOrgUnit,
+  "/roles/:id",
   authorize("view_single_role"),
   getSingleRole
 );

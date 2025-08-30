@@ -254,6 +254,7 @@ export const createPermission = async (req, res) => {
       });
     }
 
+    await KeepPermissionsUpdated();
     const newPermission = await PermissionModel.create({ name, description });
 
     return res.status(201).json({
@@ -274,8 +275,8 @@ export const createPermission = async (req, res) => {
 export const removePermission = async (req, res) => {
   try {
     const { permissionId } = req.params;
-
-    const deletedPermission = await PermissionModel.findByIdAndDelete(id);
+    
+    const deletedPermission = await PermissionModel.findByIdAndDelete(permissionId);
 
     if (!deletedPermission) {
       return res.status(404).json({
@@ -308,7 +309,7 @@ export const updatePermission = async (req, res) => {
     }
 
     // Find and update
-    const updatedPermission = await Permission.findByIdAndUpdate(
+    const updatedPermission = await PermissionModel.findByIdAndUpdate(
       id,
       { name, description },
       { new: true, runValidators: true }

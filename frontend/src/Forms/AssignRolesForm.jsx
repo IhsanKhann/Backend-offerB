@@ -3,13 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import api from "../api/axios.js";
 import { assignRolesDraft } from "../store/sliceRoles.jsx";
-import { addDraft, addEmployeeData } from "../store/sliceDraft.jsx";
+import { addDraft, addEmployeeData,updateDraft } from "../store/sliceDraft.jsx";
 
 const AssignRolesForm = () => {
   const { employeeId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
+  const { isEditing, editingDraft } = useSelector((state) => state.draft);
   const [fetchedPermissions,setFetchedPermissions] = useState([]);
   const [hierarchy, setHierarchy] = useState({ offices: [] });
   const [loading, setLoading] = useState(false);
@@ -344,72 +344,58 @@ const AssignRolesForm = () => {
     }
   };
 
+// ---------------- SUBMIT ----------------
 const handleSubmit = async (e) => {
   e.preventDefault();
-  console.log("Submitting form...");
 
-  if (!roleDropdown.trim()) {
-    return alert("Role name is required");
+  if (!employeeData) {
+    alert("No employee found. Please create one first.");
+    return;
   }
 
-  setLoading(true);
-
   try {
-    // 1️⃣ Prepare IDs for orgUnit resolve
-    const resolveBody = {};
-    if (officeId) resolveBody.office = officeId;
-    if (groupId) resolveBody.group = groupId;
-    if (divisionId) resolveBody.division = divisionId;
-    if (departmentId) resolveBody.department = departmentId;
-    if (branchId) resolveBody.branch = branchId;
-    if (cellId) resolveBody.cell = cellId;
-    if (deskId) resolveBody.desk = deskId;
+    setLoading(true);
 
-    console.log("OrgUnit resolve request body:", resolveBody);
+    // Get names instead of IDs
+    const office = officeId ? findNodeById(hierarchy.offices, officeId)?.name : null;
+    const group = groupId ? findNodeById(hierarchy.offices, groupId)?.name : null;
+    const division = divisionId ? findNodeById(hierarchy.offices, divisionId)?.name : null;
+    const department = departmentId ? findNodeById(hierarchy.offices, departmentId)?.name : null;
+    const branch = branchId ? findNodeById(hierarchy.offices, branchId)?.name : null;
+    const cell = cellId ? findNodeById(hierarchy.offices, cellId)?.name : null;
+    const desk = deskId ? findNodeById(hierarchy.offices, deskId)?.name : null;
 
-    // 2️⃣ Resolve leaf orgUnit using api (Axios)
-    const resolveRes = await api.post("/orgUnits/resolve/orgUnits", resolveBody);
-    const resolveData = resolveRes.data;
-    console.log("OrgUnit resolve response:", resolveData);
+    // Resolve to backend orgUnitId
+    const orgUnitRes = await api.post("orgUnits/org-units/resolve", {
+      office, group, division, department, branch, cell, desk,
+    });
 
-    if (!resolveData?.success || !resolveData?.orgUnitId) {
-      setLoading(false);
-      return alert("Failed to resolve OrgUnit. Check your selection.");
-    }
+    const orgUnitId = orgUnitRes.data?.orgUnitId;
+    if (!orgUnitId) throw new Error("OrgUnit resolution failed");
 
-    const orgUnitId = resolveData.orgUnitId;
-    console.log("Resolved OrgUnit ID:", orgUnitId);
-
-    // 3️⃣ Prepare permissions IDs
-    const permissionIds = allPermissions.map((p) => p._id);
-    console.log("Permission IDs:", permissionIds);
-
-    // 4️⃣ Send role assignment request
-    const assignBody = {
+    const rolesData = {
       employeeId: employeeData._id,
       roleName: roleDropdown,
       orgUnit: orgUnitId,
-      permissions: permissionIds,
+      permissions: allPermissions.map(p => p._id),
     };
-    console.log("Role assign request body:", assignBody);
 
-    const assignRes = await api.post("/employees/roles/assign", assignBody);
-    console.log("Role assign response:", assignRes.data);
-
-    if (assignRes.data.success) {
-      alert("Role assigned successfully!");
+    if (isEditing) {
+      dispatch(updateDraft({ draftId: editingDraft.draftId, roles: rolesData }));
     } else {
-      alert(assignRes.data.message || "Failed to assign role");
+      dispatch(assignRolesDraft(rolesData));
+      dispatch(addDraft());
+      await api.post("/employees/roles/assign", rolesData);
     }
-  } catch (error) {
-    console.error("Error assigning role:", error);
-    alert("Server error. Check console for details.");
+
+    navigate("/DraftDashboard");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to save draft.");
   } finally {
     setLoading(false);
   }
 };
-
-
 
   const handleCancel = () => navigate("/DraftDashboard");
 
@@ -434,7 +420,7 @@ const handleSubmit = async (e) => {
       {/* Role Dropdown */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
-          <label className="w-36 font-semibold">Role</label>
+          <label className="w-36 font-semibold">Employee Role</label>
           <select className="flex-1 border shadow-sm rounded px-3 py-2" value={roleDropdown} onChange={e => setRoleDropdown(e.target.value)}>
             <option value="">Select Role</option>
             {["Chairman","BoD Member","Company Secretary","Group Head","Division Head","Department Head","Branch Manager","Officer","Manager","Senior Manager","Cell Incharge","Executive (Contract)","Executive (Permanent)","Senior Group Head"].map(role => (
@@ -444,35 +430,8 @@ const handleSubmit = async (e) => {
         </div>
       </div>
 
-      {/* Permissions Selector */}
-      <div className="flex flex-col gap-2">
-        <label className="font-semibold">Permissions</label>
-      <select
-  value=""
-  onChange={e => { 
-    const selectedPermission = fetchedPermissions.find(p => p._id === e.target.value);
-    if (selectedPermission && !allPermissions.some(p => p._id === selectedPermission._id)) {
-      setAllPermissions([...allPermissions, selectedPermission]);
-    }
-  }}
-  className="border rounded px-3 py-2 w-full"
->
-  <option value="">Select Permission</option>
-  {fetchedPermissions.map(p => (
-    <option key={p._id} value={p._id}>{p.name}</option>
-  ))}
-</select>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {allPermissions.map(p => (
-            <span key={p._id} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
-              {p.name} 
-              <span onClick={() => setAllPermissions(allPermissions.filter(x => x._id !== p._id))} className="cursor-pointer font-bold">×</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
       {/* Hierarchy Dropdowns */}
+      <h1 className="font-bold"> Assign Employee a Designation: </h1>
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Office</label>
@@ -673,6 +632,35 @@ const handleSubmit = async (e) => {
               }
             }}>Delete</button>
           )}
+        </div>
+      </div>
+      
+      
+      {/* Permissions Selector */}
+      <div className="flex flex-col gap-2">
+        <label className="font-semibold">Permissions</label>
+      <select
+          value=""
+          onChange={e => { 
+            const selectedPermission = fetchedPermissions.find(p => p._id === e.target.value);
+            if (selectedPermission && !allPermissions.some(p => p._id === selectedPermission._id)) {
+              setAllPermissions([...allPermissions, selectedPermission]);
+            }
+          }}
+          className="border rounded px-3 py-2 w-full"
+        >
+          <option value="">Select Permission</option>
+          {fetchedPermissions.map(p => (
+            <option key={p._id} value={p._id}>{p.name}</option>
+          ))}
+        </select>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {allPermissions.map(p => (
+            <span key={p._id} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+              {p.name} 
+              <span onClick={() => setAllPermissions(allPermissions.filter(x => x._id !== p._id))} className="cursor-pointer font-bold">×</span>
+            </span>
+          ))}
         </div>
       </div>
 

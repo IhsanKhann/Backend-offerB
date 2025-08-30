@@ -686,16 +686,6 @@ export const AssignEmployeePost = async (req, res) => {
   try {
     const { employeeId, roleName, orgUnit, permissions = [] } = req.body;
 
-    console.log("AssignEmployeePost request body:", req.body);
-
-    // Validate required fields
-    if (!employeeId || !roleName || !orgUnit) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "employeeId, roleName, and orgUnit are required" 
-      });
-    }
-
     // Validate employeeId
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       return res.status(400).json({ success: false, message: "Invalid employeeId" });
@@ -715,42 +705,24 @@ export const AssignEmployeePost = async (req, res) => {
       ? permissions.filter(p => mongoose.Types.ObjectId.isValid(p))
       : [];
 
-    // Check for existing role assignment for this employee
-    const existing = await RoleModel.findOne({ employeeId });
-    if (existing) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Employee already has a role assigned. Delete existing role first." 
-      });
-    }
+    // Prevent duplicate role in same orgUnit
+    const existing = await RoleModel.findOne({
+      employeeId,
+      roleName,
+      orgUnit: orgUnitDoc._id,
+    });
+    if (existing) return res.status(400).json({ success: false, message: "Role already assigned here" });
 
     // Create role
-    const newRole = new RoleModel({ 
-      employeeId, 
-      roleName, 
-      orgUnit: orgUnitDoc._id, 
-      permissions: permissionIds 
-    });
-    
-    // Update employee status
+    const newRole = new RoleModel({ employeeId, roleName, orgUnit: orgUnitDoc._id, permissions: permissionIds });
     employee.DraftStatus.PostStatus = "Assigned";
     await employee.save();
     await newRole.save();
 
-    console.log("Role assigned successfully:", newRole);
-
-    return res.status(200).json({ 
-      success: true, 
-      message: "Role assigned successfully", 
-      role: newRole 
-    });
+    return res.status(200).json({ success: true, message: "Role assigned successfully", role: newRole });
   } catch (error) {
     console.error("🔥 AssignEmployeePost error:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Server error", 
-      error: error.message 
-    });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -785,20 +757,20 @@ export const getAllRoles = async (req, res) => {
 
 export const getSingleRole = async (req, res) => {
   try {
-    const { employeeId } = req.params;
-    if (!employeeId) {
+    const { id } = req.params;
+    if (!id) {
       return res.status(400).json({
         status: false,
         message: "Id is either undefined or invalid",
       });
     }
 
-    console.log("id check in getSingleRole:", employeeId);
-    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+    console.log("id check in getSingleRole:", id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: false, message: "Invalid employee ID" });
     }
     
-    const roles = await RoleModel.findOne({ employeeId });
+    const roles = await RoleModel.findOne({ id });
 
     if (!roles) {
       // No roles yet → return success but empty data

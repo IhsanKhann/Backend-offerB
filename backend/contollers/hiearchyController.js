@@ -157,7 +157,7 @@ export const editHierarchyLevel = async (req, res) => {
 // ---------------------- Delete Level ----------------------
 export const deleteHierarchyLevel = async (req, res) => {
   try {
-    const { hierarchyId } = req.params;
+    const { id } = req.params;
 
     const hierarchy = await HierarchyModel.findOne();
     if (!hierarchy) return res.status(404).json({ message: "Hierarchy not found", success: false });

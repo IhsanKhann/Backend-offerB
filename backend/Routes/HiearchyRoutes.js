@@ -45,7 +45,7 @@ router.put(
 
 // Delete a hierarchy level
 router.delete(
-  "/deleteNode/:hierarchyId",
+  "/deleteNode/:id",
   // setResourceOrgUnit,
   authorize("delete_HierarchyLevel"),
   deleteHierarchyLevel
