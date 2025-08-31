@@ -9,11 +9,24 @@ import {
     removeEmployeePermission,
     addEmployeePermission,
     updatePermission,
+
+    addEmployeePermissionsBulk,
+    removeEmployeePermissionsBulk,
+
 } from "../contollers/permissionControllers.js";
 
 const router = express.Router();
-
 router.use(authenticate);
+
+router.post("/addPermissionsInBulk",
+  authorize("add_permission_in_bulk"),
+  addEmployeePermissionsBulk
+);
+
+router.delete("/removePermissionsInBulk",
+  authorize("remove_permission_in_bulk"),
+  removeEmployeePermissionsBulk
+);
 
 // Add permission to employee
 router.post(
@@ -63,5 +76,6 @@ router.put(
   authorize("update_Permissions"),
   updatePermission
 );
+
 
 export default router;

@@ -6,6 +6,7 @@ import {
   FiPlus,
   FiTrash2,
 } from "react-icons/fi";
+import Sidebar from "../components/Sidebar"; // adjust the path if needed
 import api from "../api/axios";
 
 const PermissionHandler = () => {
@@ -15,15 +16,14 @@ const PermissionHandler = () => {
   // State for modals
   const [editingPermission, setEditingPermission] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [newPermission, setNewPermission] = useState({
-    name: "",
-    description: "",
-  });
+  const [newPermission, setNewPermission] = useState({ name: "", description: "" });
   const [showCreateModal, setShowCreateModal] = useState(false);
-
   const [activeMenu, setActiveMenu] = useState(null);
 
-  // Fetch permissions on mount
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Fetch permissions
   useEffect(() => {
     const fetchPermissions = async () => {
       try {
@@ -41,19 +41,14 @@ const PermissionHandler = () => {
     fetchPermissions();
   }, []);
 
-  // Create Permission
+  // Create, Edit, Delete handlers remain the same
   const handleCreate = async () => {
     if (!newPermission.name.trim() || !newPermission.description.trim()) return;
-
     setIsLoading(true);
     try {
-      const response = await api.post(
-        "/permissions/createPermission",
-        newPermission
-      );
+      const response = await api.post("/permissions/createPermission", newPermission);
       const created = response.data?.permission ?? null;
       if (created) setPermissions([...permissions, created]);
-
       setNewPermission({ name: "", description: "" });
       setShowCreateModal(false);
     } catch (error) {
@@ -63,57 +58,35 @@ const PermissionHandler = () => {
     }
   };
 
-  // Edit Permission
   const handleSaveEdit = async () => {
-    if (
-      !editingPermission?.name.trim() ||
-      !editingPermission?.description.trim()
-    )
-      return;
-
+    if (!editingPermission?.name.trim() || !editingPermission?.description.trim()) return;
     try {
       const response = await api.put(
         `/permissions/updatePermission/${editingPermission._id}`,
-        {
-          name: editingPermission.name,
-          description: editingPermission.description,
-        }
+        { name: editingPermission.name, description: editingPermission.description }
       );
-
       const updated = response.data?.permission ?? editingPermission;
-      setPermissions((prev) =>
-        prev.map((p) => (p._id === updated._id ? updated : p))
-      );
-
+      setPermissions((prev) => prev.map((p) => (p._id === updated._id ? updated : p)));
       setEditingPermission(null);
     } catch (error) {
-      console.error(
-        error.response?.data?.message || "Failed to update permission"
-      );
+      console.error(error.response?.data?.message || "Failed to update permission");
     }
   };
 
-  // Delete Permission
   const handleDelete = async () => {
     if (!deleteConfirm) return;
-
     setIsLoading(true);
     try {
       await api.delete(`/permissions/removePermission/${deleteConfirm._id}`);
-      setPermissions((prev) =>
-        prev.filter((p) => p._id !== deleteConfirm._id)
-      );
+      setPermissions((prev) => prev.filter((p) => p._id !== deleteConfirm._id));
       setDeleteConfirm(null);
     } catch (error) {
-      console.error(
-        error.response?.data?.message || "Failed to delete permission"
-      );
+      console.error(error.response?.data?.message || "Failed to delete permission");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Menu toggle
   const toggleMenu = (id, e) => {
     e.stopPropagation();
     setActiveMenu(activeMenu === id ? null : id);
@@ -125,110 +98,121 @@ const PermissionHandler = () => {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  // Define nav items for sidebar
+  const navItems = [
+    { name: "Assign Permissions", path: "/employees-permissions" },
+   
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Permission Management
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Manage user permissions and access levels
-            </p>
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <Sidebar navItems={navItems} fetchEmployeesByNode={() => {}} title={"Permission Handler"}/>
+
+      {/* Main content */}
+      <main
+        className={`flex-1 transition-all duration-300 ${
+          sidebarOpen ? "ml-72" : "ml-20"
+        } p-6`}
+      >
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800">
+                List of All Permissions
+              </h1>
+              <p className="text-gray-600 mt-2">
+                View and manage all permissions
+              </p>
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg flex items-center transition-colors shadow-lg hover:shadow-xl"
+            >
+              <FiPlus className="mr-2" />
+              Add Permission
+            </button>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg flex items-center transition-colors shadow-lg hover:shadow-xl"
-          >
-            <FiPlus className="mr-2" />
-            Add Permission
-          </button>
-        </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-          {isLoading ? (
-            <div className="p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading permissions...</p>
-            </div>
-          ) : permissions.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              No permissions found.
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-8 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Permission Name
-                  </th>
-                  <th className="px-8 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-8 py-5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {permissions.map((permission) => (
-                  <tr
-                    key={permission._id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {permission.name}
-                    </td>
-                    <td className="px-8 py-5 text-sm text-gray-600">
-                      {permission.description}
-                    </td>
-                    <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="relative inline-block text-left">
-                        <button
-                          onClick={(e) => toggleMenu(permission._id, e)}
-                          className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
-                        >
-                          <FiMoreVertical size={18} />
-                        </button>
-
-                        {activeMenu === permission._id && (
-                          <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                            <div
-                              className="py-1"
-                              role="menu"
-                              aria-orientation="vertical"
-                            >
-                              <button
-                                onClick={() => setEditingPermission(permission)}
-                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 w-full text-left transition-colors"
-                                role="menuitem"
-                              >
-                                <FiEdit2 className="mr-3 text-blue-600" />
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirm(permission)}
-                                className="flex items-center px-4 py-3 text-sm text-red-600 hover:bg-red-50 w-full text-left transition-colors"
-                                role="menuitem"
-                              >
-                                <FiTrash2 className="mr-3" />
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </td>
+          {/* Permission Table */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+            {isLoading ? (
+              <div className="p-12 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading permissions...</p>
+              </div>
+            ) : permissions.length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                No permissions found.
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-8 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Permission Name
+                    </th>
+                    <th className="px-8 py-5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Description
+                    </th>
+                    <th className="px-8 py-5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {permissions.map((permission) => (
+                    <tr
+                      key={permission._id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-8 py-5 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {permission.name}
+                      </td>
+                      <td className="px-8 py-5 text-sm text-gray-600">
+                        {permission.description}
+                      </td>
+                      <td className="px-8 py-5 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="relative inline-block text-left">
+                          <button
+                            onClick={(e) => toggleMenu(permission._id, e)}
+                            className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                          >
+                            <FiMoreVertical size={18} />
+                          </button>
+                          {activeMenu === permission._id && (
+                            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                              <div className="py-1" role="menu" aria-orientation="vertical">
+                                <button
+                                  onClick={() => setEditingPermission(permission)}
+                                  className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 w-full text-left transition-colors"
+                                  role="menuitem"
+                                >
+                                  <FiEdit2 className="mr-3 text-blue-600" />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirm(permission)}
+                                  className="flex items-center px-4 py-3 text-sm text-red-600 hover:bg-red-50 w-full text-left transition-colors"
+                                  role="menuitem"
+                                >
+                                  <FiTrash2 className="mr-3" />
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
 
       {/* Create Modal */}
       {showCreateModal && (

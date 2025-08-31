@@ -26,7 +26,7 @@ router.get(
 
 router.patch(
   "/approve/:finalizedEmployeeId",
-  setResourceOrgUnit,
+  // setResourceOrgUnit,
   authorize("approve_employee"),
   ApproveEmployee
 );
@@ -34,7 +34,7 @@ router.patch(
 // Reject employee
 router.delete(
   "/reject/:finalizedEmployeeId",
-  setResourceOrgUnit,
+  // setResourceOrgUnit,
   authorize("reject_employee"),
   RejectEmployee
 );
@@ -42,7 +42,7 @@ router.delete(
 // Delete both employee + finalized record
 router.delete(
   "/delete/:finalizedEmployeeId",
-  setResourceOrgUnit,
+  // setResourceOrgUnit,
   authorize("delete_finalized_employee"),
   deleteEmployeeAndFinalized
 );
@@ -51,7 +51,7 @@ router.delete(
 // View single finalized employee
 router.get(
   "/getSingleFinalizedEmployee/:finalizedEmployeeId",
-  setResourceOrgUnit,
+  // setResourceOrgUnit,
   authorize("view_single_finalized_employee"),
   getSingleFinalizedEmployee
 );

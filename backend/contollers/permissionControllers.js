@@ -48,6 +48,127 @@ export async function KeepPermissionsUpdated() {
   }
 };
 
+// BULK ADD PERMISSIONS
+export const addEmployeePermissionsBulk = async (req, res) => {
+  try {
+    const { employeeId, permissionNames } = req.body;
+
+    if (!employeeId || !Array.isArray(permissionNames) || permissionNames.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "employeeId and permissionNames array are required",
+      });
+    }
+
+    const employee = await FinalizedEmployee.findById(employeeId).populate("role");
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    const role = await RoleModel.findById(employee.role._id);
+    if (!role) {
+      return res.status(404).json({ success: false, message: "Role not found" });
+    }
+
+    // Track added permissions
+    const addedPermissions = [];
+    const skippedPermissions = [];
+
+    for (const permName of permissionNames) {
+      const permission = await PermissionModel.findOne({ name: permName });
+      if (!permission) {
+        skippedPermissions.push({ name: permName, reason: "Not found" });
+        continue;
+      }
+
+      const alreadyExists = role.permissions.some(
+        (perm) => perm.toString() === permission._id.toString()
+      );
+
+      if (!alreadyExists) {
+        role.permissions.push(permission._id);
+        addedPermissions.push(permission.name);
+      } else {
+        skippedPermissions.push({ name: permission.name, reason: "Already exists" });
+      }
+    }
+
+    await role.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Bulk permissions processed",
+      added: addedPermissions,
+      skipped: skippedPermissions,
+      permissions: role.permissions,
+    });
+  } catch (error) {
+    console.error("🔥 addEmployeePermissionsBulk error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to add permissions" });
+  }
+};
+
+// BULK REMOVE PERMISSIONS
+export const removeEmployeePermissionsBulk = async (req, res) => {
+  try {
+    const { employeeId, permissionNames } = req.body;
+
+    if (!employeeId || !Array.isArray(permissionNames) || permissionNames.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "employeeId and permissionNames array are required",
+      });
+    }
+
+    const employee = await FinalizedEmployee.findById(employeeId).populate("role");
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    const role = await RoleModel.findById(employee.role._id);
+    if (!role) {
+      return res.status(404).json({ success: false, message: "Role not found" });
+    }
+
+    const removedPermissions = [];
+    const skippedPermissions = [];
+
+    for (const permName of permissionNames) {
+      const permission = await PermissionModel.findOne({ name: permName });
+      if (!permission) {
+        skippedPermissions.push({ name: permName, reason: "Not found" });
+        continue;
+      }
+
+      const hasPermission = role.permissions.some(
+        (perm) => perm.toString() === permission._id.toString()
+      );
+
+      if (hasPermission) {
+        role.permissions = role.permissions.filter(
+          (perm) => perm.toString() !== permission._id.toString()
+        );
+        removedPermissions.push(permission.name);
+      } else {
+        skippedPermissions.push({ name: permission.name, reason: "Not assigned" });
+      }
+    }
+
+    await role.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Bulk permissions removal processed",
+      removed: removedPermissions,
+      skipped: skippedPermissions,
+      permissions: role.permissions,
+    });
+  } catch (error) {
+    console.error("🔥 removeEmployeePermissionsBulk error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to remove permissions" });
+  }
+};
+
 // ✅ Get an employee's permissions (from their role)
 export const getEmployeePermissions = async (req, res) => {
   try {

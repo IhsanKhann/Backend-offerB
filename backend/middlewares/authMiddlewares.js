@@ -13,7 +13,6 @@ export const authenticate = async (req, res, next) => {
   try {
     let token = req.cookies?.accessToken;
 
-    // fallback to Authorization header
     if (!token && req.headers.authorization?.startsWith("Bearer ")) {
       token = req.headers.authorization.split(" ")[1];
     }
@@ -25,22 +24,24 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await FinalizedEmployee.findById(decoded._id);
-
-    if (!user) {
-      return res.status(404).json({ status: false, message: "User not found" });
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    } catch (err) {
+      const msg = err.name === "TokenExpiredError" ? "Token expired" : "Invalid token";
+      return res.status(401).json({ status: false, message: msg });
     }
 
-    req.user = user; // attach user
+    const user = await FinalizedEmployee.findById(decoded._id);
+    if (!user) {
+      return res.status(401).json({ status: false, message: "Unauthorized - user not found" });
+    }
+
+    req.user = user;
     next();
   } catch (err) {
     console.error("Authenticate error:", err);
-    return res.status(401).json({
-      status: false,
-      message: "Token verification failed",
-      error: err.message,
-    });
+    return res.status(500).json({ status: false, message: "Server error" });
   }
 };
 

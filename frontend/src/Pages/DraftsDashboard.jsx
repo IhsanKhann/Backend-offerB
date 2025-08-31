@@ -11,7 +11,7 @@ const DraftDashboard = () => {
   const [submitting, setSubmitting] = useState(null); // track submitting employee
   const [openDropdown, setOpenDropdown] = useState(null); // track which dropdown is open
 
-// Fetch employees and roles from backend
+// Fetch employees and roles from backend - initially - on component mount.
 useEffect(() => {
   const fetchData = async () => {
     try {
@@ -34,7 +34,7 @@ useEffect(() => {
 }, []);
 
 
-  // Refresh employees and roles
+  // Refresh employees and roles - on demand..
   const fetchEmployees = async () => {
     try {
       const empRes = await api.get("employees/getAllEmployees");

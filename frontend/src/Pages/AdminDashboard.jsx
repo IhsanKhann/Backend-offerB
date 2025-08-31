@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { HierarchyTree } from "../components/HieararchyTree";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import { UserPlus , ClipboardList, Shield, FileText, Home } from "lucide-react";
+
 
 const AdminDashboard = () => {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   const [finalizedEmployees, setFinalizedEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -248,16 +250,25 @@ const handleManagePermissions = async (employeeId) => {
       </div>
     );
   }
+  
+  const navItems = [
+    {name:"Home",path:"/",icon: <Home size={18} />},
+    {name:"PermissionHandler",path:"/Permission-handler", icon: <Shield size={18} />},
+    {name:"Draft Dashboard", path:"/Draftdashboard", icon: <FileText size={18} />},
+    {name:"Register Employee", path: "/register-employee", icon: <UserPlus size={18} />},
+    {name:"Assign Roles", path: "/assign-roles", icon: <ClipboardList size={18}/>}
+  ]
 
   return (
      <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="bg-gray-900 text-gray-100 h-screen sticky top-0 flex flex-col">
-        <Sidebar fetchEmployeesByNode={fetchEmployeesByNode}/>
+        <Sidebar fetchEmployeesByNode={fetchEmployeesByNode} title="Admin Panel" navItems={navItems} />
       </div>
      
       {/* Main Content */}
-      <main className="flex-1 p-6 overflow-auto">
+      <main   className={`flex-1 p-6 transition-all duration-300`}
+        style={{ marginLeft: open ? "18rem" : "5rem" }}>
 
        <h1 className="text-3xl font-bold text-gray-900 mb-6">Employees</h1>
         {loading ? (
@@ -311,13 +322,9 @@ const handleManagePermissions = async (employeeId) => {
                       </strong>
                     </p>
                     <p className="ml-12 text-xs text-gray-600">
-                      Role name: {emp.role?.roleName || "N/A"}
+                      Role name: {emp.role.roleName || "N/A"}
                     </p>
-                   <p className="ml-12 text-xs text-gray-600">
-                      Permissions: {Array.isArray(emp.permissions) && emp.permissions.length > 0
-                        ? emp.permissions.map(p => p.name).join(", ")
-                        : "None"}
-                    </p>
+                 
                   </div>
                 </div>
 
@@ -454,11 +461,6 @@ const handleManagePermissions = async (employeeId) => {
              <p className="ml-12 text-xs text-gray-600">
                 Role: {profileView.role?.roleName || "N/A"}
               </p>
-              <p className="ml-12 text-xs text-gray-600">
-                Permissions: {Array.isArray(profileView.permissions) && profileView.permissions.length > 0
-                  ? profileView.permissions.map(p => p.name).join(", ")
-                  : "No permissions"}
-              </p>
               <p className="text-gray-500">{profileView.officialEmail}</p>
               </div>
             </div>
@@ -537,9 +539,19 @@ const handleManagePermissions = async (employeeId) => {
                 ✖
               </button>
 
+            <div className="flex flex-row justify-between">
               <h2 className="text-xl font-bold mb-4">
                 Manage Permissions for {managePermissionsView.individualName}
               </h2>
+
+              <button className="bg-blue-600 text-white px-4 py-2 mr-12 rounded-full font-bold cursor-pointer shadow-sm hover:bg-blue-800 "
+                onClick={()=>{
+                  navigate("/Permission-handler")
+                }}
+              >
+                Advance Manage Permissions  
+              </button>
+            </div>
 
               {/* Top: Employee Permissions */}
               <div className="flex flex-wrap gap-2 mb-6">
@@ -553,7 +565,7 @@ const handleManagePermissions = async (employeeId) => {
                     </span>
                   ))
                 ) : (
-                  <p className="text-gray-500">No permissions assigned.</p>
+                  <span className="text-gray-500">No permissions assigned.</span>
                 )}
               </div>
 

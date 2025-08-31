@@ -1,4 +1,3 @@
-// index.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -11,11 +10,11 @@ import LoginPage from "./Pages/loginPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoutes.jsx";
 import DraftDashboard from "./Pages/DraftsDashboard.jsx";
 import PermissionHandler from "./Pages/PermissionsHandler.jsx";
-import {ResetPasswordPage,ForgetUserId} from "./components/ResetLoginPage.jsx";
+import ProfilePage from "./Pages/EmployeeProfile.jsx";
+import { EmployeesPermissions } from "./components/PermissionsManager.jsx";
+import { ResetPasswordPage, ForgetUserId } from "./components/ResetLoginPage.jsx";
 
 import "./index.css";
-
-// store:
 import store from "./store/store.jsx";
 import { Provider } from "react-redux";
 
@@ -28,10 +27,7 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-  {
-    path: "/login",
-    element: <LoginPage />,
-  },
+  { path: "/login", element: <LoginPage /> },
   {
     path: "/register-employee",
     element: (
@@ -72,25 +68,39 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+  { path: "/reset-password", element: <ResetPasswordPage /> },
+  { path: "/forget-UserId", element: <ForgetUserId /> },
   {
-    path: "/reset-password",
-    element: (
-        <ResetPasswordPage/>
-    )
-  },
-  {
-    path: "/forget-UserId",
-    element: (
-        <ForgetUserId/>
-    )
-  },
-    {
     path: "/Permission-handler",
     element: (
-        <ProtectedRoute>
-          <PermissionHandler/>
-        </ProtectedRoute>
-    )
+      <ProtectedRoute>
+        <PermissionHandler />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/employees-permissions",
+    element: (
+      <ProtectedRoute>
+        <EmployeesPermissions />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedRoute>
+        <ProfilePage />
+      </ProtectedRoute>
+    ),
+    children: [
+      { path: "about", element: <ProfilePage section="about" /> },
+      { path: "allowance", element: <ProfilePage section="allowance" /> },
+      { path: "leave", element: <ProfilePage section="leave" /> },
+      { path: "retirement", element: <ProfilePage section="retirement" /> },
+      { path: "loan", element: <ProfilePage section="loan" /> },
+      { path: "", element: <ProfilePage section="about" /> }, // default
+    ],
   },
 ]);
 
