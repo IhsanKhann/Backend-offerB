@@ -1,16 +1,30 @@
 import express from "express";
-import {logOut,loginUser,ResetPassword,ForgetUserId,getLoggedInUser} from "../contollers/userController.js";
+import { 
+  logOut, 
+  loginUser, 
+  ResetPassword, 
+  ForgetUserId, 
+  getLoggedInUser 
+} from "../contollers/userController.js";
 
-import { checkAuth, authenticate, } from "../middlewares/authMiddlewares.js";
+import { 
+  checkAuth, 
+  authenticate,
+  checkEmployeeStatus,
+} from "../middlewares/authMiddlewares.js";
 
 const router = express.Router();
 
-router.post("/login", loginUser);
-router.post("/reset-password", ResetPassword);
-router.post("/forget-userid", ForgetUserId);
+// Apply checkEmployeeStatus before login
+router.post("/login", checkEmployeeStatus, loginUser);
 
-router.post("/logout",authenticate,logOut);
-router.get("/check-auth",authenticate,checkAuth);
-router.get("/me",authenticate,getLoggedInUser);
+// For reset-password and forget-userid, you might also want to check status
+router.post("/reset-password", checkEmployeeStatus, ResetPassword);
+router.post("/forget-userid", checkEmployeeStatus, ForgetUserId);
+
+// Authenticated routes
+router.post("/logout", authenticate, logOut);
+router.get("/check-auth", authenticate, checkAuth);
+router.get("/me", authenticate, getLoggedInUser);
 
 export default router;

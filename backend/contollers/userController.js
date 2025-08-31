@@ -86,24 +86,16 @@ export const generateAccessAndRefreshTokens = async(userId) => {
 
 export const loginUser = async (req, res) => {
   try {
-    const { UserId, email, password } = req.body;
+    const { password } = req.body;
 
-    if (!UserId || !email || !password) {
-      return res.status(400).json({
-        status: false,
-        message: "OrganizationId, Email and password are required",
-      });
+    // Employee was already checked by checkEmployeeStatus
+    const user = req.employee;
+
+    if (!password) {
+      return res.status(400).json({ status: false, message: "Password is required" });
     }
 
-    const user = await FinalizedEmployee.findOne({
-      UserId,
-      personalEmail: email,
-    });
-
-    if (!user) {
-      return res.status(404).json({ status: false, message: "User not found" });
-    }
-
+    // Validate password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(400).json({ status: false, message: "Invalid password" });
@@ -113,25 +105,21 @@ export const loginUser = async (req, res) => {
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
-    console.log("🔹 Generated Access Token:", accessToken);
-    console.log("🔹 Generated Refresh Token:", refreshToken);
-
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    // Send tokens as cookies + JSON response
     res
       .cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure: false,  // false for localhost
+        secure: false,  // set true in production
         sameSite: "Lax",
-        maxAge: 15 * 60 * 1000, // 15 min
+        maxAge: 15 * 60 * 1000,
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: false,
         sameSite: "Lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       })
       .status(200)
       .json({

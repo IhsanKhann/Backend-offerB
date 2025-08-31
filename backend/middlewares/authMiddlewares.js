@@ -9,6 +9,48 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+export const checkEmployeeStatus = async (req, res, next) => {
+  try {
+    const { email, UserId } = req.body;
+
+    if (!email && !UserId) {
+      return res.status(400).json({ message: "Email or UserId is required" });
+    }
+
+    // Find employee
+    const employee =
+      (email && (await FinalizedEmployee.findOne({ personalEmail: email }))) ||
+      (UserId && (await FinalizedEmployee.findOne({ UserId }))) ||
+      null;
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    const status = employee.profileStatus?.decision;
+
+    if (["Suspended", "Blocked", "Terminated"].includes(status)) {
+      return res.status(403).json({
+        message: `Access denied. Employee status is '${status}'`,
+        suspension: employee.suspension || {},
+        block: employee.blocked || {},
+        termination: employee.terminated || {},
+      });
+    }
+
+    // Attach employee so loginUser doesn’t need to query again
+    req.employee = employee;
+
+    next();
+  } catch (err) {
+    console.error("Error in checkEmployeeStatus:", err);
+    res.status(500).json({
+      message: "Error checking employee status",
+      error: err.message,
+    });
+  }
+};
+
 export const authenticate = async (req, res, next) => {
   try {
     let token = req.cookies?.accessToken;
@@ -103,3 +145,4 @@ export const authorize = (requiredPermission) => async (req, res, next) => {
     res.status(500).json({ message: "Authorization error", error: err.message });
   }
 };
+

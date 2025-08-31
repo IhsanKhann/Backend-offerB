@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react"; 
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
-import { HierarchyTree } from "../components/HieararchyTree";
-import axios from "axios";
 import Sidebar from "../components/Sidebar";
-import { UserPlus , ClipboardList, Shield, FileText, Home } from "lucide-react";
-
+import SuspendModal from "../components/SuspendModal.jsx";
+import BlockModal from "../components/BlockModal.jsx";
+import TerminateModal from "../components/TerminateModal.jsx";
+import { UserPlus, ClipboardList, Shield, FileText, Home } from "lucide-react";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -13,233 +13,180 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [profileView, setProfileView] = useState(null);
-
   const [managePermissionsView, setManagePermissionsView] = useState(null);
   const [allPermissionsList, setAllPermissionsList] = useState([]);
+  
+  const [suspendModalOpen, setSuspendModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
-    // Fetch ALL employees
-const handleAllEmployees = async () => {
-  try {
-    setLoading(true);
-    const res = await api.get("/finalizedEmployees/all");
-    const employees = res.data.data || [];
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [selectedBlockEmployee, setSelectedBlockEmployee] = useState(null);
+  
+  const [terminateModalOpen, setTerminateModalOpen] = useState(false);
+  const [selectedTerminateEmployee, setSelectedTerminateEmployee] = useState(null);
 
-    const employeesWithPermissions = await Promise.all(
-      employees.map(async (emp) => {
-        const perms = await fetchEmployeePermissions(emp._id);
-        return { ...emp, permissions: perms };
-      })
-    );
-
-    setFinalizedEmployees(employeesWithPermissions);
-  } catch (error) {
-    console.error("Failed to fetch finalized employees:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Fetch finalized employees on mount
-  useEffect(() => {
-    handleAllEmployees();
-  }, []);
-
-//Fetch all permissions when modal opens:
-const fetchAllPermissions = async () => {
-  try {
-    const res = await api.get("/permissions/AllPermissions");
-    if (res.data.status) {
-      setAllPermissionsList(res.data.Permissions);
-    }
-  } catch (err) {
-    console.error("Error fetching all permissions", err);
-  }
-};
-
-useEffect(() => {
-  if (managePermissionsView) {
-    fetchAllPermissions();
-  }
-}, [managePermissionsView]);
+  const [statusFilter, setStatusFilter] = useState("All"); 
+  const [open, setOpen] = useState(true);
 
   // Fetch permissions for a given employee
   const fetchEmployeePermissions = async (employeeId) => {
     try {
-      // const res = await api.get(`/permissions/getPermissions/${employeeId}`);
-      const res = await axios.get(`/permissions/getPermissions/${employeeId}`);
-      if (res.data.success) {
-        return res.data.permissions || [];
-      }
-      return [];
+      const res = await api.get(`/permissions/getPermissions/${employeeId}`);
+      return res.data.permissions || [];
     } catch (err) {
       console.error("Error fetching permissions:", err);
       return [];
     }
   };
 
-  // Fetch employees for a node
-  const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
+  // Fetch all employees with permissions
+  const fetchEmployees = async (status = "All") => {
     try {
       setLoading(true);
-      console.log("Fetching employees for node:", orgUnit.name, "ID:", orgUnit._id);
+      const url =
+        status === "All"
+          ? "/finalizedEmployees/all"
+          : `/finalizedEmployees/employees-by-status?status=${status}`;
+      const res = await api.get(url);
+      const employees = res.data.employees || res.data.data || [];
 
-      // Fetch employees for any node (leaf or intermediate)
-      const res = await api.get(
-        `/orgUnits/getorgUnit/${orgUnit._id}`
-
+      const employeesWithPermissions = await Promise.all(
+        employees.map(async (emp) => {
+          const perms = await fetchEmployeePermissions(emp._id);
+          return { ...emp, permissions: perms };
+        })
       );
-      
-      if (res.data.success) {
-        setFinalizedEmployees(res.data.employees || []);
-        console.log(`Found ${res.data.employees.length} employees for node: ${orgUnit.name}`);
-      } else {
-        console.log("No employees found for this node");
-        setFinalizedEmployees([]);
-      }
+
+      setFinalizedEmployees(employeesWithPermissions);
     } catch (err) {
-      console.error("Error fetching employees for node:", err);
-      setFinalizedEmployees([]);
+      console.error("Error fetching employees:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Approve employee
-  const handleApprove = async (finalizedEmployeeId) => {
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const handleFilterChange = (e) => {
+    const status = e.target.value;
+    setStatusFilter(status);
+    fetchEmployees(status);
+  };
+
+  const handleSuspendClick = (employee) => {
+    setSelectedEmployee(employee);
+    setSuspendModalOpen(true);
+  };
+
+  const handleSuspendAction = async (employeeId, action, date) => {
     try {
-      const res = await api.patch(
-        `/finalizedEmployees/approve/${finalizedEmployeeId}`
-      );
-      if (res.status === 200) {
-        alert("Employee approved successfully!");
-        setFinalizedEmployees((prev) =>
-          prev.filter((e) => e._id !== finalizedEmployeeId)
-        );
+      if (action === "suspend") {
+        await api.post(`/finalizedEmployees/suspend/${employeeId}`, { endDate: date });
+      } else if (action === "restore") {
+        await api.post(`/finalizedEmployees/restore-suspension/${employeeId}`);
       }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to approve employee.");
+      fetchEmployees();
+      setSuspendModalOpen(false);
+    } catch (err) {
+      console.error("Error handling suspension:", err);
     }
   };
 
-  // Reject employee
-  const handleReject = async (finalizedEmployeeId) => {
+  const handleOpenTerminateModal = (employee) => {
+    setSelectedTerminateEmployee(employee);
+    setTerminateModalOpen(true);
+  };
+
+  const handleTerminateAction = async (employeeId, action, data) => {
     try {
-      const res = await api.delete(
-        `/finalizedEmployees/reject/${finalizedEmployeeId}`
-      );
-      if (res.status === 200) {
-        alert("Employee rejected successfully!");
-        setFinalizedEmployees((prev) =>
-          prev.filter((e) => e._id !== finalizedEmployeeId)
-        );
+      if (action === "terminate") {
+        await api.post(`/finalizedEmployees/terminate/${employeeId}`, {
+          terminationReason: data.reason,
+          terminationStartDate: data.startDate,
+          terminationEndDate: data.endDate,
+        });
+      } else if (action === "restore") {
+        await api.patch(`/finalizedEmployees/restore-terminate/${employeeId}`);
       }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to reject employee.");
+      fetchEmployees();
+      setTerminateModalOpen(false);
+      setSelectedTerminateEmployee(null);
+    } catch (err) {
+      console.error("Error handling termination:", err);
+      alert("Failed to handle termination");
+    }
+  };
+  
+  const handleDelete = async (employeeId) => {
+  if (!window.confirm("Are you sure you want to delete this employee?")) return;
+  try {
+    await api.delete(`/finalizedEmployees/${employeeId}`);
+    fetchEmployees();
+  } catch (err) {
+    console.error("Error deleting employee:", err);
+    alert("Failed to delete employee");
+  }
+};
+
+  const fetchAllPermissions = async () => {
+    try {
+      const res = await api.get("/permissions/AllPermissions");
+      if (res.data.status) setAllPermissionsList(res.data.Permissions);
+    } catch (err) {
+      console.error("Error fetching all permissions", err);
     }
   };
 
-  // Delete employee
-  const handleDelete = async (finalizedEmployeeId) => {
+  useEffect(() => {
+    if (managePermissionsView) fetchAllPermissions();
+  }, [managePermissionsView]);
+
+  const handleAddPermission = async (employeeId, permissionName) => {
+    if (!permissionName) return;
     try {
-      const res = await api.delete(
-        `/finalizedEmployees/delete/${finalizedEmployeeId}`
+      await api.post("/permissions/addEmployeePermission", { employeeId, permissionName });
+      const updatedPerms = await fetchEmployeePermissions(employeeId);
+      setManagePermissionsView((prev) => ({ ...prev, permissions: updatedPerms }));
+      setFinalizedEmployees((prev) =>
+        prev.map((emp) => (emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp))
       );
-      if (res.status === 200) {
-        alert("Employee deleted successfully!");
-        setFinalizedEmployees((prev) =>
-          prev.filter((e) => e._id !== finalizedEmployeeId)
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to delete employee.");
+      document.getElementById("addPermInput").value = "";
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add permission");
     }
   };
 
-  // Profile view
-const handleProfileView = async (finalizedEmployeeId) => {
-  try {
-    const res = await api.get(
-      `/finalizedEmployees/getSingleFinalizedEmployee/${finalizedEmployeeId}`
-    );
-
-    if (!res.data) {
-      alert("Profile data could not be fetched.");
-      return;
+  const handleDeletePermission = async (employeeId, permissionName) => {
+    if (!permissionName) return;
+    try {
+      await api.post("/permissions/removeEmployeePermission", { employeeId, permissionName });
+      const updatedPerms = await fetchEmployeePermissions(employeeId);
+      setManagePermissionsView((prev) => ({ ...prev, permissions: updatedPerms }));
+      setFinalizedEmployees((prev) =>
+        prev.map((emp) => (emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp))
+      );
+      document.getElementById("delPermInput").value = "";
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete permission");
     }
+  };
 
-    const employeeData = res.data.finalizedEmployee || res.data;
-    const permissions = await fetchEmployeePermissions(finalizedEmployeeId);
-    employeeData.permissions = permissions;
-
-    setProfileView(employeeData);
-  } catch (err) {
-    console.error("Error fetching profile:", err);
-  }
-};
-
-const handleAddPermission = async (employeeId, permissionName) => {
-  try {
-    await api.post(`/permissions/addEmployeePermission`, { employeeId, permissionName });
-
-    const updatedPerms = await fetchEmployeePermissions(employeeId);
-
-    // Update modal view
-    setManagePermissionsView((prev) => ({ ...prev, permissions: updatedPerms }));
-
-    // Update main employee list
-    setFinalizedEmployees((prev) =>
-      prev.map((emp) => (emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp))
-    );
-
-    document.getElementById("addPermInput").value = "";
-  } catch (err) {
-    console.error(err);
-    alert("Failed to add permission");
-  }
-};
-
-
-const handleDeletePermission = async (employeeId, permissionName) => {
-  try {
-    await api.post(`/permissions/removeEmployeePermission`, { employeeId, permissionName });
-
-    const updatedPerms = await fetchEmployeePermissions(employeeId);
-
-    // Update modal view
-    setManagePermissionsView((prev) => ({ ...prev, permissions: updatedPerms }));
-
-    // Update main employee list
-    setFinalizedEmployees((prev) =>
-      prev.map((emp) => (emp._id === employeeId ? { ...emp, permissions: updatedPerms } : emp))
-    );
-
-    document.getElementById("delPermInput").value = "";
-  } catch (err) {
-    console.error(err);
-    alert("Failed to delete permission");
-  }
-};
-
-// Open Manage Permissions modal
-const handleManagePermissions = async (employeeId) => {
-  try {
-    const res = await api.get(`/finalizedEmployees/getSingleFinalizedEmployee/${employeeId}`);
-    if (!res.data) return alert("Failed to fetch employee details.");
-
-    const employeeData = res.data.finalizedEmployee || res.data;
-    const permissions = await fetchEmployeePermissions(employeeId);
-    employeeData.permissions = permissions;
-
-    setManagePermissionsView(employeeData);
-  } catch (err) {
-    console.error("Error opening manage permissions modal:", err);
-    alert("Error fetching employee details.");
-  }
-};
-
+  const handleManagePermissions = async (employeeId) => {
+    try {
+      const res = await api.get(`/finalizedEmployees/getSingleFinalizedEmployee/${employeeId}`);
+      if (!res.data) return alert("Failed to fetch employee details.");
+      const employeeData = res.data.finalizedEmployee || res.data;
+      const permissions = await fetchEmployeePermissions(employeeId);
+      setManagePermissionsView({ ...employeeData, permissions });
+    } catch (err) {
+      console.error("Error opening manage permissions modal:", err);
+      alert("Error fetching employee details.");
+    }
+  };
 
   if (loading) {
     return (
@@ -250,90 +197,61 @@ const handleManagePermissions = async (employeeId) => {
       </div>
     );
   }
-  
+
   const navItems = [
-    {name:"Home",path:"/",icon: <Home size={18} />},
-    {name:"PermissionHandler",path:"/Permission-handler", icon: <Shield size={18} />},
-    {name:"Draft Dashboard", path:"/Draftdashboard", icon: <FileText size={18} />},
-    {name:"Register Employee", path: "/register-employee", icon: <UserPlus size={18} />},
-    {name:"Assign Roles", path: "/assign-roles", icon: <ClipboardList size={18}/>}
-  ]
+    { name: "Home", path: "/", icon: <Home size={18} /> },
+    { name: "PermissionHandler", path: "/Permission-handler", icon: <Shield size={18} /> },
+    { name: "Draft Dashboard", path: "/Draftdashboard", icon: <FileText size={18} /> },
+    { name: "Register Employee", path: "/register-employee", icon: <UserPlus size={18} /> },
+    { name: "Assign Roles", path: "/assign-roles", icon: <ClipboardList size={18} /> },
+  ];
 
   return (
-     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
+    <div className="flex min-h-screen bg-gray-100">
       <div className="bg-gray-900 text-gray-100 h-screen sticky top-0 flex flex-col">
-        <Sidebar fetchEmployeesByNode={fetchEmployeesByNode} title="Admin Panel" navItems={navItems} />
+        <Sidebar fetchEmployeesByNode={() => {}} title="Admin Panel" navItems={navItems} />
       </div>
-     
-      {/* Main Content */}
-      <main   className={`flex-1 p-6 transition-all duration-300`}
-        style={{ marginLeft: open ? "18rem" : "5rem" }}>
 
-       <h1 className="text-3xl font-bold text-gray-900 mb-6">Employees</h1>
-        {loading ? (
-          <div className="text-gray-600">Loading employees...</div>
-        ) : finalizedEmployees.length === 0 ? (
+      <main className={`flex-1 p-6 transition-all duration-300`} style={{ marginLeft: open ? "18rem" : "5rem" }}>
+        {/* Header + Filter */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
+          <select
+            value={statusFilter}
+            onChange={handleFilterChange}
+            className="border rounded px-3 py-2"
+          >
+            {["All", "Approved", "Pending", "Suspended", "Blocked", "Terminated"].map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {finalizedEmployees.length === 0 ? (
           <div className="text-gray-500 text-lg">No employees to show.</div>
         ) : (
           <div className="space-y-4">
             {finalizedEmployees.map((emp) => (
-              <div
-                key={emp._id}
-                className="bg-white shadow rounded-xl flex justify-between items-center p-4 hover:shadow-xl transition-all"
-              >
-                {/* Left: Employee Info */}
+              <div key={emp._id} className="bg-white shadow rounded-xl flex justify-between items-center p-4 hover:shadow-xl transition-all">
                 <div className="flex items-center space-x-4">
                   {emp.avatar ? (
-                    <img
-                      src={emp.avatar.url || "https://via.placeholder.com/150"}
-                      alt="Avatar"
-                      className="w-16 h-16 rounded-full object-cover"
-                    />
+                    <img src={emp.avatar.url || "https://via.placeholder.com/150"} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-gray-500">
-                      N/A
-                    </div>
+                    <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-gray-500">N/A</div>
                   )}
                   <div>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {emp.individualName}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {emp.personalEmail || emp.officialEmail}
-                    </p>
-                    <p className="text-xs text-gray-400">ID: {emp.UserId}</p>
-                    <p className="text-xs text-gray-400">
-                      Database Id: {emp._id}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Organization Id: {emp.OrganizationId}
-                    </p>
-
-                    <p className="text-xs text-gray-400">
-                      Created: {new Date(emp.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="ml-12 text-xs text-gray-600">
-                      <strong>
-                        Decision: {emp.profileStatus?.decision || "N/A"}
-                      </strong>
-                    </p>
-                    <p className="ml-12 text-xs text-gray-600">
-                      Role name: {emp.role.roleName || "N/A"}
-                    </p>
-                 
+                    <p className="text-lg font-semibold text-gray-900">{emp.individualName}</p>
+                    <p className="text-sm text-gray-500">{emp.personalEmail || emp.officialEmail}</p>
+                    <p className="text-sm text-gray-500">UserID: {emp.UserId}</p>
+                    <p className="text-sm font-semibold text-gray-900">Status: {emp.profileStatus?.decision}</p>
                   </div>
                 </div>
-
-                {/* Right: Action Dropdown */}
+                
                 <div className="relative">
                   <button
-                    onClick={() =>
-                      setOpenDropdown(openDropdown === emp._id ? null : emp._id)
-                    }
+                    onClick={() => setOpenDropdown(openDropdown === emp._id ? null : emp._id)}
                     className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     Actions &#9660;
@@ -341,84 +259,39 @@ const handleManagePermissions = async (employeeId) => {
 
                   {openDropdown === emp._id && (
                     <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                      {/* Approve button */}
                       <button
-                        onClick={() => {
-                          if (
-                            emp.profileStatus?.decision === "Approved" ||
-                            emp.profileStatus?.decision === "Rejected"
-                          ) {
-                            alert("Approve action is disabled for this employee.");
-                            return;
-                          }
-                          handleApprove(emp._id);
-                        }}
-                        disabled={
-                          emp.profileStatus?.decision === "Approved" ||
-                          emp.profileStatus?.decision === "Rejected"
-                        }
-                        className={`w-full text-left px-4 py-2 text-sm rounded 
-                          ${
-                            emp.profileStatus?.decision === "Approved" ||
-                            emp.profileStatus?.decision === "Rejected"
-                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                              : "text-gray-700 hover:bg-green-100"
-                          }`}
+                        onClick={() => alert("Approve action not implemented")}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-100"
                       >
                         Approve
                       </button>
-
-                      {/* Reject button */}
                       <button
-                        onClick={() => {
-                          if (
-                            emp.profileStatus?.decision === "Approved" ||
-                            emp.profileStatus?.decision === "Rejected"
-                          ) {
-                            alert("Reject action is disabled for this employee.");
-                            return;
-                          }
-                          handleReject(emp._id);
-                        }}
-                        disabled={
-                          emp.profileStatus?.decision === "Approved" ||
-                          emp.profileStatus?.decision === "Rejected"
-                        }
-                        className={`w-full text-left px-4 py-2 text-sm rounded 
-                          ${
-                            emp.profileStatus?.decision === "Approved" ||
-                            emp.profileStatus?.decision === "Rejected"
-                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                              : "text-gray-700 hover:bg-red-100"
-                          }`}
+                        onClick={() => alert("Reject action not implemented")}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100"
                       >
                         Reject
                       </button>
-
-                      {/* Delete button */}
-                      <button
-                        onClick={() => handleDelete(emp._id)}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100"
-                      >
+                      <button onClick={() => handleDelete(emp._id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100">
                         Delete
                       </button>
-
-                      {/* View Profile button */}
-                      <button
-                        onClick={() => handleProfileView(emp._id)}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100"
-                      >
+                      <button onClick={() => setProfileView(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">
                         View Profile
                       </button>
-
-                      <button
-                        onClick={() => handleManagePermissions(emp._id)}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100"
-                      >
+                      <button onClick={() => handleManagePermissions(emp._id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">
                         Manage Permissions
                       </button>
-
-
+                      <button onClick={() => handleSuspendClick(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">
+                        {emp.profileStatus?.decision === "Suspended" ? "Restore" : "Suspend"}
+                      </button>
+                      <button
+                        onClick={() => { setSelectedBlockEmployee(emp); setIsBlockModalOpen(true); }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100"
+                      >
+                        {emp.profileStatus?.decision === "Blocked" ? "Restore Block" : "Block"}
+                      </button>
+                      <button onClick={() => handleOpenTerminateModal(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100">
+                        {emp.profileStatus?.decision === "Terminated" ? "Restore Termination" : "Terminate"}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -427,6 +300,32 @@ const handleManagePermissions = async (employeeId) => {
           </div>
         )}
       </main>
+
+
+      {/* ✅ Suspend Modal */}
+        <SuspendModal
+            isOpen={suspendModalOpen}
+            onClose={() => setSuspendModalOpen(false)}
+            employee={selectedEmployee}
+            refreshEmployees={fetchEmployees}
+        />
+
+        <BlockModal
+          isOpen={isBlockModalOpen}
+          onClose={() => setIsBlockModalOpen(false)}
+          employee={selectedBlockEmployee}
+          refreshEmployees={fetchEmployees}
+      />
+
+         {/* Terminate Modal */}
+          <TerminateModal
+        isOpen={terminateModalOpen}
+        onClose={() => setTerminateModalOpen(false)}
+        employee={selectedTerminateEmployee}
+        onConfirm={(action, data) =>
+          handleTerminateAction(selectedTerminateEmployee._id, action, data)
+        }
+      />
 
       {/* Profile Modal */}
       {profileView && (

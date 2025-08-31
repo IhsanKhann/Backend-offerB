@@ -77,11 +77,37 @@ const profileStatusSchema = new mongoose.Schema({
   submitted: { type: Boolean, default: true }, // always true for finalized
   decision: { 
     type: String,
-    enum: ["Approved", "Rejected", "Pending"], 
+    enum: ["Approved", "Rejected", "Pending", "Suspended", "Blocked", "Terminated", "Restored"], 
     default: "Pending" 
   },
   passwordCreated: { type: Boolean, default: false },
   emailSent: { type: Boolean, default: false },
+});
+
+const LeaveSchema = new mongoose.Schema({
+  onLeave: {type: Boolean, default: false},
+  leaveType: {type: String},
+  leaveReason: {type: String},
+  leaveStartDate: {type: Date},
+  leaveEndDate: {type: Date},  
+});
+
+const SuspensionSchema = new mongoose.Schema({
+  suspensionReason : {type: String},
+  suspensionStartDate: {type: Date},
+  suspensionEndDate: {type: Date},
+});
+
+const BlockedSchema = new mongoose.Schema({
+  blockReason : {type: String},
+  blockStartDate: {type: Date},
+  blockEndDate: {type: Date},
+});
+
+const TerminatedSchema = new mongoose.Schema({
+  terminationReason : {type: String},
+  terminationStartDate: {type: Date},
+  terminationEndDate: {type: Date},
 });
 
 const finalizedEmployeeSchema = new mongoose.Schema(
@@ -116,6 +142,18 @@ const finalizedEmployeeSchema = new mongoose.Schema(
             type: String,
         },
     },
+
+    rolePermissionsBackup: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "permissions" }
+    ],
+    previous_status: { type: String },
+    previous_role: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
+    
+    leave: {type: LeaveSchema, default: {}},
+    suspension: {type: SuspensionSchema, default: {}},
+    blocked : {type: BlockedSchema, default : {}},
+    terminated : {type: TerminatedSchema, default : {}},
+
     // 2. Address
     address: { type: addressSchema, required: true },
 
@@ -133,7 +171,7 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     // posting: { type: AppointmentSchema, required: true }, // if needed
 
     // 6. Roles
-    role: { type: mongoose.Schema.Types.ObjectId, ref: "roles", required: true },
+    role: { type: mongoose.Schema.Types.ObjectId, ref: "roles"},
     orgUnit: { type: mongoose.Schema.Types.ObjectId, ref: "OrgUnit", required: true },
 
     // 7. Salary & Benefits

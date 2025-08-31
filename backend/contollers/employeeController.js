@@ -906,7 +906,458 @@ export const deleteEmployeeAndFinalized = async (req, res) => {
   }
 };
 
+export const suspendEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { suspensionReason, suspensionStartDate, suspensionEndDate } = req.body;
 
-// handle edit..
-// add the file attachements step: (file attachements in the specific step)..
+    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
 
+    // Save previous system status
+    employee.previous_status = employee.profileStatus.decision || "Approved";
+
+    // Save previous role
+    employee.previous_role = employee.role._id;
+
+    // Save current permissions
+    const currentPermissions = employee.role.permissions.map((p) => p.toString());
+    employee.rolePermissionsBackup = currentPermissions;
+
+    // Update suspension info
+    employee.suspension = {
+      suspensionReason,
+      suspensionStartDate,
+      suspensionEndDate,
+    };
+
+    // Mark system status as suspended
+    employee.profileStatus.decision = "Suspended";
+
+    await employee.save();
+
+    // ✉️ Send email notification
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail, // choose whichever exists
+      subject: "Suspension Notice",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We regret to inform you that your account has been <strong>suspended</strong>.</p>
+        <p><strong>Reason:</strong> ${suspensionReason}</p>
+        <p><strong>Suspension Period:</strong> ${suspensionStartDate} to ${suspensionEndDate}</p>
+        <p>If you believe this is a mistake or need clarification, please contact HR immediately.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Suspension email sent:", info.response);
+    });
+
+    res.status(200).json({
+      message: "Employee suspended successfully and email sent",
+      employeeId: employee._id,
+      suspension: employee.suspension,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to suspend employee", error: err.message });
+  }
+};
+
+
+export const restoreSuspendedEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const employee = await FinalizedEmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    // Restore previous system status
+    employee.profileStatus.decision = employee.previous_status || "Restored";
+
+    // Restore previous role
+    employee.role = employee.previous_role;
+
+    // Restore permissions if stored
+    if (employee.rolePermissionsBackup) {
+      const role = await RoleModel.findById(employee.role);
+      role.permissions = employee.rolePermissionsBackup;
+      await role.save();
+    }
+
+    // Clear suspension
+    employee.suspension = {};
+    employee.previous_status = undefined;
+    employee.previous_role = undefined;
+    employee.rolePermissionsBackup = undefined;
+
+    await employee.save();
+
+    // ✉️ Send email notification
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Suspension Lifted",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We are pleased to inform you that your suspension has been <strong>lifted</strong> and you are now restored to your previous status.</p>
+        <p>You may now continue with your duties as normal.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Restoration email sent:", info.response);
+    });
+
+    res.status(200).json({
+      message: "Employee restored from suspension and email sent",
+      employeeId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to restore employee", error: err.message });
+  }
+};
+
+// ✅ Block employee
+export const blockEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { blockReason, blockStartDate, blockEndDate } = req.body;
+
+    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    // Save previous system status
+    employee.previous_status = employee.profileStatus.decision || "Approved";
+
+    // Save previous role
+    employee.previous_role = employee.role?._id;
+
+    // Save current permissions (backup)
+    if (employee.role && employee.role.permissions) {
+      const currentPermissions = employee.role.permissions.map((p) => p.toString());
+      employee.rolePermissionsBackup = currentPermissions;
+    }
+
+    // Clear current role and permissions
+    employee.role = undefined;
+    employee.rolePermissionsBackup = employee.rolePermissionsBackup || []; // ensure backup stored
+
+    // Update blocked info
+    employee.blocked = {
+      blockReason,
+      blockStartDate,
+      blockEndDate,
+    };
+
+    // Mark system status as blocked
+    employee.profileStatus.decision = "Blocked";
+
+    await employee.save();
+
+    // ✉️ Send email notification
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Account Blocked",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We regret to inform you that your account has been <strong>blocked</strong>.</p>
+        <p><strong>Reason:</strong> ${blockReason}</p>
+        <p>During this period, your access to the system has been revoked. You cannot log in until HR restores your access.</p>
+        <p>If you believe this is a mistake or require further clarification, please contact HR immediately.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Block email sent:", info.response);
+    });
+
+    res.status(200).json({
+      message: "Employee blocked successfully and email sent",
+      employeeId: employee._id,
+      blocked: employee.blocked,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to block employee", error: err.message });
+  }
+};
+
+// ✅ Restore employee from block
+export const restoreBlockedEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const employee = await FinalizedEmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    // Restore previous system status
+    employee.profileStatus.decision = employee.previous_status || "Restored";
+
+    // Restore previous role
+    employee.role = employee.previous_role;
+
+    // Restore permissions if stored
+    if (employee.rolePermissionsBackup && employee.role) {
+      const role = await RoleModel.findById(employee.role);
+      if (role) {
+        role.permissions = employee.rolePermissionsBackup;
+        await role.save();
+      }
+    }
+
+    // Clear block
+    employee.blocked = {};
+    employee.previous_status = undefined;
+    employee.previous_role = undefined;
+    employee.rolePermissionsBackup = undefined;
+
+    await employee.save();
+
+    // ✉️ Send email notification
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Account Restored",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We are pleased to inform you that your account has been <strong>restored</strong>.</p>
+        <p>You may now log in and continue with your duties as normal.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Restore email sent:", info.response);
+    });
+
+    res.status(200).json({
+      message: "Employee restored from blocked status and email sent",
+      employeeId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to restore employee", error: err.message });
+  }
+};
+
+// ✅ Terminate employee
+export const terminateEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { terminateReason, terminateDate } = req.body;
+
+    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    // Save previous system status
+    employee.previous_status = employee.profileStatus.decision || "Approved";
+
+    // Save previous role
+    employee.previous_role = employee.role?._id;
+
+    // Save current permissions (backup)
+    if (employee.role && employee.role.permissions) {
+      const currentPermissions = employee.role.permissions.map((p) => p.toString());
+      employee.rolePermissionsBackup = currentPermissions;
+    }
+
+    // Clear current role and permissions
+    employee.role = undefined;
+    employee.rolePermissionsBackup = employee.rolePermissionsBackup || [];
+
+    // Update termination info
+    employee.terminated = {
+      terminateReason,
+      terminateDate,
+    };
+
+    // Mark system status as terminated
+    employee.profileStatus.decision = "Terminated";
+    await employee.save();
+
+    // ✉️ Send email notification
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Employment Terminated",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We regret to inform you that your employment has been <strong>terminated</strong>.</p>
+        <p><strong>Reason:</strong> ${terminateReason}</p>
+        <p>Effective from: ${terminateDate}</p>
+        <p>If you require documents or have queries, kindly reach out to HR.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Termination email sent:", info.response);
+    });
+
+    res.status(200).json({
+      message: "Employee terminated successfully and email sent",
+      employeeId: employee._id,
+      terminated: employee.terminated,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to terminate employee", error: err.message });
+  }
+};
+
+// ✅ Restore employee from termination
+export const restoreTerminatedEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const employee = await FinalizedEmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    // Restore previous system status
+    employee.profileStatus.decision = employee.previous_status || "Restored";
+
+    // Restore previous role
+    employee.role = employee.previous_role;
+
+    // Restore permissions if stored
+    if (employee.rolePermissionsBackup && employee.role) {
+      const role = await RoleModel.findById(employee.role);
+      if (role) {
+        role.permissions = employee.rolePermissionsBackup;
+        await role.save();
+      }
+    }
+
+    // Clear termination
+    employee.terminated = {};
+    employee.previous_status = undefined;
+    employee.previous_role = undefined;
+    employee.rolePermissionsBackup = undefined;
+
+    await employee.save();
+
+    // ✉️ Send email notification
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Employment Restored",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We are pleased to inform you that your employment has been <strong>restored</strong>.</p>
+        <p>You may now resume your duties as normal.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Restore termination email sent:", info.response);
+    });
+
+    res.status(200).json({
+      message: "Employee restored from terminated status and email sent",
+      employeeId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to restore terminated employee", error: err.message });
+  }
+};
+
+export const checkAndRestoreEmployees = async () => {
+  try {
+    const employees = await FinalizedEmployeeModel.find();
+    const today = new Date();
+
+    for (const employee of employees) {
+      let updated = false;
+      let restoredFrom = null;
+
+      // 🟠 Suspension check
+      if (
+        employee.profileStatus?.decision === "Suspended" &&
+        employee.suspension?.suspensionEndDate &&
+        new Date(employee.suspension.suspensionEndDate) <= today
+      ) {
+        employee.profileStatus.decision = "Restored";
+        employee.suspension = {}; // clear suspension data
+        updated = true;
+        restoredFrom = "Suspended";
+      }
+
+      // 🔴 Termination check
+      if (
+        employee.profileStatus?.decision === "Terminated" &&
+        employee.terminated?.terminationEndDate &&
+        new Date(employee.terminated.terminationEndDate) <= today
+      ) {
+        employee.profileStatus.decision = "Restored";
+        employee.terminated = {}; // clear termination data
+        updated = true;
+        restoredFrom = "Terminated";
+      }
+
+      // ⛔ Block check
+      if (
+        employee.profileStatus?.decision === "Blocked" &&
+        employee.blocked?.blockEndDate &&
+        new Date(employee.blocked.blockEndDate) <= today
+      ) {
+        employee.profileStatus.decision = "Restored";
+        employee.blocked = {}; // clear blocked data
+        updated = true;
+        restoredFrom = "Blocked";
+      }
+
+      if (updated) {
+        await employee.save();
+        console.log(
+          `✅ Employee ${employee.individualName} restored from ${restoredFrom}`
+        );
+      }
+    }
+
+    return { success: true, message: "Employee statuses checked and restored where applicable" };
+  } catch (err) {
+    console.error("❌ Error restoring employees:", err);
+    return { success: false, message: err.message };
+  }
+};
+
+export const fetchEmployeesByStatus = async (req, res) => {
+  try {
+    // read the status from query params (example: ?status=Active)
+    const { status } = req.query;
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required in query params" });
+    }
+
+    // find employees by status
+    const employees = await FinalizedEmployeeModel.find({ status });
+
+    return res.status(200).json({
+      message: `Employees with status: ${status}`,
+      count: employees.length,
+      employees,
+    });
+  } catch (error) {
+    console.error("Error fetching employees by status:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

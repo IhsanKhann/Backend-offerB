@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import connectDB from "./connection/index.js";
 
 import { KeepPermissionsUpdated } from "./contollers/permissionControllers.js";
+import {checkAndRestoreEmployees} from "./contollers/employeeController.js";
 
 import employeeRouter from "./Routes/employeRoutes.js";
 import HierarchyRouter from "./Routes/HiearchyRoutes.js";
@@ -33,6 +34,7 @@ connectDB();
 
 // this ensure permissions are loaded to all the top level employees.
 await KeepPermissionsUpdated(); 
+await checkAndRestoreEmployees();
 
 // Routes
 app.get("/api/hello", (req, res) => {

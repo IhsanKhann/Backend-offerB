@@ -178,7 +178,7 @@ const handleDeletePermissions = async () => {
                 <p className="text-lg font-semibold text-gray-900">{emp.individualName}</p>
                 <p className="text-sm text-gray-500">{emp.personalEmail || emp.officialEmail}</p>
                 <p className="text-sm text-gray-500">Role: {emp.role.roleName || "N/A"}</p>
-
+              
               </div>
             </div>
 

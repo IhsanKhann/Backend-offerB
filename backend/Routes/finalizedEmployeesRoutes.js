@@ -8,6 +8,13 @@ import {
   deleteEmployeeAndFinalized,
   getSingleFinalizedEmployee,
   getFinalizedEmployees,
+  suspendEmployee,
+  restoreSuspendedEmployee,
+  blockEmployee,
+  restoreBlockedEmployee,
+  terminateEmployee,
+  restoreTerminatedEmployee,
+  fetchEmployeesByStatus,
 } from "../contollers/employeeController.js";
 
 const router = express.Router();
@@ -56,4 +63,37 @@ router.get(
   getSingleFinalizedEmployee
 );
 
+router.post("/suspend/:employeeId", 
+  authorize("suspend_employee"),
+suspendEmployee);
+
+router.patch("/restore-suspension/:employeeId", 
+  authorize("restore_suspended_employee"),
+restoreSuspendedEmployee);
+
+
+router.post("/block/:employeeId", 
+  authorize("block_employee"),  
+blockEmployee);
+
+router.patch("/restore-block/:employeeId", 
+  authorize("restore_blocked_employee"),  
+restoreBlockedEmployee);
+
+router.post("/terminate/:employeeId",
+  authorize("terminate_employee"),
+  terminateEmployee
+);
+
+router.patch("/restore-terminate/:employeeId",
+  authorize("restore_terminate_employee"),
+  restoreTerminatedEmployee
+);
+
+router.get("/status/:status",
+  authorize("view_all_finalized_employees"),
+  fetchEmployeesByStatus
+);
+
 export default router;
+
