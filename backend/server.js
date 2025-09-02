@@ -13,7 +13,7 @@ import orgUnitsRouter from "./Routes/orgUnitsRoutes.js";
 import AuthRouter from "./Routes/authRoutes.js";
 import PermissionRouter from "./Routes/permissionRoutes.js";
 import FinalizedEmployeesRouter from "./Routes/finalizedEmployeesRoutes.js"
-
+import AllRolesRouter from "./Routes/AllRolesRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -50,6 +50,8 @@ app.use("/api/hierarchy", HierarchyRouter);
 app.use("/api/orgUnits", orgUnitsRouter);
 app.use("/api/permissions", PermissionRouter);
 app.use("/api/finalizedEmployees", FinalizedEmployeesRouter);
+app.use("/api/allRoles", AllRolesRouter);
+
 // Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {

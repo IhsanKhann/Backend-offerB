@@ -1,4 +1,4 @@
-import { OrgUnitModel } from "../models/OrgUnit.js";
+import { OrgUnitModel } from "../models/HRModals/OrgUnit.js";
 import EmployeeModel from "../models/HRModals/Employee.model.js";
 import FinalizedEmployeesModel from "../models/HRModals/FinalizedEmployees.model.js";
 import RoleModel from "../models/HRModals/Role.model.js";

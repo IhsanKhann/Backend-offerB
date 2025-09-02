@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import api from "../api/axios.js";
 import { assignRolesDraft } from "../store/sliceRoles.jsx";
 import { addDraft, addEmployeeData,updateDraft } from "../store/sliceDraft.jsx";
+import RolesManager from "../components/RolesManager.jsx";
 
 const AssignRolesForm = () => {
   const { employeeId } = useParams();
@@ -20,6 +21,7 @@ const AssignRolesForm = () => {
   const employeeData = useSelector((state) => state.draft.employeeData);
   const [employee, setEmployee] = useState(null);
   const [roleDropdown, setRoleDropdown] = useState("");
+  const [RolesList, setRolesList] = useState([]);
   const [allPermissions, setAllPermissions] = useState([]);
 
   const [officeId, setOfficeId] = useState("");
@@ -96,6 +98,63 @@ const AssignRolesForm = () => {
     };
     fetchEmployeePermissions();
   },[])
+
+      const fetchRolesList = async () => {
+  try {
+    setLoading(true);
+    const response = await api.get("/allRoles/getAllRolesList");
+    
+    if (response.data && response.data.Roles) {
+      setRolesList(response.data.Roles);
+      console.log("roles fetched: ", response.data.Roles);
+    } else {
+      setRolesList([]);
+      console.log("No roles found");
+    }
+  } catch (error) {
+    console.error("Error fetching roles:", error);
+    setRolesList([]);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  useEffect(()=>{
+    fetchRolesList();
+  },[]);
+
+  const handleAddRole = async (roleId) => {
+    try {
+      setActionLoading(true);
+      const response = await api.post("/allRoles/addRole", {
+        employeeId,
+        roleId,
+      });
+      if (response.data.success) {
+        setActionModal({ ...actionModal, open: false });
+        fetchRolesList();
+      }
+    } catch (error) {
+      console.error("Error assigning role:", error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteRole = async (roleId) => {
+    try {
+      setActionLoading(true);
+      const response = await api.delete(`/allRoles/deleteRole/${roleId}`);
+      if (response.data.success) {
+        setActionModal({ ...actionModal, open: false });
+        fetchRolesList();
+      }
+    } catch (error) {
+      console.error("Error deleting role:", error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // ---------------- Reset Dependent Fields ----------------
   const resetDependentFields = (level) => {
@@ -397,7 +456,7 @@ const handleSubmit = async (e) => {
   }
 };
 
-  const handleCancel = () => navigate("/DraftDashboard");
+const handleCancel = () => navigate("/DraftDashboard");
 
   if (loading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
   if (employeeError) return (
@@ -421,12 +480,29 @@ const handleSubmit = async (e) => {
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Employee Role</label>
-          <select className="flex-1 border shadow-sm rounded px-3 py-2" value={roleDropdown} onChange={e => setRoleDropdown(e.target.value)}>
-            <option value="">Select Role</option>
-            {["Chairman","BoD Member","Company Secretary","Group Head","Division Head","Department Head","Branch Manager","Officer","Manager","Senior Manager","Cell Incharge","Executive (Contract)","Executive (Permanent)","Senior Group Head"].map(role => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </select>
+       <select className="flex-1 border shadow-sm rounded px-3 py-2" >
+          {RolesList.length > 0 ? (
+            RolesList.map((role) => (
+              <option key={role._id} value={role.role}>
+                {role.role}
+              </option>
+            ))
+          ) : (
+            <option>No roles available</option>
+          )}
+      </select>
+      <RolesManager
+        roles={RolesList} // pass roles from API
+        onAddRole={(role) => {
+          // call API to add role
+          console.log("Add role:", role);
+        }}
+        onDeleteRole={(roleId) => {
+          // call API to delete role
+          console.log("Delete role with ID:", roleId);
+        }}
+      />
+
         </div>
       </div>
 

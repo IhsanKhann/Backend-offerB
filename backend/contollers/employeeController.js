@@ -915,7 +915,7 @@ export const suspendEmployee = async (req, res) => {
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
     // Save previous system status
-    employee.previous_status = employee.profileStatus.decision || "Approved";
+    employee.previous_status = employee.profileStatus.decision;
 
     // Save previous role
     employee.previous_role = employee.role._id;
@@ -968,7 +968,6 @@ export const suspendEmployee = async (req, res) => {
   }
 };
 
-
 export const restoreSuspendedEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -976,7 +975,7 @@ export const restoreSuspendedEmployee = async (req, res) => {
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
     // Restore previous system status
-    employee.profileStatus.decision = employee.previous_status || "Restored";
+    employee.profileStatus.decision = "Restored" || employee.previous_status;
 
     // Restore previous role
     employee.role = employee.previous_role;
@@ -1035,7 +1034,7 @@ export const blockEmployee = async (req, res) => {
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
     // Save previous system status
-    employee.previous_status = employee.profileStatus.decision || "Approved";
+    employee.previous_status = employee.profileStatus.decision;
 
     // Save previous role
     employee.previous_role = employee.role?._id;
@@ -1102,7 +1101,7 @@ export const restoreBlockedEmployee = async (req, res) => {
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
     // Restore previous system status
-    employee.profileStatus.decision = employee.previous_status || "Restored";
+    employee.profileStatus.decision = "Restored" || employee.previous_status;
 
     // Restore previous role
     employee.role = employee.previous_role;
@@ -1228,7 +1227,7 @@ export const restoreTerminatedEmployee = async (req, res) => {
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
     // Restore previous system status
-    employee.profileStatus.decision = employee.previous_status || "Restored";
+    employee.profileStatus.decision = employee.previous_status;
 
     // Restore previous role
     employee.role = employee.previous_role;

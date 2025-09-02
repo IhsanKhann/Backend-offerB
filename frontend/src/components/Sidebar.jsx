@@ -61,20 +61,34 @@ const Sidebar = ({ fetchEmployeesByNode, navItems: customNavItems, title = "Admi
         </div>
 
         {/* Navigation links */}
-        <nav className="flex-1 mt-4 overflow-y-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.name}
-              to={item.path}
-              className={`
-                flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-md mx-2 mb-2 transition-colors
-                ${location.pathname === item.path ? "bg-blue-600 text-white" : "hover:bg-gray-700"}
-              `}
-            >
-              {item.icon && item.icon}
-              <span className={`${open ? "block" : "hidden"} truncate`}>{item.name}</span>
-            </Link>
-          ))}
+        <nav className="flex-1 mt-4 overflow-y-auto custom-scrollbar pr-1">
+          {navItems.map((item) =>
+            item.path ? (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={`
+                  flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-md mx-2 mb-2 transition-colors
+                  ${location.pathname === item.path ? "bg-blue-600 text-white" : "hover:bg-gray-700"}
+                `}
+              >
+                {item.icon && item.icon}
+                <span className={`${open ? "block" : "hidden"} truncate`}>{item.name}</span>
+              </Link>
+            ) : (
+              <button
+                key={item.name}
+                onClick={item.action}
+                className={`
+                  w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-md mx-2 mb-2 transition-colors text-left
+                  ${location.pathname === item.path ? "bg-blue-600 text-white" : "hover:bg-gray-700"}
+                `}
+              >
+                {item.icon && item.icon}
+                <span className={`${open ? "block" : "hidden"} truncate`}>{item.name}</span>
+              </button>
+            )
+          )}
         </nav>
 
         {/* Org Hierarchy Tree */}
@@ -91,16 +105,11 @@ const Sidebar = ({ fetchEmployeesByNode, navItems: customNavItems, title = "Admi
               {open && <span>{showTree ? "−" : "+"}</span>}
             </button>
 
-            <div
-              className={`
-                transition-all duration-300 ease-in-out overflow-hidden
-                ${showTree && open ? "max-h-64" : "max-h-0"}
-              `}
-            >
-              <div className="px-4 pb-4 overflow-y-auto max-h-64 custom-scrollbar">
+            {showTree && (
+              <div className="px-4 pb-4 max-h-[300px] overflow-y-auto custom-scrollbar">
                 <HierarchyTree onNodeSelect={fetchEmployeesByNode} />
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

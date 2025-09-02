@@ -1,0 +1,58 @@
+[
+  {
+    "role": "Chairman",
+    "description": "The highest authority responsible for leading the board and overall strategic vision of the organization."
+  },
+  {
+    "role": "BoD Member",
+    "description": "Board of Directors member responsible for governance, oversight, and major organizational decisions."
+  },
+  {
+    "role": "Company Secretary",
+    "description": "Responsible for corporate compliance, maintaining records, and supporting the board in decision-making."
+  },
+  {
+    "role": "Group Head",
+    "description": "Leads a group within the organization, responsible for strategy, operations, and team performance."
+  },
+  {
+    "role": "Division Head",
+    "description": "Oversees a division, ensuring alignment with organizational goals and managing multiple departments."
+  },
+  {
+    "role": "Department Head",
+    "description": "Leads a department, manages resources, and is responsible for departmental objectives."
+  },
+  {
+    "role": "Branch Manager",
+    "description": "Responsible for managing branch operations, staff, and local client relations."
+  },
+  {
+    "role": "Officer",
+    "description": "Entry to mid-level role assisting in daily tasks, operations, and reporting."
+  },
+  {
+    "role": "Manager",
+    "description": "Oversees teams or units, responsible for planning, coordination, and execution of tasks."
+  },
+  {
+    "role": "Senior Manager",
+    "description": "Senior leadership role managing managers and ensuring organizational objectives are met."
+  },
+  {
+    "role": "Cell Incharge",
+    "description": "Responsible for leading a specific cell or functional unit within the organization."
+  },
+  {
+    "role": "Executive (Contract)",
+    "description": "Contract-based executive role responsible for supporting operations and project-based tasks."
+  },
+  {
+    "role": "Executive (Permanent)",
+    "description": "Permanent executive responsible for ongoing operations and long-term organizational objectives."
+  },
+  {
+    "role": "Senior Group Head",
+    "description": "High-level executive overseeing multiple groups, responsible for strategic direction and results."
+  }
+]
