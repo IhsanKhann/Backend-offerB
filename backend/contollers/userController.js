@@ -1,5 +1,5 @@
 // login,  logout.
-import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
+import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";

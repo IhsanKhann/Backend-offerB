@@ -1,7 +1,7 @@
-import EmployeeModel from "../models/Employee.model.js";
-import RoleModel from "../models/Role.model.js";
-import { PermissionModel } from "../models/Permissions.model.js";
-import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
+import EmployeeModel from "../models/HRModals/Employee.model.js";
+import RoleModel from "../models/HRModals/Role.model.js";
+import { PermissionModel } from "../models/HRModals/Permissions.model.js";
+import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
 
 // helper function to keep the special employees permissions updated..
 export async function KeepPermissionsUpdated() {

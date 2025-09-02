@@ -1,7 +1,7 @@
 import { OrgUnitModel } from "../models/OrgUnit.js";
-import EmployeeModel from "../models/Employee.model.js";
-import FinalizedEmployeesModel from "../models/FinalizedEmployees.model.js";
-import RoleModel from "../models/Role.model.js";
+import EmployeeModel from "../models/HRModals/Employee.model.js";
+import FinalizedEmployeesModel from "../models/HRModals/FinalizedEmployees.model.js";
+import RoleModel from "../models/HRModals/Role.model.js";
 
 /**
  * Helper: Build tree recursively -> call itself inside it.

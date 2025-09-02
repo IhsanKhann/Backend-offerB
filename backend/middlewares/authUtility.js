@@ -1,9 +1,9 @@
-import EmployeeModel from "../models/Employee.model.js";
-import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
-import {PermissionModel} from "../models/Permissions.model.js";
-import RoleModel from "../models/Role.model.js";
-import {OrgUnitModel} from "../models/OrgUnit.js";
-import { HierarchyModel } from "../models/Hiearchy.model.js";
+import EmployeeModel from "../models/HRModals/Employee.model.js";
+import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
+import {PermissionModel} from "../models/HRModals/Permissions.model.js";
+import RoleModel from "../models/HRModals/Role.model.js";
+import {OrgUnitModel} from "../models/HRModals/OrgUnit.js";
+import { HierarchyModel } from "../models/HRModals/Hiearchy.model.js";
 
 const modelMap = {
   employees: { model: EmployeeModel, keys: ["employeeId", "id"] },

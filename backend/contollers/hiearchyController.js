@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { HierarchyModel } from "../models/Hiearchy.model.js";
+import { HierarchyModel } from "../models/HRModals/Hiearchy.model.js";
 
 // ---------------------- Add Initial Hierarchy ----------------------
 export const addHierarchy = async (req, res) => {

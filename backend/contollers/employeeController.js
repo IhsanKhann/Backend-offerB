@@ -1,15 +1,15 @@
 // controllers/employee.controller.js
 import mongoose from "mongoose";
-import EmployeeModel from "../models/Employee.model.js";
+import EmployeeModel from "../models/HRModals/Employee.model.js";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
 
 import { uploadFileToCloudinary, destroyImageFromCloudinary } from "../utilis/cloudinary.js";
-import RoleModel from "../models/Role.model.js";
-import FinalizedEmployeeModel from "../models/FinalizedEmployees.model.js";
-import {OrgUnitModel} from "../models/OrgUnit.js";
-import { PermissionModel } from "../models/Permissions.model.js";
-import CounterModel from "../models/Counter.model.js";
+import RoleModel from "../models/HRModals/Role.model.js";
+import FinalizedEmployeeModel from "../models/HRModals/FinalizedEmployees.model.js";
+import {OrgUnitModel} from "../models/HRModals/OrgUnit.js";
+import { PermissionModel } from "../models/HRModals/Permissions.model.js";
+import CounterModel from "../models/HRModals/Counter.model.js";
 
 // ------------helpers ---------------------
 

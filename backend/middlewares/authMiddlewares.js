@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
-import FinalizedEmployee from "../models/FinalizedEmployees.model.js";
-import RoleModel from "../models/Role.model.js";
-import {OrgUnitModel} from "../models/OrgUnit.js";
+import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
+import RoleModel from "../models/HRModals/Role.model.js";
+import {OrgUnitModel} from "../models/HRModals/OrgUnit.js";
 
 import {getRootOrgUnit,getPermissionsForUser,getAllDescendents} from "../middlewares/authUtility.js";
 
