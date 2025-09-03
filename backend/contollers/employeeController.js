@@ -835,6 +835,33 @@ export const getSingleFinalizedEmployee = async (req, res) => {
   }
 };
 
+// employees on the basis of the roles populated... 
+export const getFinalizedEmployeesWithRoles = async (req, res) => {
+  try {
+    const finalizedEmployees = await FinalizedEmployeeModel.find()
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "role",
+        model: "roles", // ✅ matches your RoleModel
+        populate: {
+          path: "permissions",
+          model: "Permission", // ✅ make sure this matches your Permission model name
+        },
+      });
+
+    return res.status(200).json({
+      success: true,
+      count: finalizedEmployees.length,
+      data: finalizedEmployees,
+    });
+  } catch (error) {
+    console.error("🔥 getFinalizedEmployeesWithRoles error:", error.stack || error.message);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch finalized employees with roles" });
+  }
+};
+
 export const deleteEmployeeAndFinalized = async (req, res) => {
   try {
     const { finalizedEmployeeId } = req.params;

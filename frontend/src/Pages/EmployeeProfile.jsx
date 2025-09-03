@@ -37,13 +37,13 @@ const Leave = ({ employeeId }) => {
     fetchLeave();
   }, [employeeId]);
 
-  // Determine leave status for tracker
+  // Determine leave status
   const leaveStatusText = (leave) => {
-    if (!leave) return "Not Applied";
-    if (leave.leaveRejected) return "Rejected";
-    if (leave.leaveAccepted) return "Accepted";
-    if (leave.onLeave) return "Pending"; // still in progress
-    return "Pending";
+    if (!leave) return "Not Applied";               // no leave object yet
+    if (leave.leaveRejected) return "Rejected";    // rejected
+    if (leave.leaveAccepted) return "Accepted";    // accepted
+    if (leave.onLeave) return "Pending";           // submitted and in progress
+    return "Not Applied";                           // fallback
   };
 
   const trackerStatuses = ["Not Applied", "Pending", "Accepted", "Rejected"];
@@ -86,8 +86,7 @@ const Leave = ({ employeeId }) => {
 
   if (loading) return <p>Loading leave info...</p>;
 
-  // Form blocked if leave is pending or accepted
-  const leaveBlocked = currentLeave && !currentLeave.leaveRejected;
+  const leaveBlocked = currentLeave && currentLeave.leaveAccepted && !currentLeave.leaveRejected;
 
   return (
     <div>

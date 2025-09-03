@@ -14,6 +14,7 @@ import {
   restoreBlockedEmployee,
   terminateEmployee,
   restoreTerminatedEmployee,
+  getFinalizedEmployeesWithRoles,
   fetchEmployeesByStatus,
 } from "../contollers/employeeController.js";
 
@@ -30,6 +31,10 @@ router.get(
   authorize("view_all_finalized_employees"),
   getFinalizedEmployees
 );
+
+router.get("/allWithRoles", 
+  authorize("view_all_finalized_employees"),
+  getFinalizedEmployeesWithRoles);
 
 router.patch(
   "/approve/:finalizedEmployeeId",

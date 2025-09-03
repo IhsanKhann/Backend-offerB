@@ -65,6 +65,10 @@ export const addEmployeePermissionsBulk = async (req, res) => {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
+    if (!employee.role) {
+      return res.status(400).json({ success: false, message: "Employee has no role assigned" });
+    }
+
     const role = await RoleModel.findById(employee.role._id);
     if (!role) {
       return res.status(404).json({ success: false, message: "Role not found" });
@@ -123,6 +127,10 @@ export const removeEmployeePermissionsBulk = async (req, res) => {
     const employee = await FinalizedEmployee.findById(employeeId).populate("role");
     if (!employee) {
       return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    if (!employee.role) {
+      return res.status(400).json({ success: false, message: "Employee has no role assigned" });
     }
 
     const role = await RoleModel.findById(employee.role._id);

@@ -12,19 +12,13 @@ export const EmployeesPermissions = () => {
   const [selectedToAdd, setSelectedToAdd] = useState([]);
   const [selectedToDelete, setSelectedToDelete] = useState([]);
 
-  // Fetch all employees
+  // ✅ Fetch employees with populated roles + permissions
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/finalizedEmployees/all");
+      const res = await api.get("/finalizedEmployees/allWithRoles");
       if (res.data.success) {
-        const employeesWithPermissions = await Promise.all(
-          res.data.data.map(async (emp) => {
-            const permsRes = await api.get(`/permissions/getPermissions/${emp._id}`);
-            return { ...emp, permissions: permsRes.data.permissions || [] };
-          })
-        );
-        setEmployees(employeesWithPermissions);
+        setEmployees(res.data.data);
       }
     } catch (err) {
       console.error("Error fetching employees:", err);
@@ -63,81 +57,51 @@ export const EmployeesPermissions = () => {
   };
 
   // Bulk delete permissions
-const handleDeletePermissions = async () => {
-  if (!selectedEmployee || selectedToDelete.length === 0) return;
+  const handleDeletePermissions = async () => {
+    if (!selectedEmployee || selectedToDelete.length === 0) return;
 
-  try {
-    // Get the permission names for the selected IDs
-    const permissionNames = selectedToDelete.map(
-      (permId) => allPermissions.find((p) => p._id === permId)?.name
-    );
+    try {
+      const permissionNames = selectedToDelete.map(
+        (permId) => allPermissions.find((p) => p._id === permId)?.name
+      );
 
-    await api.delete("/permissions/removePermissionsInBulk", {
-      data: {
-        employeeId: selectedEmployee._id,
-        permissionNames, // ✅ backend expects this
-      },
-    });
+      await api.delete("/permissions/removePermissionsInBulk", {
+        data: {
+          employeeId: selectedEmployee._id,
+          permissionNames,
+        },
+      });
 
-    // Refresh employee permissions
-    const updatedPerms = await api.get(
-      `/permissions/getPermissions/${selectedEmployee._id}`
-    );
-    updateEmployeePermissions(
-      selectedEmployee._id,
-      updatedPerms.data.permissions || []
-    );
-    alert("Permissions deleted successfully");
-
-    setSelectedToDelete([]);
-  } catch (err) {
-    console.error("Bulk delete error:", err.response?.data || err);
-    alert("Failed to delete permissions");
-  }
-  finally{
-    window.location.reload();
-  }
-};
-
+      await fetchEmployees(); // ✅ refresh employees with updated roles/permissions
+      alert("Permissions deleted successfully");
+      setSelectedToDelete([]);
+    } catch (err) {
+      console.error("Bulk delete error:", err.response?.data || err);
+      alert("Failed to delete permissions");
+    }
+  };
 
   // Bulk add permissions
- const handleAddPermissions = async () => {
-  if (!selectedEmployee || selectedToAdd.length === 0) return;
+  const handleAddPermissions = async () => {
+    if (!selectedEmployee || selectedToAdd.length === 0) return;
 
-  try {
-    // Map selected IDs to names
-    const permissionNames = selectedToAdd.map(
-      (permId) => allPermissions.find((p) => p._id === permId)?.name
-    );
+    try {
+      const permissionNames = selectedToAdd.map(
+        (permId) => allPermissions.find((p) => p._id === permId)?.name
+      );
 
-    // Send all permissions in **one bulk request**
-    await api.post("/permissions/addPermissionsInBulk", {
-      employeeId: selectedEmployee._id,
-      permissionNames, // ✅ array of strings
-    });
+      await api.post("/permissions/addPermissionsInBulk", {
+        employeeId: selectedEmployee._id,
+        permissionNames,
+      });
 
-    // Refresh employee permissions
-    const updatedPerms = await api.get(
-      `/permissions/getPermissions/${selectedEmployee._id}`
-    );
-    updateEmployeePermissions(
-      selectedEmployee._id,
-      updatedPerms.data.permissions || []
-    );
-    alert("Permissions added successfully");
-
-    setSelectedToAdd([]);
-  } catch (err) {
-    console.error("Bulk add error:", err.response?.data || err);
-    alert("Failed to add permissions");
-  }
-};
-
-
-  const updateEmployeePermissions = (empId, newPerms) => {
-    setEmployees((prev) =>
-      prev.map((emp) => (emp._id === empId ? { ...emp, permissions: newPerms } : emp))
-    );
+      await fetchEmployees(); // ✅ refresh employees with updated roles/permissions
+      alert("Permissions added successfully");
+      setSelectedToAdd([]);
+    } catch (err) {
+      console.error("Bulk add error:", err.response?.data || err);
+      alert("Failed to add permissions");
+    }
   };
 
   if (loading) {
@@ -177,8 +141,9 @@ const handleDeletePermissions = async () => {
               <div className="flex flex-col">
                 <p className="text-lg font-semibold text-gray-900">{emp.individualName}</p>
                 <p className="text-sm text-gray-500">{emp.personalEmail || emp.officialEmail}</p>
-                <p className="text-sm text-gray-500">Role: {emp.role.roleName || "N/A"}</p>
-              
+                <p className="text-sm text-gray-500">
+                  Role: {emp.role?.roleName || "N/A"}
+                </p>
               </div>
             </div>
 
@@ -195,13 +160,14 @@ const handleDeletePermissions = async () => {
                   <Plus size={14} /> Manage
                 </button>
               </div>
-              {emp.permissions.length > 0 ? (
+              {emp.role?.permissions?.length > 0 ? (
                 <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {emp.permissions.map((perm) => (
+                  {emp.role.permissions.map((perm) => (
                     <li
                       key={perm._id}
                       className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${
-                        selectedEmployee?._id === emp._id && selectedToDelete.includes(perm._id)
+                        selectedEmployee?._id === emp._id &&
+                        selectedToDelete.includes(perm._id)
                           ? "bg-red-600 text-white"
                           : "bg-blue-100 text-blue-800"
                       }`}
@@ -243,8 +209,8 @@ const handleDeletePermissions = async () => {
               <div className="mb-4">
                 <h3 className="font-semibold mb-2">Click to delete:</h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedEmployee.permissions.length > 0 ? (
-                    selectedEmployee.permissions.map((perm) => (
+                  {selectedEmployee.role?.permissions?.length > 0 ? (
+                    selectedEmployee.role.permissions.map((perm) => (
                       <div
                         key={perm._id}
                         className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${
@@ -276,7 +242,7 @@ const handleDeletePermissions = async () => {
                   {allPermissions
                     .filter(
                       (perm) =>
-                        !selectedEmployee.permissions.some((p) => p._id === perm._id)
+                        !selectedEmployee.role?.permissions?.some((p) => p._id === perm._id)
                     )
                     .map((perm) => (
                       <div

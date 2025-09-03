@@ -156,7 +156,7 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     ],
     previous_status: { type: String },
     previous_role: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
-    SpecialPermissions : [{type: String}],
+    defaultPermissions : [{type: String}],
 
     leave: {type: LeaveSchema, default: {}},
     suspension: {type: SuspensionSchema, default: {}},

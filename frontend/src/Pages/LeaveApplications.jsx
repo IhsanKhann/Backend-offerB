@@ -27,18 +27,28 @@ const LeaveApplications = () => {
 
   useEffect(() => { loadData(); }, []);
 
-  const acceptLeave = async (employeeId) => {
-    try {
-      setLeaves(prev => prev.map(e => e._id === employeeId
-        ? { ...e, leave: { ...e.leave, leaveAcccepted: true, leaveRejected: false } }
-        : e
-      ));
-      await api.post(`/leaves/${employeeId}/accept`);
-    } catch (err) {
-      console.error(err);
-      await loadData();
+const acceptLeave = async (employeeId) => {
+  try {
+    const targetEmployeeId = transferState[employeeId];
+    if (!targetEmployeeId) {
+      alert("Please select an employee to transfer responsibilities to before accepting.");
+      return;
     }
-  };
+
+    setLeaves(prev =>
+      prev.map(e =>
+        e._id === employeeId
+        ? { ...e, leave: { ...e.leave, leaveAccepted: true, leaveRejected: false, transferredRoleTo: targetEmployeeId } }
+        : e
+      )
+    );
+     await api.post(`/leaves/${employeeId}/accept`, { transferredRoleTo: targetEmployeeId });
+  } catch (err) {
+    console.error(err);
+    await loadData();
+  }
+};
+
 
   const openRejectModal = (employeeId) => setRejectModal({ open: true, employeeId, reason: "" });
   const closeRejectModal = () => setRejectModal({ open: false, employeeId: null, reason: "" });
