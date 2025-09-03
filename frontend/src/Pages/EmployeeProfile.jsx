@@ -11,7 +11,191 @@ import api from "../api/axios"; // <-- make sure this points to your axios insta
 
 // Dummy Components (replace with real forms later)
 const Allowance = () => <p>This is the <strong>Apply Allowance</strong> section.</p>;
-const Leave = () => <p>This is the <strong>Apply Leave</strong> section.</p>;
+
+const Leave = ({ employeeId }) => {
+  const [leaveType, setLeaveType] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
+
+  const [currentLeave, setCurrentLeave] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [takingBack, setTakingBack] = useState(false);
+
+  // Fetch current leave from backend
+  useEffect(() => {
+    const fetchLeave = async () => {
+      try {
+        const res = await api.get(`/leaves/${employeeId}`);
+        setCurrentLeave(res.data.leave || null);
+      } catch (err) {
+        console.error("Error fetching leave:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLeave();
+  }, [employeeId]);
+
+  // Determine leave status for tracker
+  const leaveStatusText = (leave) => {
+    if (!leave) return "Not Applied";
+    if (leave.leaveRejected) return "Rejected";
+    if (leave.leaveAccepted) return "Accepted";
+    if (leave.onLeave) return "Pending"; // still in progress
+    return "Pending";
+  };
+
+  const trackerStatuses = ["Not Applied", "Pending", "Accepted", "Rejected"];
+  const currentStatus = leaveStatusText(currentLeave);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post("/leaves/apply", {
+        employeeId,
+        leaveType,
+        leaveReason: reason,
+        leaveStartDate: startDate,
+        leaveEndDate: endDate,
+      });
+      setCurrentLeave(res.data.leave);
+      setLeaveType("");
+      setStartDate("");
+      setEndDate("");
+      setReason("");
+    } catch (err) {
+      console.error("Error applying for leave:", err.response || err);
+    }
+  };
+
+  const handleTakeBack = async () => {
+    if (!currentLeave) return;
+    try {
+      setTakingBack(true);
+      await api.post(`/leaves/${employeeId}/takeback`);
+      setCurrentLeave(null);
+      alert("Leave taken back. Your role and permissions are restored!");
+    } catch (err) {
+      console.error(err);
+      alert("Error taking back leave.");
+    } finally {
+      setTakingBack(false);
+    }
+  };
+
+  if (loading) return <p>Loading leave info...</p>;
+
+  // Form blocked if leave is pending or accepted
+  const leaveBlocked = currentLeave && !currentLeave.leaveRejected;
+
+  return (
+    <div>
+      {/* Tracker */}
+      <div className="mb-4 p-4 bg-gray-100 rounded-lg flex justify-between items-center">
+        <div className="flex gap-4">
+          {trackerStatuses.map((status) => {
+            const active = currentStatus === status;
+            const completed =
+              trackerStatuses.indexOf(status) < trackerStatuses.indexOf(currentStatus) &&
+              currentStatus !== "Not Applied";
+            return (
+              <div
+                key={status}
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  active
+                    ? "bg-blue-600 text-white"
+                    : completed
+                    ? "bg-blue-200 text-blue-800"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                {status}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Take Back Button */}
+        {currentLeave && !currentLeave.leaveRejected && (
+          <button
+            onClick={handleTakeBack}
+            disabled={takingBack}
+            className="bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700 text-sm"
+          >
+            {takingBack ? "Processing…" : "Take Back Leave"}
+          </button>
+        )}
+      </div>
+
+      {/* Leave Form */}
+      <form
+        onSubmit={handleSubmit}
+        className={`p-4 bg-white rounded shadow ${
+          leaveBlocked ? "opacity-50 pointer-events-none" : ""
+        }`}
+      >
+        <h2 className="text-lg font-bold mb-4">Apply Leave</h2>
+
+        <label className="block mb-2">Leave Type</label>
+        <select
+          value={leaveType}
+          onChange={(e) => setLeaveType(e.target.value)}
+          className="border p-2 w-full mb-3"
+          required
+        >
+          <option value="">-- Select Leave Type --</option>
+          <option value="Casual Leave">Casual Leave</option>
+          <option value="Sick Leave">Sick Leave</option>
+          <option value="Annual Leave">Annual Leave</option>
+          <option value="Maternity Leave">Maternity Leave</option>
+        </select>
+
+        <label className="block mb-2">Start Date</label>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border p-2 w-full mb-3"
+          required
+        />
+
+        <label className="block mb-2">End Date</label>
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border p-2 w-full mb-3"
+          required
+        />
+
+        <label className="block mb-2">Reason</label>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="border p-2 w-full mb-3"
+          placeholder="Enter reason for leave"
+          required
+        />
+
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+          disabled={leaveBlocked}
+        >
+          Submit
+        </button>
+
+        {leaveBlocked && currentLeave.leaveRejected && (
+          <p className="text-sm text-red-600 mt-2">
+            Previous leave was rejected. You can submit a new application.
+          </p>
+        )}
+      </form>
+    </div>
+  );
+};
+
 const Retirement = () => <p>This is the <strong>Apply Retirement</strong> section.</p>;
 const Loan = () => <p>This is the <strong>Apply Loan</strong> section.</p>;
 const Training = () => <p>This is the <strong>Apply Training</strong> section.</p>;
@@ -121,7 +305,7 @@ const ProfilePage = () => {
       case "allowance":
         return <Allowance />;
       case "leave":
-        return <Leave />;
+        return <Leave employeeId={profile._id} />; // ✅ pass employeeId from profile
       case "retirement":
         return <Retirement />;
       case "loan":

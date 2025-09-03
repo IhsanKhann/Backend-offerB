@@ -3,22 +3,25 @@ import React, { useState } from "react";
 const RolesManager = ({ onAddRole, onDeleteRole, roles }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [newRole, setNewRole] = useState("");
+  const [newDescription, setNewDescription] = useState("");
   const [roleToDelete, setRoleToDelete] = useState("");
 
-  // Handle add role
-  const handleAdd = () => {
-    if (newRole.trim()) {
-      onAddRole(newRole);
-      setNewRole("");
-      setShowAddModal(false);
-    }
-  };
+const [newRole, setNewRole] = useState("");
+const [description, setDescription] = useState("");
+
+const handleAdd = () => {
+  if (newRole.trim()) {
+    onAddRole({ role: newRole, description });
+    setNewRole("");
+    setDescription("");
+    setShowAddModal(false);
+  }
+};
 
   // Handle delete role
   const handleDelete = () => {
     if (roleToDelete) {
-      onDeleteRole(roleToDelete);
+      onDeleteRole(roleToDelete); // ✅ we pass _id
       setRoleToDelete("");
       setShowDeleteModal(false);
     }
@@ -48,9 +51,15 @@ const RolesManager = ({ onAddRole, onDeleteRole, roles }) => {
             <input
               type="text"
               placeholder="Enter role name"
-              className="w-full border rounded px-3 py-2 mb-4"
+              className="w-full border rounded px-3 py-2 mb-3"
               value={newRole}
               onChange={(e) => setNewRole(e.target.value)}
+            />
+            <textarea
+              placeholder="Enter description"
+              className="w-full border rounded px-3 py-2 mb-4"
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
             />
             <div className="flex justify-end space-x-2">
               <button
@@ -83,7 +92,7 @@ const RolesManager = ({ onAddRole, onDeleteRole, roles }) => {
               <option value="">Select role</option>
               {roles.map((role) => (
                 <option key={role._id} value={role._id}>
-                  {role.role}
+                  {role.role} {/* ✅ schema field */}
                 </option>
               ))}
             </select>

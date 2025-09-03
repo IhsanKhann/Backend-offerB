@@ -27,7 +27,7 @@ export const addRole = async (req, res) => {
 
 export const deleteRole = async (req, res) => {
   try {
-    const { roleId } = req.body;
+    const { roleId } = req.params;  // ✅ get from params
     await AllRolesModel.findByIdAndDelete(roleId);
     res.status(200).json({ message: "Role deleted", success: true });
   } catch (err) {
@@ -35,4 +35,3 @@ export const deleteRole = async (req, res) => {
     res.status(500).json({ message: "Server error", success: false, error: err.message });
   }
 };
-

@@ -15,7 +15,8 @@ router.get("/getAllRolesList",
 router.post("/addRole", 
     authorize("Add_Role"),
     addRole);
-router.delete("/deleteRole/:roleId", 
+
+  router.delete("/deleteRole/:roleId", 
     authorize("Delete_Role"),
     deleteRole);
 

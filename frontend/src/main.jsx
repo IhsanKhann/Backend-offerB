@@ -13,6 +13,7 @@ import PermissionHandler from "./Pages/PermissionsHandler.jsx";
 import ProfilePage from "./Pages/EmployeeProfile.jsx";
 import { EmployeesPermissions } from "./components/PermissionsManager.jsx";
 import { ResetPasswordPage, ForgetUserId } from "./components/ResetLoginPage.jsx";
+import LeaveApplications from "./Pages/LeaveApplications.jsx";
 
 import "./index.css";
 import store from "./store/store.jsx";
@@ -101,6 +102,14 @@ const router = createBrowserRouter([
       { path: "loan", element: <ProfilePage section="loan" /> },
       { path: "", element: <ProfilePage section="about" /> }, // default
     ],
+  },
+  {
+    path: "/leave-applications",
+    element: (
+      <ProtectedRoute>
+        <LeaveApplications />
+      </ProtectedRoute>
+    ),
   },
 ]);
 

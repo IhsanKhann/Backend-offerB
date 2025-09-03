@@ -105,17 +105,28 @@ const PermissionHandler = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar navItems={navItems} fetchEmployeesByNode={() => {}} title={"Permission Handler"}/>
+  <div className="flex min-h-screen bg-gray-100">
+  {/* Sidebar */}
+  <div
+    className={`fixed inset-y-0 left-0 h-screen bg-white shadow-lg transition-all duration-300 ${
+      sidebarOpen ? "w-72" : "w-20"
+    }`}
+  >
+    <Sidebar
+      navItems={navItems}
+      fetchEmployeesByNode={() => {}}
+      title={"Permission Handler"}
+    />
+  </div>
 
-      {/* Main content */}
-      <main
-        className={`flex-1 transition-all duration-300 ${
-          sidebarOpen ? "ml-72" : "ml-20"
-        } p-6`}
-      >
-        <div className="max-w-6xl mx-auto">
+  {/* Main content */}
+  <main
+    className={`flex-1 transition-all duration-300 ${
+      sidebarOpen ? "ml-72" : "ml-20"
+    } p-6`}
+  >
+    {/* Main content */}
+    <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>

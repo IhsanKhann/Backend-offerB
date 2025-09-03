@@ -70,6 +70,8 @@ const transferSchema = new mongoose.Schema({
   country: { type: String },
   immediateBoss: { type: String },
   date: { type: Date, default: Date.now },
+  TransferPermissions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Permission" }],
+  TransferRole : { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
 });
 
 // Embedded schema for profile status
@@ -90,6 +92,12 @@ const LeaveSchema = new mongoose.Schema({
   leaveReason: {type: String},
   leaveStartDate: {type: Date},
   leaveEndDate: {type: Date},  
+  leaveAccepted : {type: Boolean, default: false},
+  leaveRejected : {type: Boolean, default: false},
+  RejectionLeaveReason : {type: String},
+  RejectedBy : {type: String},
+
+  transferredRoleTo: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee" },
 });
 
 const SuspensionSchema = new mongoose.Schema({
@@ -148,7 +156,8 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     ],
     previous_status: { type: String },
     previous_role: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
-    
+    SpecialPermissions : [{type: String}],
+
     leave: {type: LeaveSchema, default: {}},
     suspension: {type: SuspensionSchema, default: {}},
     blocked : {type: BlockedSchema, default : {}},
@@ -204,7 +213,6 @@ finalizedEmployeeSchema.pre("validate", function (next) {
   }
   next();
 });
-
 
 finalizedEmployeeSchema.pre("save", async function (next) {
     if(!this.isModified("password")) return next();

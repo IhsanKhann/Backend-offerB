@@ -547,7 +547,7 @@ export const ApproveEmployee = async (req, res) => {
       return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
     }
 
-    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
+    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId).populate("role");
     if (!finalizedEmployee) {
       return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
     }
@@ -556,7 +556,7 @@ export const ApproveEmployee = async (req, res) => {
     const tempPassword = generatePassword();
     const passwordHash = await hashPassword(tempPassword);
 
-    // generate the organization id..
+    // Generate the organization id
     const UserId  = generateUserId(finalizedEmployee);
 
     // 1️⃣ Update finalized employee
@@ -565,20 +565,27 @@ export const ApproveEmployee = async (req, res) => {
     finalizedEmployee.passwordHash = passwordHash;
     finalizedEmployee.password = tempPassword;
     finalizedEmployee.UserId = UserId;
-    console.log(finalizedEmployee.passwordHash, finalizedEmployee.password, finalizedEmployee.OrganizationId);
-  
-    // this will send the email to the email.
+
+    // 2️⃣ Add mandatory default/special permissions
+    const mandatoryDefaultPermissions = ["view_employee_permissions", "applyForLeave", "takeBackLeave"];
+    
+    // Merge existing defaultPermissions with mandatory ones, avoiding duplicates
+    finalizedEmployee.defaultPermissions = Array.from(
+      new Set([...(finalizedEmployee.defaultPermissions || []), ...mandatoryDefaultPermissions])
+    );
+
+    // 3️⃣ Send email
     SendEmail(finalizedEmployee);
     finalizedEmployee.emailSent = true;
 
     await finalizedEmployee.save();
 
-    // 2️⃣ Confirm assignment to OrgUnit
+    // 4️⃣ Confirm assignment to OrgUnit
     if (finalizedEmployee.orgUnit) {
       await OrgUnitModel.findByIdAndUpdate(finalizedEmployee.orgUnit, { employee: finalizedEmployee._id });
     }
 
-    // 3️⃣ Delete original draft employee
+    // 5️⃣ Delete original draft employee
     if (finalizedEmployee._id) {
       await EmployeeModel.findByIdAndDelete(finalizedEmployee._id);
     }
@@ -1323,6 +1330,38 @@ export const checkAndRestoreEmployees = async () => {
         restoredFrom = "Blocked";
       }
 
+      // 🌿 Leave check
+      if (
+        employee.leave &&
+        employee.leave.leaveEndDate &&
+        new Date(employee.leave.leaveEndDate) <= today
+      ) {
+        // Restore temporary role if transferred
+        if (employee.leave.transferredRoleTo) {
+          const targetEmployee = await FinalizedEmployeeModel.findById(
+            employee.leave.transferredRoleTo
+          );
+          if (targetEmployee) {
+            targetEmployee.role = targetEmployee.previousRole || targetEmployee.role;
+            targetEmployee.permissions =
+              targetEmployee.previousPermissions || targetEmployee.permissions;
+            await targetEmployee.save();
+            console.log(
+              `🔄 Temporary role restored for ${targetEmployee.individualName}`
+            );
+          }
+        }
+
+        // Restore original employee's role & permissions
+        employee.role = employee.previousRole || employee.role;
+        employee.permissions = employee.previousPermissions || employee.permissions;
+
+        // Clear leave data
+        employee.leave = null;
+        updated = true;
+        restoredFrom = "Leave";
+      }
+
       if (updated) {
         await employee.save();
         console.log(
@@ -1331,12 +1370,16 @@ export const checkAndRestoreEmployees = async () => {
       }
     }
 
-    return { success: true, message: "Employee statuses checked and restored where applicable" };
+    return {
+      success: true,
+      message: "Employee statuses checked and restored where applicable",
+    };
   } catch (err) {
     console.error("❌ Error restoring employees:", err);
     return { success: false, message: err.message };
   }
 };
+
 
 export const fetchEmployeesByStatus = async (req, res) => {
   try {

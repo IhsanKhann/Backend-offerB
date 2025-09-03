@@ -680,6 +680,11 @@ const AdminDashboard = () => {
      icon: <Home size={18} />
     },
     {
+      name: "Leave Applications",
+      path: "/leave-applications",
+      icon: <Shield size={18} /> 
+    },
+    {
       name: "Approved Employees",
       action: () => {
         setActiveStatusView("Approved");
