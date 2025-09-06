@@ -15,6 +15,8 @@ import { EmployeesPermissions } from "./components/PermissionsManager.jsx";
 import { ResetPasswordPage, ForgetUserId } from "./components/ResetLoginPage.jsx";
 import LeaveApplications from "./Pages/LeaveApplications.jsx";
 
+import SummaryTable from "./Pages/Finance/SummaryTable.jsx";
+
 import "./index.css";
 import store from "./store/store.jsx";
 import { Provider } from "react-redux";
@@ -108,6 +110,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <LeaveApplications />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/summary-table",
+    element: (
+      <ProtectedRoute>
+        <SummaryTable />
       </ProtectedRoute>
     ),
   },

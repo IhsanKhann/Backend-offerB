@@ -1,0 +1,36 @@
+[
+  { "fieldLineId": 2101, "name": "Administrative Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2101", "balance": 0 },
+  { "fieldLineId": 2102, "name": "Marketing Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2102", "balance": 0 },
+  { "fieldLineId": 2103, "name": "Establishment Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2103", "balance": 0 },
+  { "fieldLineId": 2104, "name": "Tax Website", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2104", "balance": 0 },
+  { "fieldLineId": 2105, "name": "Tax Sellers", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2105", "balance": 0 },
+  { "fieldLineId": 2106, "name": "Management Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2106", "balance": 0 },
+  { "fieldLineId": 2107, "name": "Expense Income Tax", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2107", "balance": 0 },
+  { "fieldLineId": 2108, "name": "Employee Gratuity Expense", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2108", "balance": 0 },
+  { "fieldLineId": 2109, "name": "EOBI", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2109", "balance": 0 },
+  { "fieldLineId": 2110, "name": "Group Term Insurance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2110", "balance": 0 },
+
+  { "fieldLineId": 1101, "name": "Allowance for Administrative Expense", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1101", "balance": 0 },
+  { "fieldLineId": 1102, "name": "Allowance for Market", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1102", "balance": 0 },
+  { "fieldLineId": 1103, "name": "Allowance for Establishment", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1103", "balance": 0 },
+  { "fieldLineId": 1104, "name": "Allowance for Tax Website", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1104", "balance": 0 },
+  { "fieldLineId": 1105, "name": "Allowance for Store Seller Taxes", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1105", "balance": 0 },
+  { "fieldLineId": 1106, "name": "Allowance for Management Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1106", "balance": 0 },
+  { "fieldLineId": 1107, "name": "Allowance for Income Tax Employee Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1107", "balance": 0 },
+  { "fieldLineId": 1108, "name": "Allowance for Employee Gratuity Expense", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1108", "balance": 0 },
+  { "fieldLineId": 1109, "name": "Allowance for EOBI", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1109", "balance": 0 },
+  { "fieldLineId": 1110, "name": "Allowance for Group Term Insurance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1110", "balance": 0 },
+
+  { "fieldLineId": 3101, "name": "Tax Bank - Website", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "accountNumber": "3101", "balance": 0 },
+  { "fieldLineId": 3102, "name": "Tax Bank - Sellers", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "accountNumber": "3102", "balance": 0 },
+
+  { "fieldLineId": 4101, "name": "Employee Salaries", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5997" }, "accountNumber": "4101", "balance": 0 },
+
+  { "fieldLineId": 5101, "name": "Capital", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" }, "accountNumber": "5101", "balance": 0 },
+
+  { "fieldLineId": 5201, "name": "Commission Income", "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" }, "accountNumber": "5201", "balance": 0 },
+
+  { "fieldLineId": 5301, "name": "Cash", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5301", "balance": 0 },
+
+  { "fieldLineId": 5401, "name": "Retained Income", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5401", "balance": 0 }
+]

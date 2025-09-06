@@ -18,6 +18,27 @@ import {
 const router = express.Router();
 router.use(authenticate);
 
+// Get a specific employee's permissions
+router.get(
+  "/getPermissions/:employeeId",
+  authorize("view_employee_permissions"),
+  getEmployeePermissions
+);
+
+// Remove a permission (system-level)
+router.delete(
+  "/removePermission/:permissionId",
+  authorize("delete_Permissions"),
+  removePermission
+);
+
+// Update a permission (system-level)
+router.put(
+  "/updatePermission/:permissionId",
+  authorize("update_Permissions"),
+  updatePermission
+);
+
 router.post("/addPermissionsInBulk",
   authorize("add_permission_in_bulk"),
   addEmployeePermissionsBulk
@@ -42,13 +63,6 @@ router.post(
   removeEmployeePermission
 );
 
-// Get a specific employee's permissions
-router.get(
-  "/getPermissions/:employeeId",
-  authorize("view_employee_permissions"),
-  getEmployeePermissions
-);
-
 // View all permissions (system-level)
 router.get(
   "/AllPermissions",
@@ -61,20 +75,6 @@ router.post(
   "/createPermission",
   authorize("add_Permissions"),
   createPermission
-);
-
-// Remove a permission (system-level)
-router.delete(
-  "/removePermission/:permissionId",
-  authorize("delete_Permissions"),
-  removePermission
-);
-
-// Update a permission (system-level)
-router.put(
-  "/updatePermission/:permissionId",
-  authorize("update_Permissions"),
-  updatePermission
 );
 
 

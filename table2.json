@@ -1,0 +1,24 @@
+{
+    "ruleId":3,
+  "transactionType": "CapitalContribution",
+  "incrementType": "percentage",
+  "splits": [
+    {
+      "fieldLineId": 5101,
+      "fieldName": "Capital",
+      "summaryId": 1600,
+      "debitOrCredit": "debit",
+      "percentage": 100,
+      "mirror": null
+    },
+    {
+      "fieldLineId": 5301,
+      "fieldName": "Cash",
+      "summaryId": 1500,
+      "debitOrCredit": "credit",
+      
+      "percentage": 100,
+      "mirror": null
+    }
+  ]
+}

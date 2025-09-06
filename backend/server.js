@@ -16,6 +16,10 @@ import FinalizedEmployeesRouter from "./Routes/finalizedEmployeesRoutes.js"
 import AllRolesRouter from "./Routes/AllRolesRoutes.js";
 import LeavesRouter from "./Routes/LeaveRoutes.js";
 
+// Finance-Routes..
+import SummaryRouter from "./Routes/financeRoutes/summaryroutes.js";
+import TransactionRouter from "./Routes/financeRoutes/TransactionRoutes.js";
+
 dotenv.config();
 const app = express();
 
@@ -53,6 +57,10 @@ app.use("/api/permissions", PermissionRouter);
 app.use("/api/finalizedEmployees", FinalizedEmployeesRouter);
 app.use("/api/allRoles", AllRolesRouter);
 app.use("/api/leaves", LeavesRouter);
+
+// finance routes:
+app.use("/api/summaries", SummaryRouter);
+app.use("/api/transactions", TransactionRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

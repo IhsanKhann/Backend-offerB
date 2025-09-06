@@ -565,15 +565,6 @@ export const ApproveEmployee = async (req, res) => {
     finalizedEmployee.passwordHash = passwordHash;
     finalizedEmployee.password = tempPassword;
     finalizedEmployee.UserId = UserId;
-
-    // 2️⃣ Add mandatory default/special permissions
-    const mandatoryDefaultPermissions = ["view_employee_permissions", "applyForLeave", "takeBackLeave"];
-    
-    // Merge existing defaultPermissions with mandatory ones, avoiding duplicates
-    finalizedEmployee.defaultPermissions = Array.from(
-      new Set([...(finalizedEmployee.defaultPermissions || []), ...mandatoryDefaultPermissions])
-    );
-
     // 3️⃣ Send email
     SendEmail(finalizedEmployee);
     finalizedEmployee.emailSent = true;
@@ -1314,7 +1305,10 @@ export const restoreTerminatedEmployee = async (req, res) => {
 
 export const checkAndRestoreEmployees = async () => {
   try {
-    const employees = await FinalizedEmployeeModel.find();
+    const employees = await FinalizedEmployeeModel.find()
+      .populate("role")
+      .populate("role.permissions");
+
     const today = new Date();
 
     for (const employee of employees) {
@@ -1328,7 +1322,7 @@ export const checkAndRestoreEmployees = async () => {
         new Date(employee.suspension.suspensionEndDate) <= today
       ) {
         employee.profileStatus.decision = "Restored";
-        employee.suspension = {}; // clear suspension data
+        employee.suspension = {};
         updated = true;
         restoredFrom = "Suspended";
       }
@@ -1340,7 +1334,7 @@ export const checkAndRestoreEmployees = async () => {
         new Date(employee.terminated.terminationEndDate) <= today
       ) {
         employee.profileStatus.decision = "Restored";
-        employee.terminated = {}; // clear termination data
+        employee.terminated = {};
         updated = true;
         restoredFrom = "Terminated";
       }
@@ -1352,7 +1346,7 @@ export const checkAndRestoreEmployees = async () => {
         new Date(employee.blocked.blockEndDate) <= today
       ) {
         employee.profileStatus.decision = "Restored";
-        employee.blocked = {}; // clear blocked data
+        employee.blocked = {};
         updated = true;
         restoredFrom = "Blocked";
       }
@@ -1363,44 +1357,61 @@ export const checkAndRestoreEmployees = async () => {
         employee.leave.leaveEndDate &&
         new Date(employee.leave.leaveEndDate) <= today
       ) {
-        // Restore temporary role if transferred
+        // Restore delegated employee (target)
         if (employee.leave.transferredRoleTo) {
-          const targetEmployee = await FinalizedEmployeeModel.findById(
-            employee.leave.transferredRoleTo
-          );
-          if (targetEmployee) {
-            targetEmployee.role = targetEmployee.previousRole || targetEmployee.role;
-            targetEmployee.permissions =
-              targetEmployee.previousPermissions || targetEmployee.permissions;
-            await targetEmployee.save();
-            console.log(
-              `🔄 Temporary role restored for ${targetEmployee.individualName}`
-            );
+          const target = await FinalizedEmployeeModel.findById(employee.leave.transferredRoleTo)
+            .populate("role")
+            .populate("role.permissions");
+
+          if (target && target.role) {
+            // Restore target’s default role + permissions
+            let cleanedPermissions = target.defaultPermissions || [];
+
+            await RoleModel.findByIdAndUpdate(target.role._id, {
+              permissions: cleanedPermissions,
+            });
+
+            if (target.previous_role) {
+              target.role = target.previous_role;
+            }
+
+            target.previous_role = null;
+            target.rolePermissionsBackup = [];
+            await target.save();
+            console.log(`🔄 Target restored: ${target.individualName}`);
           }
         }
 
-        // Restore original employee's role & permissions
-        employee.role = employee.previousRole || employee.role;
-        employee.permissions = employee.previousPermissions || employee.permissions;
+        // Restore source employee
+        if (employee.previous_role) {
+          employee.role = employee.previous_role;
+        }
 
-        // Clear leave data
-        employee.leave = null;
+        const restoredPermissions = [
+          ...(employee.rolePermissionsBackup || []),
+          ...(employee.defaultPermissions || []),
+        ];
+
+        if (employee.role) {
+          await RoleModel.findByIdAndUpdate(employee.role._id, {
+            permissions: [...new Set(restoredPermissions)],
+          });
+        }
+
+        employee.leave = { onLeave: false, leaveAccepted: false, leaveRejected: false };
+        employee.previous_role = null;
+        employee.rolePermissionsBackup = [];
         updated = true;
         restoredFrom = "Leave";
       }
 
       if (updated) {
         await employee.save();
-        console.log(
-          `✅ Employee ${employee.individualName} restored from ${restoredFrom}`
-        );
+        console.log(`✅ Employee ${employee.individualName} restored from ${restoredFrom}`);
       }
     }
 
-    return {
-      success: true,
-      message: "Employee statuses checked and restored where applicable",
-    };
+    return { success: true, message: "Employee statuses checked and restored where applicable" };
   } catch (err) {
     console.error("❌ Error restoring employees:", err);
     return { success: false, message: err.message };

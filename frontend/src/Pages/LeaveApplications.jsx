@@ -6,7 +6,7 @@ const LeaveApplications = () => {
   const [loading, setLoading] = useState(false);
   const [leaves, setLeaves] = useState([]);
   const [allEmployees, setAllEmployees] = useState([]);
-  const [rejectModal, setRejectModal] = useState({ open: false, employeeId: null, reason: "" });
+  const [rejectModal, setRejectModal] = useState({ open: false, leaveId: null, reason: "" });
   const [transferState, setTransferState] = useState({});
 
   const loadData = async () => {
@@ -27,37 +27,35 @@ const LeaveApplications = () => {
 
   useEffect(() => { loadData(); }, []);
 
-const acceptLeave = async (employeeId) => {
-  try {
-    const targetEmployeeId = transferState[employeeId];
-    if (!targetEmployeeId) {
-      alert("Please select an employee to transfer responsibilities to before accepting.");
-      return;
+  const acceptLeave = async (leaveId) => {
+    try {
+      const targetEmployeeId = transferState[leaveId];
+      if (!targetEmployeeId || targetEmployeeId === "") {
+        alert("⚠️ Please select a valid employee before accepting.");
+        return;
+      }
+      
+      await api.post(`/leaves/${leaveId}/accept`, {
+        transferredRoleTo: targetEmployeeId,
+      });
+
+      await loadData(); // refresh data
+    } catch (err) {
+      console.error("🔥 acceptLeave error:", err.response?.data || err.message);
     }
+  };
 
-    setLeaves(prev =>
-      prev.map(e =>
-        e._id === employeeId
-        ? { ...e, leave: { ...e.leave, leaveAccepted: true, leaveRejected: false, transferredRoleTo: targetEmployeeId } }
-        : e
-      )
-    );
-     await api.post(`/leaves/${employeeId}/accept`, { transferredRoleTo: targetEmployeeId });
-  } catch (err) {
-    console.error(err);
-    await loadData();
-  }
-};
+  const openRejectModal = (leaveId) =>
+    setRejectModal({ open: true, leaveId, reason: "" });
 
-
-  const openRejectModal = (employeeId) => setRejectModal({ open: true, employeeId, reason: "" });
-  const closeRejectModal = () => setRejectModal({ open: false, employeeId: null, reason: "" });
+  const closeRejectModal = () =>
+    setRejectModal({ open: false, leaveId: null, reason: "" });
 
   const submitReject = async () => {
-    const { employeeId, reason } = rejectModal;
+    const { leaveId, reason } = rejectModal;
     if (!reason.trim()) return;
     try {
-      await api.post(`/leaves/${employeeId}/reject`, { reason });
+      await api.post(`/leaves/${leaveId}/reject`, { reason });
       await loadData();
     } catch (err) {
       console.error(err);
@@ -66,66 +64,77 @@ const acceptLeave = async (employeeId) => {
     }
   };
 
-  const deleteLeaveApplication = async (employeeId) => {
+  const deleteLeaveApplication = async (leaveId) => {
     try {
-      await api.delete(`/leaves/delete/${employeeId}`);
+      await api.delete(`/leaves/delete/${leaveId}`);
       await loadData();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const setTransferTarget = (employeeId, targetEmployeeId) => {
-    setTransferState(prev => ({ ...prev, [employeeId]: targetEmployeeId }));
+  // ✅ key transferState by leaveId
+  const setTransferTarget = (leaveId, targetEmployeeId) => {
+    setTransferState(prev => ({ ...prev, [leaveId]: targetEmployeeId }));
   };
 
-  const doTransfer = async (employeeId) => {
-    const targetEmployeeId = transferState[employeeId];
-    if (!targetEmployeeId) return;
-
-    try {
-      await api.post(`/leaves/${employeeId}/transfer`, { targetEmployeeId });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Leave status helper
   const leaveStatus = (leave) => {
     if (leave?.leaveRejected) return "Rejected";
-    if (leave?.leaveAcccepted) return "Accepted";
-    if (leave?.onLeave) return "Pending";
+    if (leave?.leaveAccepted && leave?.onLeave) return "On Leave";
+    if (leave?.leaveAccepted) return "Accepted";
+    if (!leave?.leaveRejected && !leave?.leaveAccepted && leave?.leaveStartDate)
+      return "Pending";
     return "Not Applied";
   };
 
   const EmployeeCard = ({ emp }) => {
     const leave = emp?.leave || {};
-    const start = leave?.leaveStartDate ? new Date(leave.leaveStartDate).toLocaleDateString() : "-";
-    const end = leave?.leaveEndDate ? new Date(leave.leaveEndDate).toLocaleDateString() : "-";
+    const start = leave?.leaveStartDate
+      ? new Date(leave.leaveStartDate).toLocaleDateString()
+      : "-";
+    const end = leave?.leaveEndDate
+      ? new Date(leave.leaveEndDate).toLocaleDateString()
+      : "-";
 
     return (
       <div className="bg-white rounded-2xl shadow p-4 md:p-6 w-full">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <img src={emp?.avatar?.url || ""} alt={emp?.individualName} className="w-16 h-16 object-cover rounded-full" />
+            <img
+              src={emp?.avatar?.url || ""}
+              alt={emp?.individualName}
+              className="w-16 h-16 object-cover rounded-full"
+            />
           </div>
           <div>
-            <h3 className="text-lg font-semibold">{emp?.individualName || "(No name)"}</h3>
+            <h3 className="text-lg font-semibold">
+              {emp?.individualName || "(No name)"}
+            </h3>
             <p className="text-sm text-gray-600">
-              {emp?.role?.name || "(Role)"} {emp?.orgUnit?.name ? `• ${emp.orgUnit.name}` : ""}
+              {emp?.role?.name || "(Role)"}{" "}
+              {emp?.orgUnit?.name ? `• ${emp.orgUnit.name}` : ""}
             </p>
-            <p className="text-sm text-gray-600">{emp.officialEmail}</p>
+            <p className="text-sm text-gray-600">{emp.personalEmail}</p>
           </div>
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <button onClick={() => acceptLeave(emp._id)} className="px-3 py-1.5 rounded-xl bg-green-600 text-white text-sm hover:bg-green-700">
+            <button
+              onClick={() => acceptLeave(leave._id)} // ✅ use leave._id
+              className="px-3 py-1.5 rounded-xl bg-green-600 text-white text-sm hover:bg-green-700"
+            >
               Accept
             </button>
-            <button onClick={() => openRejectModal(emp._id)} className="px-3 py-1.5 rounded-xl bg-red-600 text-white text-sm hover:bg-red-700">
+            <button
+              onClick={() => openRejectModal(leave._id)} // ✅ use leave._id
+              className="px-3 py-1.5 rounded-xl bg-red-600 text-white text-sm hover:bg-red-700"
+            >
               Reject
             </button>
-            <button onClick={() => deleteLeaveApplication(emp._id)} className="px-3 py-1.5 rounded-xl bg-gray-500 text-white text-sm hover:bg-gray-600">
+            <button
+              onClick={() => deleteLeaveApplication(leave._id)} // ✅ use leave._id
+              className="px-3 py-1.5 rounded-xl bg-gray-500 text-white text-sm hover:bg-gray-600"
+            >
               Delete
             </button>
           </div>
@@ -133,13 +142,18 @@ const acceptLeave = async (employeeId) => {
 
         {/* Transfer */}
         <div className="flex items-center gap-2 mt-3">
-          <select className="border rounded-xl px-2 py-1 text-sm" value={transferState[emp._id] || ""} onChange={(e) => setTransferTarget(emp._id, e.target.value)}>
+          <select
+            className="border rounded-xl px-2 py-1 text-sm"
+            value={transferState[leave._id] || ""} // ✅ leave._id
+            onChange={(e) => setTransferTarget(leave._id, e.target.value)} // ✅ leave._id
+          >
             <option value="">Transfer to…</option>
-            {allEmployees.map(e => <option key={e._id} value={e._id}>{e.individualName}</option>)}
+            {allEmployees.map((e) => (
+              <option key={e._id} value={e._id}>
+                {e.individualName}
+              </option>
+            ))}
           </select>
-          <button onClick={() => doTransfer(emp._id)} className="px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-50" disabled={!transferState[emp._id]}>
-            Transfer
-          </button>
         </div>
 
         {/* Leave Details */}
@@ -150,7 +164,9 @@ const acceptLeave = async (employeeId) => {
           </div>
           <div className="bg-gray-50 rounded-xl p-3">
             <p className="text-xs text-gray-500">Dates</p>
-            <p className="text-sm font-medium">{start} → {end}</p>
+            <p className="text-sm font-medium">
+              {start} → {end}
+            </p>
           </div>
           <div className="bg-gray-50 rounded-xl p-3">
             <p className="text-xs text-gray-500">Status</p>
@@ -158,7 +174,9 @@ const acceptLeave = async (employeeId) => {
           </div>
           <div className="bg-gray-50 rounded-xl p-3">
             <p className="text-xs text-gray-500">Accepted</p>
-            <p className="text-sm font-medium">{leave?.leaveAcccepted ? "Yes" : "No"}</p>
+            <p className="text-sm font-medium">
+              {leave?.leaveAccepted ? "Yes" : "No"}
+            </p>
           </div>
         </div>
 
@@ -173,7 +191,9 @@ const acceptLeave = async (employeeId) => {
           <div className="mt-3 bg-rose-50 rounded-xl p-3 border border-rose-200">
             <p className="text-xs text-rose-600">Rejection</p>
             <p className="text-sm">
-              {leave?.RejectionLeaveReason ? `Reason: ${leave.RejectionLeaveReason}` : ""}
+              {leave?.RejectionLeaveReason
+                ? `Reason: ${leave.RejectionLeaveReason}`
+                : ""}
               {leave?.RejectedBy ? ` — by ${leave.RejectedBy}` : ""}
             </p>
           </div>
@@ -186,19 +206,44 @@ const acceptLeave = async (employeeId) => {
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Leave Applications</h1>
       {loading && <div className="text-sm text-gray-600">Loading…</div>}
-      {!loading && leaves.length === 0 && <div className="text-sm text-gray-600">No employees currently on leave.</div>}
-      <div className="flex flex-col gap-4">{leaves.map(emp => <EmployeeCard key={emp._id} emp={emp} />)}</div>
+      {!loading && leaves.length === 0 && (
+        <div className="text-sm text-gray-600">
+          No employees currently on leave.
+        </div>
+      )}
+      <div className="flex flex-col gap-4">
+        {leaves.map((emp) => (
+          <EmployeeCard key={emp._id} emp={emp} />
+        ))}
+      </div>
 
       {/* Reject Modal */}
       {rejectModal.open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl p-4 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-2">Reject Leave</h3>
-            <textarea rows={4} className="w-full border rounded-xl p-2" placeholder="Enter rejection reason…"
-              value={rejectModal.reason} onChange={(e) => setRejectModal(prev => ({ ...prev, reason: e.target.value }))} />
+            <textarea
+              rows={4}
+              className="w-full border rounded-xl p-2"
+              placeholder="Enter rejection reason…"
+              value={rejectModal.reason}
+              onChange={(e) =>
+                setRejectModal((prev) => ({ ...prev, reason: e.target.value }))
+              }
+            />
             <div className="mt-3 flex justify-end gap-2">
-              <button onClick={closeRejectModal} className="px-3 py-1.5 rounded-xl border text-sm">Cancel</button>
-              <button onClick={submitReject} className="px-3 py-1.5 rounded-xl bg-red-600 text-white text-sm hover:bg-red-700">Submit Rejection</button>
+              <button
+                onClick={closeRejectModal}
+                className="px-3 py-1.5 rounded-xl border text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReject}
+                className="px-3 py-1.5 rounded-xl bg-red-600 text-white text-sm hover:bg-red-700"
+              >
+                Submit Rejection
+              </button>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import FinalizedEmployeeModel from "../models/HRModals/FinalizedEmployees.model.js";
 import RoleModel from "../models/HRModals/Role.model.js";
+import { PermissionModel } from "../models/HRModals/Permissions.model.js";
 
 /**
  * Apply Leave
@@ -42,44 +43,50 @@ export const applyLeave = async (req, res) => {
  */
 export const acceptLeave = async (req, res) => {
   try {
-    const { employeeId } = req.params;
-    const { transferredRoleTo } = req.body;
+    const { leaveId } = req.params;
+    const { transferredRoleTo } = req.body || {};
 
-    const employee = await FinalizedEmployeeModel.findById(employeeId)
+    if (!transferredRoleTo) {
+      return res.status(400).json({
+        message: "Please provide a target employee to transfer role/permissions.",
+      });
+    }
+
+    const employee = await FinalizedEmployeeModel.findById(leaveId)
       .populate("role")
       .populate("role.permissions");
 
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
-    if (employee.leave?.leaveAccepted) {
+    // Ensure leave exists and is pending
+    if (!employee.leave || !employee.leave.onLeave) {
+      return res.status(400).json({ message: "No leave request found to accept" });
+    }
+
+    if (employee.leave.leaveAccepted) {
       return res.status(400).json({ message: "Leave already accepted" });
     }
 
+    // Target employee
     const target = await FinalizedEmployeeModel.findById(transferredRoleTo)
       .populate("role")
       .populate("role.permissions");
 
     if (!target) return res.status(404).json({ message: "Target employee not found" });
 
-    // STEP 1: Backup current employee’s role & permissions
+    // --- Backup employee’s state ---
     employee.previous_role = employee.role;
-    employee.rolePermissionsBackup = employee.role?.permissions || [];
+    employee.rolePermissionsBackup = employee.role?.permissions?.map((p) => p._id) || [];
 
-    // STEP 2: Remove permissions from employee going on leave
     if (employee.role) {
-      await RoleModel.findByIdAndUpdate(employee.role._id, {
-        permissions: employee.defaultPermissions || [],
-      });
+      await RoleModel.findByIdAndUpdate(employee.role._id, { permissions: [] });
     }
 
-    // STEP 3: Transfer permissions to target
+    // --- Backup target ---
     target.previous_role = target.role;
-    target.rolePermissionsBackup = target.role?.permissions || [];
+    target.rolePermissionsBackup = target.role?.permissions?.map((p) => p._id) || [];
 
-    const combinedPermissions = [
-      ...(target.defaultPermissions || []),
-      ...(employee.rolePermissionsBackup || []),
-    ];
+    const combinedPermissions = [...(employee.rolePermissionsBackup || [])];
 
     if (target.role) {
       await RoleModel.findByIdAndUpdate(target.role._id, {
@@ -87,37 +94,41 @@ export const acceptLeave = async (req, res) => {
       });
     }
 
-    // STEP 4: Update leave info
-    employee.leave.leaveAccepted = true;
-    employee.leave.leaveRejected = false;
-    employee.leave.onLeave = true;
-    employee.leave.transferredRoleTo = target._id;
+    // --- Mark leave accepted ---
+    employee.leave = {
+      ...(employee.leave || {}),
+      onLeave: true,
+      leaveAccepted: true,
+      leaveRejected: false,
+      transferredRoleTo: target._id,
+    };
 
-    await employee.save();
-    await target.save();
+    await Promise.all([employee.save(), target.save()]);
 
     return res.json({
-      message: "Leave accepted and permissions transferred",
+      message: "✅ Leave accepted & permissions transferred successfully",
       employeeId: employee._id,
       targetId: target._id,
     });
   } catch (err) {
     console.error("🔥 acceptLeave error:", err);
-    return res.status(500).json({ message: "Server error", error: err.message });
+    return res.status(500).json({
+      message: "Server error during leave acceptance",
+      error: err.message,
+    });
   }
 };
-
 
 /**
  * Reject Leave
  */
 export const rejectLeave = async (req, res) => {
   try {
-    const { employeeId } = req.params;
+    const { leaveId } = req.params;
     const { reason } = req.body;
     if (!reason?.trim()) return res.status(400).json({ message: "Rejection reason is required" });
 
-    const employee = await FinalizedEmployeeModel.findById(employeeId);
+    const employee = await FinalizedEmployeeModel.findById(leaveId);
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
     employee.leave.onLeave = false;
@@ -135,88 +146,7 @@ export const rejectLeave = async (req, res) => {
 };
 
 /**
- * Transfer Permissions during Leave
- */
-export const transferDuringLeave = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { employeeId } = req.params;
-    const { targetEmployeeId } = req.body;
-    if (!targetEmployeeId) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: "targetEmployeeId is required" });
-    }
-
-    const [source, target] = await Promise.all([
-      FinalizedEmployeeModel.findById(employeeId).populate("role").session(session),
-      FinalizedEmployeeModel.findById(targetEmployeeId).populate("role").session(session),
-    ]);
-
-    if (!source?.leave?.onLeave) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: "Source employee is not on leave" });
-    }
-    if (!target) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: "Target employee not found" });
-    }
-
-    // Backup source role & permissions
-    source.previous_role = source.role?._id || null;
-    source.rolePermissionsBackup = source.role?.permissions || [];
-
-    // Assign default permissions so source can’t be locked out
-    if (source.role) {
-      const role = await RoleModel.findById(source.role._id);
-      if (role && source.defaultPermissions?.length) {
-        role.permissions = source.defaultPermissions;
-        await role.save();
-      }
-    }
-
-    // Remove role temporarily
-    source.role = null;
-
-    // Create temporary role for target
-    const tempRole = await RoleModel.create(
-      [
-        {
-          roleName: `Temp role for ${source.individualName}`,
-          orgUnit: target.orgUnit,
-          permissions: source.rolePermissionsBackup,
-        },
-      ],
-      { session }
-    );
-
-    target.previous_role = target.role?._id || null;
-    target.role = tempRole[0]._id;
-
-    source.leave.transferredRoleTo = target._id;
-
-    await Promise.all([source.save({ session }), target.save({ session })]);
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.json({
-      message: "Permissions transferred during leave",
-      data: {
-        source: { _id: source._id, previous_role: source.previous_role, rolePermissionsBackup: source.rolePermissionsBackup },
-        target: { _id: target._id, role: target.role },
-      },
-    });
-  } catch (err) {
-    console.error(err);
-    await session.abortTransaction();
-    session.endSession();
-    return res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
-/**
- * Take Leave Back
+ * Take Leave Back (restore roles & permissions)
  */
 export const takeLeaveBack = async (req, res) => {
   try {
@@ -224,6 +154,7 @@ export const takeLeaveBack = async (req, res) => {
     const employee = await FinalizedEmployeeModel.findById(employeeId)
       .populate("role")
       .populate("role.permissions");
+
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
     if (!employee.leave || (!employee.leave.leaveAccepted && !employee.leave.onLeave)) {
@@ -239,9 +170,11 @@ export const takeLeaveBack = async (req, res) => {
       if (target && target.role) {
         if (target.previous_role) target.role = target.previous_role;
 
-        const restoredPermissions = [...new Set([...(target.rolePermissionsBackup || []), ...(target.defaultPermissions || [])])];
+        const restoredPermissions = [...new Set(target.rolePermissionsBackup || [])];
 
-        await RoleModel.findByIdAndUpdate(target.role._id, { permissions: restoredPermissions });
+        await RoleModel.findByIdAndUpdate(target.role._id, {
+          permissions: restoredPermissions,
+        });
 
         target.previous_role = null;
         target.rolePermissionsBackup = [];
@@ -251,7 +184,8 @@ export const takeLeaveBack = async (req, res) => {
 
     // Restore original employee
     if (employee.previous_role) employee.role = employee.previous_role;
-    const restoredPermissions = [...new Set([...(employee.rolePermissionsBackup || []), ...(employee.defaultPermissions || [])])];
+
+    const restoredPermissions = [...new Set(employee.rolePermissionsBackup || [])];
 
     if (employee.role) {
       await RoleModel.findByIdAndUpdate(employee.role._id, { permissions: restoredPermissions });
@@ -259,12 +193,12 @@ export const takeLeaveBack = async (req, res) => {
 
     employee.leave = { onLeave: false };
     employee.previous_role = null;
-    employee.rolePermissionsBackup = restoredPermissions;
+    employee.rolePermissionsBackup = [];
     await employee.save();
 
     return res.json({ message: "Leave taken back successfully. Roles and permissions restored." });
   } catch (err) {
-    console.error(err);
+    console.error("🔥 takeLeaveBack error:", err);
     return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
@@ -278,7 +212,6 @@ export const getSingleEmployeeLeave = async (req, res) => {
     const employee = await FinalizedEmployeeModel.findById(employeeId);
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
-    // Default "Pending" if leave not applied yet
     const leave = employee.leave || { onLeave: false, leaveAccepted: false, leaveRejected: false };
     return res.json({ leave });
   } catch (err) {
@@ -314,12 +247,10 @@ export const deleteLeave = async (req, res) => {
     const employee = await FinalizedEmployeeModel.findById(employeeId);
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
-    // Only allow deletion if leave exists
     if (!employee.leave || (!employee.leave.onLeave && !employee.leave.leaveAccepted && !employee.leave.leaveRejected)) {
       return res.status(400).json({ message: "No leave record found to delete" });
     }
 
-    // Reset leave completely
     employee.leave = undefined;
     await employee.save();
 

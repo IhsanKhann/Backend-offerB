@@ -4,7 +4,6 @@ import {
   getOnLeaveEmployees,
   acceptLeave,
   rejectLeave,
-  transferDuringLeave,
   applyLeave,
   deleteLeave,
   getSingleEmployeeLeave,
@@ -19,22 +18,18 @@ router.use(authenticate);
 router.get("/all", authorize("viewLeaves"), getOnLeaveEmployees);
 
 // POST accept an employee's leave
-router.post("/:employeeId/accept", authorize("acceptLeave"), acceptLeave);
+router.post("/:leaveId/accept", authorize("acceptLeave"), acceptLeave);
 
 // POST reject an employee's leave (requires reason)
-router.post("/:employeeId/reject", authorize("rejectLeave"), rejectLeave);
-
-// POST transfer role/permissions during leave from :employeeId -> targetEmployeeId
-router.post("/:employeeId/transfer", authorize("transferLeaveRole"), transferDuringLeave);
+router.post("/:leaveId/reject", authorize("rejectLeave"), rejectLeave);
 
 // Apply for leave
-router.post("/apply",
-    authorize("applyForLeave"), 
+router.post("/apply", 
     applyLeave
 );
 
 router.delete("/delete/:employeeId", authorize("deleteLeave"), deleteLeave);
 router.get("/:employeeId", getSingleEmployeeLeave);
-router.post("/:employeeId/takeback", authorize("takeBackLeave"), takeLeaveBack);
+router.post("/:employeeId/takeback", takeLeaveBack);
 
 export default router;

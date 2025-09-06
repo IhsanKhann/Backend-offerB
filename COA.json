@@ -1,128 +1,51 @@
 [
   {
-    "account_number": 1000,
-    "account_name": "Cash",
-    "account_type": "Assets",
-    "parent_id": null,
-    "is_group": false
+    "summaryId": 1100,
+    "name": "Allowances",
+    "accountType": "liability",
+    "startingBalance": 0,
+    "endingBalance": 0
   },
   {
-    "account_number": 2000,
-    "account_name": "Assets",
-    "account_type": "Assets",
-    "parent_id": null,
-    "is_group": true
+    "summaryId": 1200,
+    "name": "Expenses",
+    "accountType": "expense",
+    "startingBalance": 0,
+    "endingBalance": 0
   },
   {
-    "account_number": 3000,
-    "account_name": "Income",
-    "account_type": "Revenue",
-    "parent_id": null,
-    "is_group": true
+    "summaryId": 1300,
+    "name": "Bank",
+    "accountType": "asset",
+    "startingBalance": 0,
+    "endingBalance": 0
   },
   {
-    "account_number": 3100,
-    "account_name": "Commission Income",
-    "account_type": "Revenue",
-    "parent_id": 3000,
-    "is_group": false
+    "summaryId": 1400,
+    "name": "Salaries",
+    "accountType": "expense",
+    "startingBalance": 0,
+    "endingBalance": 0
   },
   {
-    "account_number": 4000,
-    "account_name": "Liabilities",
-    "account_type": "Liabilities",
-    "parent_id": null,
-    "is_group": true
+    "summaryId": 1500,
+    "name": "Cash",
+    "accountType": "asset",
+    "startingBalance": 0,
+    "endingBalance": 0
   },
   {
-    "account_number": 5000,
-    "account_name": "Expenses",
-    "account_type": "Expenses",
-    "parent_id": null,
-    "is_group": true
+    "summaryId": 1600,
+    "name": "Capital",
+    "accountType": "equity",
+    "startingBalance": 0,
+    "endingBalance": 0
   },
   {
-    "account_number": 5100,
-    "account_name": "Administrative Expenses",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5200,
-    "account_name": "Marketing Expenses",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5300,
-    "account_name": "Establishment Expenses",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5400,
-    "account_name": "Management Expenses",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5500,
-    "account_name": "Group Term Insurance",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5600,
-    "account_name": "Employee Salary",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5700,
-    "account_name": "Income Tax Employee Expenses",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5800,
-    "account_name": "Employee Gratuity Expense",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5900,
-    "account_name": "EOBI",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 5999,
-    "account_name": "Other Allowances",
-    "account_type": "Expenses",
-    "parent_id": 5000,
-    "is_group": false
-  },
-  {
-    "account_number": 6000,
-    "account_name": "Equity",
-    "account_type": "Equity",
-    "parent_id": null,
-    "is_group": true
-  },
-  {
-    "account_number": 6100,
-    "account_name": "Capital",
-    "account_type": "Equity",
-    "parent_id": 6000,
-    "is_group": false
+    "summaryId": 1700,
+    "name": "Commission",
+    "accountType": "income",
+    "startingBalance": 0,
+    "endingBalance": 0
   }
 ]
