@@ -14,7 +14,7 @@ export default function ExpenseManager() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/summaries/summary-field-lines"); // Fixed endpoint
+      const res = await api.get("/summaries/summary-field-lines");
       setSummaries(res.data);
     } catch (err) {
       console.error("Error loading summaries:", err);
@@ -45,7 +45,6 @@ export default function ExpenseManager() {
         name: expense.name,
       });
       setExpense({ amount: 0, description: "", name: "" });
-      // Reload summaries to get updated balances
       await loadSummaries();
       alert("Expense posted successfully!");
     } catch (err) {
@@ -56,7 +55,6 @@ export default function ExpenseManager() {
 
   const resetSummaries = async () => {
     if (!window.confirm("Are you sure you want to reset all balances to zero?")) return;
-    
     try {
       await api.post("/summaries/reset-summaries");
       await loadSummaries();
@@ -72,7 +70,6 @@ export default function ExpenseManager() {
       alert("Please enter both capital and cash amounts");
       return;
     }
-    
     try {
       await api.post("/summaries/init-capital-cash", { 
         capitalAmount: Number(capital), 
@@ -86,11 +83,16 @@ export default function ExpenseManager() {
     }
   };
 
+  // Format currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+    return new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR' }).format(amount);
+  };
+
+  // Format with + / -
+  const formatSignedCurrency = (amount) => {
+    if (!amount) amount = 0;
+    const sign = amount >= 0 ? "+" : "-";
+    return `${sign}${formatCurrency(Math.abs(amount))}`;
   };
 
   if (loading) {
@@ -214,10 +216,10 @@ export default function ExpenseManager() {
                 <h3 className="font-semibold text-lg">{summary.name}</h3>
                 <div className="text-right">
                   <div className="text-sm text-gray-600">
-                    Start: {formatCurrency(summary.startingBalance || 0)}
+                    Start: {formatSignedCurrency(summary.startingBalance || 0)}
                   </div>
                   <div className="text-lg font-bold">
-                    End: {formatCurrency(summary.endingBalance || 0)}
+                    End: {formatSignedCurrency(summary.endingBalance || 0)}
                   </div>
                 </div>
               </div>
@@ -229,7 +231,7 @@ export default function ExpenseManager() {
                     {summary.fieldLines.map((fieldLine) => (
                       <div key={fieldLine._id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                         <span className="text-sm">{fieldLine.name}:</span>
-                        <span className="font-medium">{formatCurrency(fieldLine.balance || 0)}</span>
+                        <span className="font-medium">{formatSignedCurrency(fieldLine.balance || 0)}</span>
                       </div>
                     ))}
                   </div>
