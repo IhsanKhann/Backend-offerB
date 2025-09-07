@@ -9,24 +9,24 @@ export default function ExpenseManager() {
   const [capital, setCapital] = useState(0);
   const [cash, setCash] = useState(0);
 
-  // Load summaries with field lines
-  const loadSummaries = useCallback(async () => {
+  // Load data using the combined endpoint
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/summaries/summary-field-lines");
+      const res = await api.get("summaries/summaries-with-lines");
       setSummaries(res.data);
     } catch (err) {
-      console.error("Error loading summaries:", err);
-      setError("Failed to load summaries. Please try again.");
+      console.error("Error loading data:", err);
+      setError("Failed to load data. Please try again.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadSummaries();
-  }, [loadSummaries]);
+    loadData();
+  }, [loadData]);
 
   const handleExpenseChange = (e) => {
     setExpense({ ...expense, [e.target.name]: e.target.value });
@@ -37,7 +37,7 @@ export default function ExpenseManager() {
       alert("Please enter amount and name");
       return;
     }
-    
+
     try {
       await api.post("/transactions/expense", {
         amount: Number(expense.amount),
@@ -45,7 +45,7 @@ export default function ExpenseManager() {
         name: expense.name,
       });
       setExpense({ amount: 0, description: "", name: "" });
-      await loadSummaries();
+      await loadData(); // fetch data again..
       alert("Expense posted successfully!");
     } catch (err) {
       console.error("Error posting expense:", err);
@@ -57,7 +57,7 @@ export default function ExpenseManager() {
     if (!window.confirm("Are you sure you want to reset all balances to zero?")) return;
     try {
       await api.post("/summaries/reset-summaries");
-      await loadSummaries();
+      await loadData();
       alert("All balances have been reset to zero.");
     } catch (err) {
       console.error("Error resetting summaries:", err);
@@ -65,6 +65,7 @@ export default function ExpenseManager() {
     }
   };
 
+  // initlize the capital and cash..
   const initCapitalCash = async () => {
     if (!capital || !cash) {
       alert("Please enter both capital and cash amounts");
@@ -75,7 +76,7 @@ export default function ExpenseManager() {
         capitalAmount: Number(capital), 
         cashAmount: Number(cash) 
       });
-      await loadSummaries();
+      await loadData();
       alert("Capital and Cash initialized successfully!");
     } catch (err) {
       console.error("Error initializing capital/cash:", err);
@@ -83,12 +84,9 @@ export default function ExpenseManager() {
     }
   };
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR' }).format(amount);
-  };
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR" }).format(amount || 0);
 
-  // Format with + / -
   const formatSignedCurrency = (amount) => {
     if (!amount) amount = 0;
     const sign = amount >= 0 ? "+" : "-";
@@ -99,7 +97,7 @@ export default function ExpenseManager() {
     return (
       <div className="p-6">
         <div className="flex justify-center items-center h-64">
-          <div className="text-xl">Loading summaries...</div>
+          <div className="text-xl">Loading data...</div>
         </div>
       </div>
     );
@@ -198,13 +196,13 @@ export default function ExpenseManager() {
         <div className="flex justify-between items-center">
           <h2 className="font-semibold text-lg">Account Summaries</h2>
           <button
-            onClick={loadSummaries}
+            onClick={loadData}
             className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700 transition-colors"
           >
             Refresh
           </button>
         </div>
-        
+
         {summaries.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No summaries found. Please initialize the system first.
@@ -213,25 +211,38 @@ export default function ExpenseManager() {
           summaries.map((summary) => (
             <div key={summary._id} className="border rounded p-4 bg-white shadow-sm">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-semibold text-lg">{summary.name}</h3>
+                <h3 className="font-semibold text-lg">
+                  {summary.name} ({summary.summaryId})
+                </h3>
                 <div className="text-right">
                   <div className="text-sm text-gray-600">
-                    Start: {formatSignedCurrency(summary.startingBalance || 0)}
+                    Start: {formatSignedCurrency(summary.startingBalance)}
                   </div>
                   <div className="text-lg font-bold">
-                    End: {formatSignedCurrency(summary.endingBalance || 0)}
+                    End: {formatSignedCurrency(summary.endingBalance)}
                   </div>
                 </div>
               </div>
-              
+
               {summary.fieldLines && summary.fieldLines.length > 0 && (
                 <div className="border-t pt-3">
                   <h4 className="font-medium mb-2">Field Lines:</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {summary.fieldLines.map((fieldLine) => (
-                      <div key={fieldLine._id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <span className="text-sm">{fieldLine.name}:</span>
-                        <span className="font-medium">{formatSignedCurrency(fieldLine.balance || 0)}</span>
+                      <div
+                        key={fieldLine._id}
+                        className={`flex justify-between items-center p-2 rounded ${
+                          fieldLine.isExpense ? "bg-red-50" : "bg-gray-50"
+                        }`}
+                      >
+                        <span className="text-sm">
+                          {fieldLine.name}
+                          {fieldLine.accountNumber && ` (${fieldLine.accountNumber})`}
+                          {fieldLine.isExpense && " • Expense"}
+                        </span>
+                        <span className="font-medium">
+                          {formatSignedCurrency(fieldLine.balance)}
+                        </span>
                       </div>
                     ))}
                   </div>

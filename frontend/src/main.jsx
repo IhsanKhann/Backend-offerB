@@ -16,6 +16,7 @@ import { ResetPasswordPage, ForgetUserId } from "./components/ResetLoginPage.jsx
 import LeaveApplications from "./Pages/LeaveApplications.jsx";
 
 import SummaryTable from "./Pages/Finance/SummaryTable.jsx";
+import RuleTable from "./Pages/Finance/Table.jsx";
 
 import "./index.css";
 import store from "./store/store.jsx";
@@ -118,6 +119,14 @@ const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <SummaryTable />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/tables",
+    element: (
+      <ProtectedRoute>
+        <RuleTable />
       </ProtectedRoute>
     ),
   },
