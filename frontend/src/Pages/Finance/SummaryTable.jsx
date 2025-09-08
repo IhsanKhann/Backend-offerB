@@ -8,6 +8,7 @@ export default function ExpenseManager() {
   const [expense, setExpense] = useState({ amount: 0, description: "", name: "" });
   const [capital, setCapital] = useState(0);
   const [cash, setCash] = useState(0);
+  const [commission, setCommission] = useState({ amount: 0, description: "" });
 
   // Load data using the combined endpoint
   const loadData = useCallback(async () => {
@@ -84,6 +85,54 @@ export default function ExpenseManager() {
     }
   };
 
+  const handleCommissionChange = (e) => {
+  setCommission({ ...commission, [e.target.name]: e.target.value });
+};
+
+const postCommission = async () => {
+  if (!commission.amount) {
+    alert("Please enter commission amount");
+    return;
+  }
+
+  try {
+    await api.post("/transactions/commission/test", {
+      amount: Number(commission.amount),
+      description: commission.description,
+    });
+    setCommission({ amount: 0, description: "" });
+    await loadData();
+    alert("Commission posted successfully!");
+  } catch (err) {
+    console.error("Error posting commission:", err);
+    alert(err.response?.data?.error || "Error posting commission");
+  }
+};
+
+const closeCommissionToRetained = async () => {
+  if (!window.confirm("Move current commission balance to Retained Income?")) return;
+  try {
+    await api.post("/transactions/commission/close-to-retained");
+    await loadData();
+    alert("Commission moved to Retained Income");
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.error || "Error closing commission");
+  }
+};
+
+const transferRetainedToCapital = async () => {
+  if (!window.confirm("Transfer retained income to Capital?")) return;
+  try {
+    await api.post("/transactions/transfer-retained-to-capital");
+    await loadData();
+    alert("Retained income transferred to Capital");
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.error || "Error transferring retained income");
+  }
+};
+
   const formatCurrency = (amount) =>
     new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR" }).format(amount || 0);
 
@@ -152,6 +201,37 @@ export default function ExpenseManager() {
         </div>
       </div>
 
+      {/* Post Commission */}
+<div className="border rounded p-4 bg-gray-50 space-y-3">
+  <h2 className="font-semibold text-lg">Post Commission</h2>
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+    <input
+      type="number"
+      name="amount"
+      value={commission.amount}
+      onChange={handleCommissionChange}
+      placeholder="Amount"
+      className="border p-2 rounded"
+      step="0.01"
+      min="0"
+    />
+    <input
+      type="text"
+      name="description"
+      value={commission.description}
+      onChange={handleCommissionChange}
+      placeholder="Description"
+      className="border p-2 rounded"
+    />
+    <button
+      onClick={postCommission}
+      className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
+    >
+      Post Commission
+    </button>
+  </div>
+</div>
+
       {/* Post Expense */}
       <div className="border rounded p-4 bg-gray-50 space-y-3">
         <h2 className="font-semibold text-lg">Post Expense</h2>
@@ -190,6 +270,23 @@ export default function ExpenseManager() {
           </button>
         </div>
       </div>
+
+<div className="flex flex-row gap-4"> 
+  <button
+    onClick={closeCommissionToRetained}
+    className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 transition-colors"
+  >
+    Close Commission → Retained
+  </button>
+
+  <button
+    onClick={transferRetainedToCapital}
+    className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
+  >
+    Transfer Retained → Capital
+  </button>
+</div>
+
 
       {/* Summaries Display */}
       <div className="space-y-4">

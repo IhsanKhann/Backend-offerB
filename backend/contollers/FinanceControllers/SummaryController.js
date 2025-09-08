@@ -2,6 +2,7 @@
 import mongoose from "mongoose";
 import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
 import SummaryFieldLineModel from "../../models/FinanceModals/SummaryFieldLinesModel.js";
+import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 
 export const getSummaries = async (req, res) => {
   try {
@@ -51,7 +52,6 @@ export const initCapitalCash = async (req, res) => {
         .json({ error: "capitalAmount and cashAmount must be numbers." });
     }
 
-    // Use correct ObjectIds for capital and cash summaries
     const capitalSummary = await SummaryModel.findOne({ summaryId: 1600 });
     const cashSummary = await SummaryModel.findOne({ summaryId: 1500 });
 
@@ -83,59 +83,67 @@ export const initCapitalCash = async (req, res) => {
 
 export const getSummariesWithFieldLines = async (req, res) => {
   try {
+    const summaries = await SummaryModel.find()
+      .lean()
+      .populate({
+        path: "fieldLines", // <-- if you defined a virtual in Summary schema
+        model: "SummaryFieldLine",
+      });
+
+    // If you don’t have a virtual, fallback to manual query
+    const detailed = await Promise.all(
+      summaries.map(async (summary) => {
+        const fieldLines = await SummaryFieldLineModel.find({
+          summaryId: summary._id,   // <-- use _id since summaryId in fieldLine is ObjectId
+        }).lean();
+
+        return {
+          ...summary,
+          fieldLines: fieldLines.map((fl) => ({
+            ...fl,
+            balance: fl.balance ?? 0,
+            isExpense: summary.accountType === "expense",
+          })),
+        };
+      })
+    );
+
+    res.status(200).json(detailed);
+  } catch (error) {
+    console.error("Error fetching summaries with lines:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching summaries with lines", error });
+  }
+};
+
+export const getSummariesAndFieldLines = async (req, res) => {
+  try {
     const [summaries, fieldLines] = await Promise.all([
       SummaryModel.find().lean(),
       SummaryFieldLineModel.find().lean(),
     ]);
 
-    const grouped = summaries.map((summary) => {
-      const relatedLines = fieldLines
-        .filter((fl) => fl.summaryId?.toString() === summary._id?.toString())
-        .map((fl) => ({
-          ...fl,
-          balance: fl.balance ?? 0,
-          isExpense: summary.accountType === "expense",
-        }))
-        .sort((a, b) => (a.fieldLineId || 0) - (b.fieldLineId || 0));
-
-      return {
-        ...summary,
-        fieldLines: relatedLines,
-      };
+    res.status(200).json({
+      summaries,
+      fieldLines,
     });
-
-    res.status(200).json(grouped);
   } catch (error) {
-    console.error("Error fetching summaries with lines:", error);
-    res.status(500).json({ message: "Error fetching summaries with lines", error });
+    console.error("Error fetching summaries & field lines:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching summaries & field lines", error });
   }
 };
 
-// GET all summaries with populated fieldLines
-export const getAllSummaries = async (req, res) => {
-  try {
-    const summaries = await SummaryModel.find()
-      .lean()
-      .populate({
-        path: "fieldLines",
-        model: SummaryFieldLineModel,
-        select: "fieldLineId name accountNumber balance isExpense summaryId"
-      });
-
-    res.status(200).json(summaries);
-  } catch (err) {
-    console.error("Error fetching summaries:", err);
-    res.status(500).json({ error: "Failed to fetch summaries" });
-  }
+const SID = {
+  COMMISSION: 1700,
+  CASH: 1500,
 };
 
-// GET all summary field lines
-export const getAllFieldLines = async (req, res) => {
-  try {
-    const fieldLines = await SummaryFieldLineModel.find().lean();
-    res.status(200).json(fieldLines);
-  } catch (err) {
-    console.error("Error fetching field lines:", err);
-    res.status(500).json({ error: "Failed to fetch field lines" });
-  }
-};
+// Get ObjectId for summary
+async function getSummaryObjectId(numericSummaryId, session) {
+  const summary = await SummaryModel.findOne({ summaryId: numericSummaryId }).session(session);
+  if (!summary) throw new Error(`Summary ${numericSummaryId} not found`);
+  return summary._id;
+}

@@ -1,120 +1,38 @@
 [
   {
     "ruleId": 1,
-    "transactionType": "Expense",
+    "transactionType": "Expense Allocation",
     "incrementType": "percentage",
     "splits": [
-      {
-        "fieldLineId": 2102,
-        "fieldName": "Marketing Expenses",
-        "percentage": 20,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 2102, "summaryId": 1300, "debitOrCredit": "credit" },
-          { "fieldLineId": 1102, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      },
-      {
-        "fieldLineId": 2103,
-        "fieldName": "Establishment Expenses",
-        "percentage": 20,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 2103, "summaryId": 1300, "debitOrCredit": "credit" },
-          { "fieldLineId": 1103, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      },
-      {
-        "fieldLineId": 2106,
-        "fieldName": "Management Expenses",
-        "percentage": 20,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 2106, "summaryId": 1300, "debitOrCredit": "credit" },
-          { "fieldLineId": 1106, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      },
-      {
-        "fieldLineId": 2107,
-        "fieldName": "Expense Income Tax",
-        "percentage": 10,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 2107, "summaryId": 1300, "debitOrCredit": "credit" },
-          { "fieldLineId": 1107, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      },
-      {
-        "fieldLineId": 2108,
-        "fieldName": "Employee Gratuity Expense",
-        "percentage": 10,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 2108, "summaryId": 1300, "debitOrCredit": "credit" },
-          { "fieldLineId": 1108, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      },
-      {
-        "fieldLineId": 2109,
-        "fieldName": "EOBI",
-        "percentage": 10,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 2109, "summaryId": 1300, "debitOrCredit": "credit" },
-          { "fieldLineId": 1109, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      },
-      {
-        "fieldLineId": 2110,
-        "fieldName": "Group Term Insurance",
-        "percentage": 10,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 2110, "summaryId": 1300, "debitOrCredit": "credit" },
-          { "fieldLineId": 1110, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      }
+      { "fieldLineId": 2102, "fieldName": "Marketing Expenses", "percentage": 20, "summaryId": 1200, "debitOrCredit": "debit", 
+      "mirrors": [{ "fieldLineId": 1102, "summaryId": 1100, "debitOrCredit": "credit" }] },
+      { "fieldLineId": 2103, "fieldName": "Establishment Expenses", "percentage": 25, "summaryId": 1200, "debitOrCredit": "debit", 
+      "mirrors": [{ "fieldLineId": 1103, "summaryId": 1100, "debitOrCredit": "credit" }] },
+      { "fieldLineId": 2106, "fieldName": "Management Expenses", "percentage": 25, "summaryId": 1200, "debitOrCredit": "debit", 
+      "mirrors": [{ "fieldLineId": 1106, "summaryId": 1100, "debitOrCredit": "credit" }] },
+      { "fieldLineId": 2107, "fieldName": "Expense Income Tax", "percentage": 10, "summaryId": 1200, "debitOrCredit": "debit", 
+      "mirrors": [{ "fieldLineId": 1107, "summaryId": 1100, "debitOrCredit": "credit" }] },
+      { "fieldLineId": 2108, "fieldName": "Employee Gratuity Expense", "percentage": 10, "summaryId": 1200, "debitOrCredit": "debit", "mirrors": [{ "fieldLineId": 1108, "summaryId": 1100, "debitOrCredit": "credit" }] },
+      { "fieldLineId": 2109, "fieldName": "EOBI", "percentage": 5, "summaryId": 1200, "debitOrCredit": "debit", 
+      "mirrors": [{ "fieldLineId": 1109, "summaryId": 1100, "debitOrCredit": "credit" }] },
+      { "fieldLineId": 2110, "fieldName": "Group Term Insurance", "percentage": 5, "summaryId": 1200, "debitOrCredit": "debit", 
+      "mirrors": [{ "fieldLineId": 1110, "summaryId": 1100, "debitOrCredit": "credit" }] }
     ]
   },
   {
     "ruleId": 2,
-    "transactionType": "Profit",
-    "incrementType": "absolute",
+    "transactionType": "Commission Income",
+    "incrementType": "both",
     "splits": [
-      {
-        "fieldLineId": 5401,
-        "fieldName": "Retained Income",
-        "percentage": 100,
-        "summaryId": 1500,
-        "debitOrCredit": "credit",
-        "mirrors": [
-          { "fieldLineId": 5101, "summaryId": 1600, "debitOrCredit": "credit" }
-        ]
-      }
+      { "fieldLineId": 5201, "fieldName": "Commission Income", "percentage": 100, "summaryId": 1700, "debitOrCredit": "credit", "mirrors": [{ "fieldLineId": 5301, "summaryId": 1500, "debitOrCredit": "debit" }] }
     ]
   },
   {
     "ruleId": 3,
-    "transactionType": "Loss",
-    "incrementType": "absolute",
+    "transactionType": "Surplus Handling",
+    "incrementType": "both",
     "splits": [
-      {
-        "fieldLineId": 5101,
-        "fieldName": "Capital",
-        "percentage": 100,
-        "summaryId": 1600,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 5401, "summaryId": 1500, "debitOrCredit": "debit" }
-        ]
-      }
+      { "fieldLineId": 5401, "fieldName": "Retained Income", "percentage": 100, "summaryId": 1600, "debitOrCredit": "credit", "mirrors": [{ "fieldLineId": 5101, "summaryId": 1600, "debitOrCredit": "credit" }] }
     ]
   }
 ]

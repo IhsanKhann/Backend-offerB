@@ -13,6 +13,15 @@ const SummarySchema = new mongoose.Schema({
   endingBalance: { type: Number, default: 0 }
 });
 
+SummarySchema.virtual("fieldLines", {
+  ref: "SummaryFieldLine",
+  localField: "_id",       // Summary _id
+  foreignField: "summaryId", // fieldLine.summaryId
+});
+
+SummarySchema.set("toObject", { virtuals: true });
+SummarySchema.set("toJSON", { virtuals: true });
+
 const SummaryModel = mongoose.model("Summary", SummarySchema);
 export default SummaryModel;
 
