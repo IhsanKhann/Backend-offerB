@@ -111,10 +111,17 @@ export const getSummariesWithFieldLines = async (req, res) => {
   }
 };
 
-// GET all summaries
+// GET all summaries with populated fieldLines
 export const getAllSummaries = async (req, res) => {
   try {
-    const summaries = await SummaryModel.find().lean();
+    const summaries = await SummaryModel.find()
+      .lean()
+      .populate({
+        path: "fieldLines",
+        model: SummaryFieldLineModel,
+        select: "fieldLineId name accountNumber balance isExpense summaryId"
+      });
+
     res.status(200).json(summaries);
   } catch (err) {
     console.error("Error fetching summaries:", err);
@@ -122,7 +129,7 @@ export const getAllSummaries = async (req, res) => {
   }
 };
 
-// GET all field lines
+// GET all summary field lines
 export const getAllFieldLines = async (req, res) => {
   try {
     const fieldLines = await SummaryFieldLineModel.find().lean();

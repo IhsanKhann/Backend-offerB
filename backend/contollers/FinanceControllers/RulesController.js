@@ -83,3 +83,21 @@ export const getRuleById = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch rule" });
   }
 };
+
+export const deleteRule = async (req, res) => {
+  const { ruleId } = req.params;
+
+  try {
+    const deletedRule = await RuleModel.findOneAndDelete({ ruleId: Number(ruleId) });
+
+    if (!deletedRule) {
+      return res.status(404).json({ message: "Rule not found" });
+    }
+
+    return res.status(200).json({ message: "Rule deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting rule:", err);
+    return res.status(500).json({ message: "Failed to delete rule", error: err.message });
+  }
+};
+
