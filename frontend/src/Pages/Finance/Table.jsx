@@ -3,21 +3,20 @@ import api from "../../api/axios.js";
 
 export default function RulesTable() {
   const [rules, setRules] = useState([]);
+  const [summaries, setSummaries] = useState([]);
+  const [fieldLines, setFieldLines] = useState([]);
   const [editRuleId, setEditRuleId] = useState(null);
   const [formData, setFormData] = useState({ splits: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [summaries, setSummaries] = useState([]);
-  const [fieldLines, setFieldLines] = useState([]);
 
-  // Fetch all data
   const fetchData = async () => {
     setLoading(true);
     try {
       const [summRes, fieldRes, rulesRes] = await Promise.all([
-        api.get("/summaries"),                  // all summaries
-        api.get("/summaries/summaries-with-lines"),      // all summary field lines
-        api.get("/summaries/rules"),            // all rules
+        api.get("/summaries"),
+        api.get("/summaries/fieldlines"),
+        api.get("/summaries/rules"),
       ]);
       setSummaries(summRes.data || []);
       setFieldLines(fieldRes.data || []);
@@ -30,12 +29,27 @@ export default function RulesTable() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleEdit = (rule) => {
     const editable = JSON.parse(JSON.stringify(rule));
     editable.splits = editable.splits || [];
-    editable.splits.forEach(split => split.mirrors = split.mirrors || []);
+    
+    editable.splits.forEach(split => {
+      split.mirrors = split.mirrors || [];
+      // Ensure summaryId is a string for the dropdown
+      if (split.summaryId) {
+        split.summaryId = split.summaryId.toString();
+      }
+      split.mirrors.forEach(mirror => {
+        if (mirror.summaryId) {
+          mirror.summaryId = mirror.summaryId.toString();
+        }
+      });
+    });
+    
     setEditRuleId(rule.ruleId);
     setFormData(editable);
   };
@@ -47,8 +61,11 @@ export default function RulesTable() {
 
   const handleInputChange = (splitIdx, mirrorIdx, field, value) => {
     const newData = { ...formData };
-    if (mirrorIdx !== undefined) newData.splits[splitIdx].mirrors[mirrorIdx][field] = value;
-    else newData.splits[splitIdx][field] = value;
+    if (mirrorIdx !== undefined) {
+      newData.splits[splitIdx].mirrors[mirrorIdx][field] = value;
+    } else {
+      newData.splits[splitIdx][field] = value;
+    }
     setFormData(newData);
   };
 
@@ -82,7 +99,7 @@ export default function RulesTable() {
   const handleDeleteRule = async (ruleId) => {
     if (!window.confirm("Delete this rule?")) return;
     try {
-      await api.delete(`summaries/rules/${ruleId}/delete`);
+      await api.delete(`/summaries/rules/${ruleId}/delete`);
       fetchData();
       alert("Deleted!");
     } catch {
@@ -92,22 +109,24 @@ export default function RulesTable() {
 
   const handleSave = async () => {
     try {
-      await api.put(`summaries/rules/${formData.ruleId}`, formData);
+      await api.put(`/summaries/rules/${formData.ruleId}`, formData);
       handleCancel();
       fetchData();
       alert("Updated!");
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("Failed to update.");
     }
   };
 
   const handleCreateRule = async () => {
     try {
-      await api.post("summaries/rules", formData);
+      await api.post("/summaries/rules", formData);
       handleCancel();
       fetchData();
       alert("Created!");
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("Failed to create.");
     }
   };
@@ -117,74 +136,70 @@ export default function RulesTable() {
 
   return (
     <div className="p-6 space-y-6">
-
-      Summaries Table
-      <div className="mb-6 overflow-x-auto">
-        <h2 className="text-xl font-semibold mb-2">All Summaries</h2>
+      {/* Summaries Table */}
+      <h2 className="text-xl font-semibold mb-2">All Summaries</h2>
+      <div className="overflow-x-auto mb-6">
         <table className="min-w-full border border-gray-300">
           <thead className="bg-gray-200">
             <tr>
-              {summaries[0] && Object.keys(summaries[0])
-                .filter(k => k !== "_id")
-                .map(key => <th key={key} className="border px-2 py-1">{key}</th>)}
+              {summaries[0] && Object.keys(summaries[0]).filter(k => k !== "_id").map(key => (
+                <th key={key} className="border px-2 py-1">{key}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {summaries.map(s => (
-              <tr key={s.summaryId} className="bg-gray-50">
-                {Object.entries(s)
-                  .filter(([key]) => key !== "_id")
-                  .map(([key, val], i) => (
-                    <td key={i} className="border px-2 py-1">
-                      {Array.isArray(val) ? (
-                        <ul className="list-disc pl-4">
-                          {(val || []).map(f => (
-                            <li key={f.fieldLineId}>
-                              {f.fieldLineId} - {f.name} - {f.accountNumber} - {f.balance} - {f.isExpense ? "Expense" : "Not Expense"}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        JSON.stringify(val)
-                      )}
-                    </td>
-                  ))}
+              <tr key={s._id} className="bg-gray-50">
+                {Object.entries(s).filter(([key]) => key !== "_id").map(([key, val], i) => (
+                  <td key={i} className="border px-2 py-1">
+                    {Array.isArray(val) ? (
+                      <ul className="list-disc pl-4">
+                        {val.map(f => (
+                          <li key={f.fieldLineId}>
+                            {f.fieldLineId} - {f.name} - {f.accountNumber} - {f.balance}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : val?.toString()}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* All Summary Field Lines Table
-      <div className="mb-6 overflow-x-auto">
-        <h2 className="text-xl font-semibold mb-2">All Summary Field Lines</h2>
+      {/* Field Lines Table */}
+      <h2 className="text-xl font-semibold mb-2">All Summary Field Lines</h2>
+      <div className="overflow-x-auto mb-6">
         <table className="min-w-full border border-gray-300">
           <thead className="bg-gray-200">
             <tr>
-              <th className="border px-2 py-1">FieldLine ID</th>
-              <th className="border px-2 py-1">Name</th>
-              <th className="border px-2 py-1">Summary ID</th>
-              <th className="border px-2 py-1">Account Number</th>
-              <th className="border px-2 py-1">Balance</th>
+              <th>FieldLine ID</th>
+              <th>Name</th>
+              <th>Summary Name</th>
+              <th>Summary Custom ID</th>
+              <th>Balance</th>
             </tr>
           </thead>
           <tbody>
-            {(fieldLines || []).map(fl => (
+            {fieldLines.map(fl => (
               <tr key={fl.fieldLineId} className="bg-gray-50">
-                <td className="border px-2 py-1">{fl.fieldLineId}</td>
-                <td className="border px-2 py-1">{fl.name}</td>
-                <td className="border px-2 py-1">{fl.summaryId}</td>
-                <td className="border px-2 py-1">{fl.accountNumber}</td>
-                <td className="border px-2 py-1">{fl.balance}</td>
+                <td>{fl.fieldLineId}</td>
+                <td>{fl.name}</td>
+                <td>{fl.summaryId?.name || "-"}</td>
+                <td>{fl.summaryId?.summaryId || "-"}</td>
+                <td>{fl.balance}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div> */}
+      </div>
 
       {/* Rules Table */}
       {rules.map(rule => (
         <div key={rule.ruleId} className="border rounded-lg shadow-md bg-white p-4 space-y-4">
+
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">{rule.transactionType} (Rule {rule.ruleId})</h2>
             <div className="flex gap-2">
@@ -200,47 +215,57 @@ export default function RulesTable() {
             </div>
           </div>
 
-          {/* Splits & Mirrors */}
+          {/* Splits */}
           <div className="space-y-3">
             {(editRuleId === rule.ruleId ? formData.splits : rule.splits || []).map((split, splitIdx) => (
               <div key={splitIdx} className="border rounded-md p-3 bg-gray-50 space-y-2">
+
                 <div className="flex flex-wrap gap-2 items-center justify-between">
                   <div className="flex flex-wrap gap-2 items-center">
                     {editRuleId === rule.ruleId ? (
                       <>
                         <input type="text" value={split.fieldName || ""} onChange={e => handleInputChange(splitIdx, undefined, "fieldName", e.target.value)} placeholder="Field Name" className="border p-1 rounded w-40" />
                         <input type="number" value={split.percentage || 0} onChange={e => handleInputChange(splitIdx, undefined, "percentage", Number(e.target.value))} placeholder="%" className="border p-1 rounded w-20" />
-                        <input type="number" value={split.fixedAmount || ""} onChange={e => handleInputChange(splitIdx, undefined, "fixedAmount", Number(e.target.value))} placeholder="Amount" className="border p-1 rounded w-24" />
+                        <input type="number" value={split.fixedAmount || 0} onChange={e => handleInputChange(splitIdx, undefined, "fixedAmount", Number(e.target.value))} placeholder="Amount" className="border p-1 rounded w-24" />
                         <select value={split.debitOrCredit || "debit"} onChange={e => handleInputChange(splitIdx, undefined, "debitOrCredit", e.target.value)} className="border p-1 rounded">
                           <option value="debit">Debit</option>
                           <option value="credit">Credit</option>
                         </select>
-                        <select value={split.summaryId || ""} onChange={e => handleInputChange(splitIdx, undefined, "summaryId", Number(e.target.value))} className="border p-1 rounded">
+                        <select value={split.summaryId || ""} onChange={e => handleInputChange(splitIdx, undefined, "summaryId", e.target.value)} className="border p-1 rounded">
                           <option value="">Select Summary</option>
-                          {summaries.map(s => <option key={s.summaryId} value={s.summaryId}>{s.name}</option>)}
+                          {summaries.map(s => (
+                            <option key={s.summaryId} value={s.summaryId}>
+                              {s.name} ({s.summaryId})
+                            </option>
+                          ))}
                         </select>
                       </>
                     ) : (
                       <span className="text-sm">
-                        <strong>{split.fieldName}</strong> - {split.percentage}% - {split.fixedAmount || "-"} - {split.debitOrCredit} - Summary: {split.summaryId} 
-                        {(split.mirrors || []).length > 0 && ` | Mirrors: ${(split.mirrors || []).map(m => `${m.fieldLineId}-${m.summaryId}-${m.debitOrCredit}`).join(", ")}`}
+                        <strong>{split.fieldName}</strong> - {split.percentage}% - {split.fixedAmount || "-"} - {split.debitOrCredit} - Summary: {split.summaryId}
                       </span>
                     )}
                   </div>
+
                   {editRuleId === rule.ruleId && (
                     <button onClick={() => deleteSplit(splitIdx)} className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm">Delete Split</button>
                   )}
                 </div>
 
+                {/* Mirrors */}
                 <div className="ml-6 space-y-1">
                   {(split.mirrors || []).map((mirror, mirrorIdx) => (
                     <div key={mirrorIdx} className="flex flex-wrap gap-2 items-center">
-                      {editRuleId === rule.ruleId ? (
+                      {editRuleId === rule.ruleId && (
                         <>
                           <input type="number" value={mirror.fieldLineId || ""} onChange={e => handleInputChange(splitIdx, mirrorIdx, "fieldLineId", Number(e.target.value))} placeholder="FieldLine ID" className="border p-1 rounded w-24" />
-                          <select value={mirror.summaryId || ""} onChange={e => handleInputChange(splitIdx, mirrorIdx, "summaryId", Number(e.target.value))} className="border p-1 rounded">
+                          <select value={mirror.summaryId || ""} onChange={e => handleInputChange(splitIdx, mirrorIdx, "summaryId", e.target.value)} className="border p-1 rounded">
                             <option value="">Select Summary</option>
-                            {summaries.map(s => <option key={s.summaryId} value={s.summaryId}>{s.name}</option>)}
+                            {summaries.map(s => (
+                              <option key={s.summaryId} value={s.summaryId}>
+                                {s.name} ({s.summaryId})
+                              </option>
+                            ))}
                           </select>
                           <select value={mirror.debitOrCredit || "debit"} onChange={e => handleInputChange(splitIdx, mirrorIdx, "debitOrCredit", e.target.value)} className="border p-1 rounded">
                             <option value="debit">Debit</option>
@@ -248,19 +273,21 @@ export default function RulesTable() {
                           </select>
                           <button onClick={() => deleteMirror(splitIdx, mirrorIdx)} className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-xs">Delete Mirror</button>
                         </>
-                      ) : null}
+                      )}
                     </div>
                   ))}
                   {editRuleId === rule.ruleId && (
                     <button onClick={() => addMirror(splitIdx)} className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm mt-1">+ Add Mirror</button>
                   )}
                 </div>
+
               </div>
             ))}
             {editRuleId === rule.ruleId && (
               <button onClick={addSplit} className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm">+ Add Split</button>
             )}
           </div>
+
         </div>
       ))}
 

@@ -1,9 +1,10 @@
 import express from "express";
 import {
-  getSummaries,             // plain summaries
-  getSummariesWithFieldLines,  // summaries + fieldlines
+  getSummaries,                    // plain summaries
+  getSummariesWithFieldLines,      // summaries + fieldlines
   resetSummaries,
   initCapitalCash,
+  getAllSummaryFieldLines,
 } from "../../contollers/FinanceControllers/SummaryController.js";
 
 import {
@@ -14,6 +15,13 @@ import {
   deleteRule,
 } from "../../contollers/FinanceControllers/RulesController.js";
 
+import {
+  getEmployeeRules,
+  createBreakupFile,
+  getBreakupFile,
+  initiateSalaryTransaction,
+} from "../../contollers/FinanceControllers/SalaryController.js"; // new controllers
+
 import RuleModel from "../../models/FinanceModals/TablesModel.js";
 import { authenticate } from "../../middlewares/authMiddlewares.js";
 
@@ -22,10 +30,21 @@ const router = express.Router();
 /**
  * Public routes
  */
-router.get("/", getSummaries);                    // all summaries
+// Summaries
+router.get("/", getSummaries);                    
 router.get("/summaries-with-lines", getSummariesWithFieldLines); // summaries + fieldlines
+router.get("/fieldlines", getAllSummaryFieldLines);
+
+// Rules
 router.get("/rules", getRules);                               // all rules
 router.get("/rules/:ruleId", getRuleById);                    // rule by id
+
+// Salary / Breakup
+router.post("/salary/rules-by-role/:roleName", getEmployeeRules);    // get employee salary rules
+router.post("/salary/breakup/:employeeId", createBreakupFile); // create breakup file
+router.get("/salary/breakup/:employeeId", getBreakupFile);    // get latest breakup file
+router.post("/salary/transaction/:employeeId", initiateSalaryTransaction); // placeholder
+
 /**
  * Protected routes (admin only)
  */

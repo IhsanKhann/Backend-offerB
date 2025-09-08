@@ -15,8 +15,8 @@ const SummarySchema = new mongoose.Schema({
 
 SummarySchema.virtual("fieldLines", {
   ref: "SummaryFieldLine",
-  localField: "_id",       // Summary _id
-  foreignField: "summaryId", // fieldLine.summaryId
+  localField: "_id",         // Summary ObjectId
+  foreignField: "summaryId", // SummaryFieldLine.summaryId (ObjectId)
 });
 
 SummarySchema.set("toObject", { virtuals: true });

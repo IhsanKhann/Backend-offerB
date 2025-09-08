@@ -35,6 +35,10 @@ const salarySchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   terminalBenefits: [{ type: String }],
   terminalBenefitDetails: { type: String },
+  employeeGratuityFund : {type: Number},
+  EOBI: {type: Number},
+  groupTermInsurance: {type: Number},
+  otherBenefits: {type: String},
 });
 
 const tenureSchema = new mongoose.Schema({

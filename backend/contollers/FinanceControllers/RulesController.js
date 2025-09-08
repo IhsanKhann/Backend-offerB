@@ -1,5 +1,7 @@
 // controllers/FinanceControllers/RuleController.js
 import RuleModel from "../../models/FinanceModals/TablesModel.js";
+import SummaryFieldLineModel from "../../models/FinanceModals/SummaryFieldLinesModel.js";
+import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
 import mongoose from "mongoose";
 
 // GET /api/rules → fetch all rules
@@ -37,33 +39,129 @@ export const createRule = async (req, res) => {
   }
 };
 
-// PUT /api/rules/:ruleId → update an existing rule
+// Add this helper function to your controller file
+const convertNumericIdToObjectId = async (numericId) => {
+  const summary = await SummaryModel.findOne({ summaryId: Number(numericId) });
+  return summary ? summary._id : null;
+};
+
+const convertObjectIdToNumericId = async (objectId) => {
+  const summary = await SummaryModel.findById(objectId);
+  return summary ? summary.summaryId : null;
+};
+
 export const updateRule = async (req, res) => {
   try {
     const { ruleId } = req.params;
     const { transactionType, incrementType, splits } = req.body;
 
-    if (!transactionType && !splits && !incrementType) {
-      return res.status(400).json({ error: "Nothing to update" });
+    const rule = await RuleModel.findOne({ ruleId: Number(ruleId) });
+    if (!rule) return res.status(404).json({ error: "Rule not found" });
+
+    if (transactionType) rule.transactionType = transactionType;
+    if (incrementType) rule.incrementType = incrementType;
+
+    if (splits) {
+      for (let split of splits) {
+        // Handle main split
+        if (!split.summaryId) throw new Error("Split must have a summaryId");
+        
+        // Convert string/ObjectId to number if needed
+        let summaryIdNum;
+        if (typeof split.summaryId === 'string' && split.summaryId.length === 24) {
+          // This is an ObjectId, find the corresponding numeric ID
+          const summary = await SummaryModel.findById(split.summaryId);
+          if (!summary) throw new Error(`Summary not found for ObjectId ${split.summaryId}`);
+          summaryIdNum = summary.summaryId;
+        } else {
+          // This should be a numeric ID
+          summaryIdNum = Number(split.summaryId);
+        }
+
+        const summary = await SummaryModel.findOne({ summaryId: summaryIdNum });
+        if (!summary) throw new Error(`Summary not found for ID ${summaryIdNum}`);
+
+        let existingFieldLine = await SummaryFieldLineModel.findOne({
+          name: split.fieldName,
+          summaryId: summary._id
+        });
+
+        if (!existingFieldLine) {
+          // Generate a unique fieldLineId
+          const lastFieldLine = await SummaryFieldLineModel.findOne().sort({ fieldLineId: -1 });
+          const newFieldLineId = lastFieldLine ? lastFieldLine.fieldLineId + 1 : 1001;
+
+          const newFieldLine = new SummaryFieldLineModel({
+            fieldLineId: newFieldLineId,
+            name: split.fieldName,
+            summaryId: summary._id,
+            balance: 0
+          });
+          await newFieldLine.save();
+          split.fieldLineId = newFieldLineId;
+        } else {
+          split.fieldLineId = existingFieldLine.fieldLineId;
+        }
+
+        // Update the split summaryId to be numeric for storage
+        split.summaryId = summaryIdNum;
+
+        // Handle mirrors
+        if (split.mirrors && split.mirrors.length > 0) {
+          for (let mirror of split.mirrors) {
+            if (!mirror.summaryId) throw new Error("Mirror must have a summaryId");
+
+            // Convert string/ObjectId to number if needed
+            let mirrorSummaryIdNum;
+            if (typeof mirror.summaryId === 'string' && mirror.summaryId.length === 24) {
+              const mirrorSummary = await SummaryModel.findById(mirror.summaryId);
+              if (!mirrorSummary) throw new Error(`Summary not found for ObjectId ${mirror.summaryId}`);
+              mirrorSummaryIdNum = mirrorSummary.summaryId;
+            } else {
+              mirrorSummaryIdNum = Number(mirror.summaryId);
+            }
+
+            let mirrorSummary = await SummaryModel.findOne({ 
+              summaryId: mirrorSummaryIdNum 
+            });
+            if (!mirrorSummary) throw new Error(`Summary not found for ID ${mirrorSummaryIdNum}`);
+
+            let existingMirrorFieldLine = await SummaryFieldLineModel.findOne({
+              name: split.fieldName,
+              summaryId: mirrorSummary._id
+            });
+
+            if (!existingMirrorFieldLine) {
+              // Generate a unique fieldLineId for mirror
+              const lastFieldLine = await SummaryFieldLineModel.findOne().sort({ fieldLineId: -1 });
+              const newFieldLineId = lastFieldLine ? lastFieldLine.fieldLineId + 1 : 1001;
+
+              const newMirrorFieldLine = new SummaryFieldLineModel({
+                fieldLineId: newFieldLineId,
+                name: split.fieldName,
+                summaryId: mirrorSummary._id,
+                balance: 0
+              });
+              await newMirrorFieldLine.save();
+              mirror.fieldLineId = newFieldLineId;
+            } else {
+              mirror.fieldLineId = existingMirrorFieldLine.fieldLineId;
+            }
+
+            // Update the mirror summaryId to be numeric for storage
+            mirror.summaryId = mirrorSummaryIdNum;
+          }
+        }
+      }
+
+      rule.splits = splits;
     }
 
-    const updatedRule = await RuleModel.findOne({ ruleId });
-
-    if (!updatedRule) {
-      return res.status(404).json({ error: "Rule not found" });
-    }
-
-    // Update fields if provided
-    if (transactionType) updatedRule.transactionType = transactionType;
-    if (incrementType) updatedRule.incrementType = incrementType;
-    if (splits) updatedRule.splits = splits;
-
-    await updatedRule.save();
-
-    res.status(200).json({ message: "Rule updated successfully", rule: updatedRule });
+    await rule.save();
+    res.status(200).json({ message: "Rule updated successfully", rule });
   } catch (err) {
     console.error("Error updating rule:", err);
-    res.status(500).json({ error: "Failed to update rule" });
+    res.status(500).json({ error: "Failed to update rule", details: err.message });
   }
 };
 

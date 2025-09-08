@@ -19,6 +19,7 @@ import LeaveApplications from "./Pages/LeaveApplications.jsx";
 import SummaryTable from "./Pages/Finance/SummaryTable.jsx";
 import RuleTable from "./Pages/Finance/Table.jsx";
 import SalaryDashboard from "./Pages/Finance/SalaryDashboard.jsx";
+import BreakupSummary from "./Pages/Finance/BreakupSummary.jsx";
 
 import "./index.css";
 import store from "./store/store.jsx";
@@ -139,6 +140,14 @@ const router = createBrowserRouter([
         <SalaryDashboard />
       </ProtectedRoute>
     ),
+  },
+  {
+   path: "/salary/breakup/:employeeId",
+   element: (
+     <ProtectedRoute>
+       <BreakupSummary />
+     </ProtectedRoute> 
+   ),
   }
 ]);
 

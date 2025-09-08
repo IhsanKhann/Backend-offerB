@@ -136,12 +136,24 @@ export const getSummariesAndFieldLines = async (req, res) => {
   }
 };
 
+export const getAllSummaryFieldLines = async (req, res) => {
+  try {
+    const fieldLines = await SummaryFieldLineModel.find()
+      .populate("summaryId", "name summaryId") // get summary name + custom ID
+      .lean();
+
+    res.status(200).json(fieldLines);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch summary field lines" });
+  }
+};
+
 const SID = {
   COMMISSION: 1700,
   CASH: 1500,
 };
 
-// Get ObjectId for summary
 async function getSummaryObjectId(numericSummaryId, session) {
   const summary = await SummaryModel.findOne({ summaryId: numericSummaryId }).session(session);
   if (!summary) throw new Error(`Summary ${numericSummaryId} not found`);
