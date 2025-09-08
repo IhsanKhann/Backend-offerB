@@ -1,58 +1,296 @@
 [
   {
-    "role": "Chairman",
-    "description": "The highest authority responsible for leading the board and overall strategic vision of the organization."
+    "name": "Chairman",
+    "description": "Highest authority responsible for leading the board",
+    "salaryRules": {
+      "baseSalary": 100000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "BoD Member",
-    "description": "Board of Directors member responsible for governance, oversight, and major organizational decisions."
+    "name": "BoD Member",
+    "description": "Board of Directors member responsible for governance",
+    "salaryRules": {
+      "baseSalary": 80000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Company Secretary",
-    "description": "Responsible for corporate compliance, maintaining records, and supporting the board in decision-making."
+    "name": "Company Secretary",
+    "description": "Responsible for corporate compliance and record-keeping",
+    "salaryRules": {
+      "baseSalary": 70000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Group Head",
-    "description": "Leads a group within the organization, responsible for strategy, operations, and team performance."
+    "name": "Group Head",
+    "description": "Leads a group within the organization",
+    "salaryRules": {
+      "baseSalary": 60000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Division Head",
-    "description": "Oversees a division, ensuring alignment with organizational goals and managing multiple departments."
+    "name": "Division Head",
+    "description": "Oversees a division and aligns goals",
+    "salaryRules": {
+      "baseSalary": 55000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Department Head",
-    "description": "Leads a department, manages resources, and is responsible for departmental objectives."
+    "name": "Department Head",
+    "description": "Leads a department and manages resources",
+    "salaryRules": {
+      "baseSalary": 50000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Branch Manager",
-    "description": "Responsible for managing branch operations, staff, and local client relations."
+    "name": "Branch Manager",
+    "description": "Manages branch operations, staff, and local clients",
+    "salaryRules": {
+      "baseSalary": 45000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Officer",
-    "description": "Entry to mid-level role assisting in daily tasks, operations, and reporting."
+    "name": "Officer",
+    "description": "Entry to mid-level role assisting in daily tasks",
+    "salaryRules": {
+      "baseSalary": 35000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Manager",
-    "description": "Oversees teams or units, responsible for planning, coordination, and execution of tasks."
+    "name": "Manager",
+    "description": "Oversees teams and plans coordination",
+    "salaryRules": {
+      "baseSalary": 40000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Senior Manager",
-    "description": "Senior leadership role managing managers and ensuring organizational objectives are met."
+    "name": "Senior Manager",
+    "description": "Manages managers and ensures organizational operations",
+    "salaryRules": {
+      "baseSalary": 50000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Cell Incharge",
-    "description": "Responsible for leading a specific cell or functional unit within the organization."
+    "name": "Cell Incharge",
+    "description": "Leads a specific cell or functional unit",
+    "salaryRules": {
+      "baseSalary": 38000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Executive (Contract)",
-    "description": "Contract-based executive role responsible for supporting operations and project-based tasks."
+    "name": "Executive (Contract)",
+    "description": "Contract-based executive supporting operations",
+    "salaryRules": {
+      "baseSalary": 30000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Executive (Permanent)",
-    "description": "Permanent executive responsible for ongoing operations and long-term organizational objectives."
+    "name": "Executive (Permanent)",
+    "description": "Permanent executive responsible for ongoing operations",
+    "salaryRules": {
+      "baseSalary": 35000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   },
   {
-    "role": "Senior Group Head",
-    "description": "High-level executive overseeing multiple groups, responsible for strategic direction and results."
+    "name": "Senior Group Head",
+    "description": "High-level executive overseeing multiple groups",
+    "salaryRules": {
+      "baseSalary": 70000,
+      "salaryType": "monthly",
+      "terminalBenefits": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ],
+      "deductions": [
+        { "name": "Income Tax", "type": "percentage", "value": 10 }
+      ],
+      "allowances": [
+        { "name": "Gratuity", "type": "percentage", "value": 5 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+      ]
+    }
   }
 ]

@@ -83,8 +83,7 @@ const AssignRolesForm = () => {
     fetchHierarchy();
   }, []);
 
-  // reminder -> fetch roles if needed.
-  
+  // reminder -> fetch roles if needed.  
   useEffect(()=>{
   const fetchEmployeePermissions = async() => {
     try{
@@ -127,18 +126,33 @@ const AssignRolesForm = () => {
   },[]);
 
   // Add role
+// Add role with full data
 const handleAddRole = async (newRole) => {
   try {
     setActionLoading(true);
-    const response = await api.post("/allRoles/addRole", {
-      role: newRole.role,
+
+    // Construct payload
+    const payload = {
+      name: newRole.name,
       description: newRole.description,
-    });
+      salaryRules: {
+        baseSalary: Number(newRole.baseSalary) || 0,
+        salaryType: newRole.salaryType || "monthly",
+        terminalBenefits: newRole.terminalBenefits || [],
+        deductions: newRole.deductions || [],
+        allowances: newRole.allowances || [],
+      },
+    };
+
+    const response = await api.post("/allRoles/addRole", payload);
+
     if (response.data.success) {
       fetchRolesList(); // reload roles
+      setActionModal({ type: null, open: false }); // close modal
     }
   } catch (error) {
     console.error("Error adding role:", error.response?.data || error.message);
+    alert("Failed to add role");
   } finally {
     setActionLoading(false);
   }
@@ -438,6 +452,7 @@ const handleSubmit = async (e) => {
     const rolesData = {
       employeeId: employeeData._id,
       roleName: roleDropdown,
+      // flag here..
       orgUnit: orgUnitId,
       permissions: allPermissions.map(p => p._id),
     };
@@ -449,7 +464,6 @@ const handleSubmit = async (e) => {
       dispatch(addDraft());
       await api.post("/employees/roles/assign", rolesData);
     }
-
     navigate("/DraftDashboard");
   } catch (err) {
     console.error(err);
@@ -491,8 +505,8 @@ const handleCancel = () => navigate("/DraftDashboard");
       <option value="">Select Role</option>
       {RolesList.length > 0 ? (
         RolesList.map((role) => (
-          <option key={role._id} value={role.role}>
-            {role.role}
+          <option key={role._id} value={role.name}>
+            {role.name}
           </option>
         ))
       ) : (

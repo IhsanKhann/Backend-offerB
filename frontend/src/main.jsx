@@ -15,8 +15,10 @@ import { EmployeesPermissions } from "./components/PermissionsManager.jsx";
 import { ResetPasswordPage, ForgetUserId } from "./components/ResetLoginPage.jsx";
 import LeaveApplications from "./Pages/LeaveApplications.jsx";
 
+// finance:
 import SummaryTable from "./Pages/Finance/SummaryTable.jsx";
 import RuleTable from "./Pages/Finance/Table.jsx";
+import SalaryDashboard from "./Pages/Finance/SalaryDashboard.jsx";
 
 import "./index.css";
 import store from "./store/store.jsx";
@@ -130,6 +132,14 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+  {
+    path: "/salary-dashboard",
+    element: (
+      <ProtectedRoute>
+        <SalaryDashboard />
+      </ProtectedRoute>
+    ),
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(

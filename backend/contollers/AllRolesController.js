@@ -12,13 +12,38 @@ export const getAllRolesList = async (req, res) => {
   }
 };
 
-// add and delete roles.
 export const addRole = async (req, res) => {
   try {
-    const { role, description } = req.body;
-    const newRole = new AllRolesModel({ role, description });
+    const {
+      name,
+      description,
+      salaryRules // this will include baseSalary, salaryType, allowances, deductions, terminalBenefits
+    } = req.body;
+
+    // Validate required fields
+    if (!name) {
+      return res.status(400).json({ message: "Role name is required", success: false });
+    }
+    if (!salaryRules || typeof salaryRules.baseSalary !== "number") {
+      return res.status(400).json({ message: "Base salary is required and must be a number", success: false });
+    }
+
+    // Ensure arrays exist even if empty
+    const newRole = new AllRolesModel({
+      name,
+      description,
+      salaryRules: {
+        baseSalary: salaryRules.baseSalary,
+        salaryType: salaryRules.salaryType || "monthly",
+        allowances: Array.isArray(salaryRules.allowances) ? salaryRules.allowances : [],
+        deductions: Array.isArray(salaryRules.deductions) ? salaryRules.deductions : [],
+        terminalBenefits: Array.isArray(salaryRules.terminalBenefits) ? salaryRules.terminalBenefits : [],
+      },
+    });
+
     await newRole.save();
-    res.status(201).json({ message: "Role added", success: true, data: newRole });
+
+    res.status(201).json({ message: "Role added successfully", success: true, data: newRole });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", success: false, error: err.message });

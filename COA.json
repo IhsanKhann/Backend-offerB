@@ -1,50 +1,64 @@
 [
   {
+    "_id": { "$oid": "000000000000000000001100" },
     "summaryId": 1100,
     "name": "Allowances",
-    "accountType": "liability",
+    "accountType": "asset",
+    "parentId": null,
     "startingBalance": 0,
     "endingBalance": 0
   },
   {
+    "_id": { "$oid": "000000000000000000001200" },
     "summaryId": 1200,
     "name": "Expenses",
     "accountType": "expense",
+    "parentId": null,
     "startingBalance": 0,
     "endingBalance": 0
   },
   {
+    "_id": { "$oid": "000000000000000000001300" },
     "summaryId": 1300,
     "name": "Bank",
     "accountType": "asset",
+    "parentId": null,
     "startingBalance": 0,
     "endingBalance": 0
   },
   {
+    "_id": { "$oid": "000000000000000000001400" },
     "summaryId": 1400,
     "name": "Salaries",
     "accountType": "expense",
+    "parentId": null,
     "startingBalance": 0,
     "endingBalance": 0
   },
   {
+    "_id": { "$oid": "000000000000000000001500" },
     "summaryId": 1500,
     "name": "Cash",
     "accountType": "asset",
+    "parentId": null,
     "startingBalance": 0,
     "endingBalance": 0
   },
   {
+    "_id": { "$oid": "000000000000000000001600" },
     "summaryId": 1600,
     "name": "Capital",
     "accountType": "equity",
+    "parentId": null,
     "startingBalance": 0,
     "endingBalance": 0
   },
   {
+    "_id": { "$oid": "000000000000000000001700" },
     "summaryId": 1700,
     "name": "Commission",
     "accountType": "income",
+    "parentId": null,
     "startingBalance": 0,
     "endingBalance": 0
   }

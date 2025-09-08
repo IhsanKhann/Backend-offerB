@@ -5,7 +5,7 @@ import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
 import SummaryFieldLineModel from "../../models/FinanceModals/SummaryFieldLinesModel.js";
 import TablesModel from "../../models/FinanceModals/TablesModel.js";
 
-// ------------------ Summary Numeric IDs ------------------
+// Summary numeric IDs
 const SID = {
   ALLOWANCES: 1100,
   EXPENSES: 1200,
@@ -16,71 +16,62 @@ const SID = {
   COMMISSION: 1700,
 };
 
-// ------------------ Helpers ------------------
-
-// Compute line amount based on increment type
-const computeLineAmount = (split, baseAmount, incrementType, totalPercentage = 100) => {
+// Helper: compute amount based on increment type
+const computeLineAmount = (split, amount, incrementType, totalPercentage = 100) => {
   const percentageFactor = (split.percentage || 0) / totalPercentage;
   const fixedAmount = Number(split.fixedAmount || 0);
-  let lineAmount = 0;
+  let lineAmt = 0;
 
   switch (incrementType) {
     case "percentage":
-      lineAmount = baseAmount * percentageFactor;
+      lineAmt = amount * percentageFactor;
       break;
     case "fixed":
-      lineAmount = fixedAmount;
+      lineAmt = fixedAmount;
       break;
     case "both":
-      lineAmount = baseAmount * percentageFactor + fixedAmount;
+      lineAmt = amount * percentageFactor + fixedAmount;
       break;
     default:
-      throw new Error(`Unknown increment type: ${incrementType}`);
+      throw new Error(`Unknown incrementType: ${incrementType}`);
   }
 
-  return Math.round(lineAmount * 100) / 100;
+  return Math.round(lineAmt * 100) / 100;
 };
 
-// Debit/Credit conversion: debit = +, credit = -
-const incBySide = (side, amount) => (side === "debit" ? amount : -amount);
+// Helper: debit = +, credit = -
+const incBySide = (side, amt) => (side === "debit" ? amt : -amt);
 
-// Fetch Summary ObjectId by numeric ID
-async function getSummaryObjectId(summaryId, session) {
-  const summary = await SummaryModel.findOne({ summaryId }).session(session);
-  if (!summary) throw new Error(`Summary ${summaryId} not found`);
+// Helper: get summary ObjectId
+async function getSummaryObjectId(numericSummaryId, session) {
+  const summary = await SummaryModel.findOne({ summaryId: numericSummaryId }).session(session);
+  if (!summary) throw new Error(`Summary ${numericSummaryId} not found`);
   return summary._id;
 }
 
-// Fetch FieldLine ObjectId by numeric ID
-async function getFieldLineObjectId(fieldLineId, session) {
-  if (!fieldLineId) return null;
-  const fieldLine = await SummaryFieldLineModel.findOne({ fieldLineId }).session(session);
+// Helper: get field line ObjectId
+async function getFieldLineObjectId(numericFieldLineId, session) {
+  if (!numericFieldLineId) return null;
+  const fieldLine = await SummaryFieldLineModel.findOne({ fieldLineId: numericFieldLineId }).session(session);
   return fieldLine ? fieldLine._id : null;
 }
 
-// Fetch field line document by numeric ID
-async function getFieldLineDocByNumericId(fieldLineId, session) {
-  if (!fieldLineId) return null;
-  return await SummaryFieldLineModel.findOne({ fieldLineId }).session(session);
-}
-
-// Update balances for summaries and field lines
+// Helper: update balances for summaries and field lines
 async function updateBalances(accountingLines, session) {
-  for (const line of accountingLines) {
-    if (line.debitOrCredit === "none") continue;
+  for (const l of accountingLines) {
+    if (l.debitOrCredit === "none") continue;
+    const amt = incBySide(l.debitOrCredit, l.amount);
 
-    const amt = incBySide(line.debitOrCredit, line.amount);
-
-    // Update Field Line balance
-    if (line.fieldLineObjectId) {
+    // Update field line
+    if (l.fieldLineObjectId) {
       await SummaryFieldLineModel.findByIdAndUpdate(
-        line.fieldLineObjectId,
+        l.fieldLineObjectId,
         { $inc: { balance: amt } },
         { session }
       );
 
-      // Update parent Summary endingBalance
-      const fieldLineDoc = await SummaryFieldLineModel.findById(line.fieldLineObjectId).session(session);
+      // Update parent summary if linked
+      const fieldLineDoc = await SummaryFieldLineModel.findById(l.fieldLineObjectId).session(session);
       if (fieldLineDoc && fieldLineDoc.summaryId) {
         await SummaryModel.findByIdAndUpdate(
           fieldLineDoc.summaryId,
@@ -88,9 +79,11 @@ async function updateBalances(accountingLines, session) {
           { session }
         );
       }
-    } else if (line.summaryObjectId) {
+    }
+    // Update summary if no field line
+    else if (l.summaryObjectId) {
       await SummaryModel.findByIdAndUpdate(
-        line.summaryObjectId,
+        l.summaryObjectId,
         { $inc: { endingBalance: amt } },
         { session }
       );
@@ -98,26 +91,26 @@ async function updateBalances(accountingLines, session) {
   }
 }
 
-// ------------------ Controllers ------------------
-
-/**
- * Expense Transaction Controller
- */
+// --------------------- Expense Transaction ---------------------
 export const ExpenseTransactionController = async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
+    session.startTransaction();
+
     const { amount, name, description } = req.body;
-    if (!amount || amount <= 0) throw new Error("Invalid amount");
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
 
     const rules = await TablesModel.find({ transactionType: "Expense Allocation" }).lean();
-    if (!rules || rules.length === 0) throw new Error("No Expense Allocation rules found");
+    if (!rules || rules.length === 0) {
+      return res.status(400).json({ error: "No Expense Allocation rules found" });
+    }
 
     const accountingLines = [];
     let totalDebits = 0;
 
-    // 1) Recognition: Expense debits and Allowance credits
+    // 1️⃣ Recognition: Expense debits and Allowance credits
     for (const rule of rules) {
       const splits = rule.splits || [];
       const totalPercent = splits.reduce((s, sp) => s + (sp.percentage || 0), 0) || 100;
@@ -126,10 +119,9 @@ export const ExpenseTransactionController = async (req, res) => {
         const lineAmount = computeLineAmount(split, amount, rule.incrementType, totalPercent);
         if (!lineAmount) continue;
 
-        // Expense Debit
+        // Dr Expense
         const expenseSummaryObjId = await getSummaryObjectId(split.summaryId, session);
         const expenseFieldObjId = await getFieldLineObjectId(split.fieldLineId, session);
-
         accountingLines.push({
           summaryObjectId: expenseSummaryObjId,
           summaryId: split.summaryId,
@@ -141,10 +133,10 @@ export const ExpenseTransactionController = async (req, res) => {
         });
         totalDebits += lineAmount;
 
-        // Create Allowance Credit
-        const allowanceFieldLineId = split.fieldLineId ? split.fieldLineId - 1000 : null; // e.g., 2106 → 1106
+        // Cr Allowance (mirror)
+        const allowanceFieldLineId = split.fieldLineId ? split.fieldLineId - 1000 : null; // Expense -> Allowance
         const allowanceFieldObjId = allowanceFieldLineId
-          ? (await getFieldLineDocByNumericId(allowanceFieldLineId, session))?._id
+          ? await getFieldLineObjectId(allowanceFieldLineId, session)
           : null;
         const allowanceSummaryObjId = await getSummaryObjectId(SID.ALLOWANCES, session);
 
@@ -160,114 +152,64 @@ export const ExpenseTransactionController = async (req, res) => {
       }
     }
 
-    // 2) Funding: Commission → Cash → Capital if needed
+    // 2️⃣ Funding: Commission -> Cash -> Capital
     let remainingToFund = Math.round(totalDebits * 100) / 100;
+
     const commissionSummaryDoc = await SummaryModel.findOne({ summaryId: SID.COMMISSION }).session(session);
-    const commissionBalance = commissionSummaryDoc?.endingBalance || 0;
+    const commissionBalance = commissionSummaryDoc ? (commissionSummaryDoc.endingBalance || 0) : 0;
 
     const cashSummaryObjId = await getSummaryObjectId(SID.CASH, session);
+    const commissionSummaryObjId = await getSummaryObjectId(SID.COMMISSION, session);
+    const capitalSummaryObjId = await getSummaryObjectId(SID.CAPITAL, session);
 
+    // Use Commission first
     if (commissionBalance > 0 && remainingToFund > 0) {
       const transferFromCommission = Math.min(commissionBalance, remainingToFund);
-      const commissionObjId = await getSummaryObjectId(SID.COMMISSION, session);
-
-      accountingLines.push({
-        summaryObjectId: cashSummaryObjId,
-        summaryId: SID.CASH,
-        debitOrCredit: "debit",
-        amount: transferFromCommission,
-        fieldLineObjectId: null,
-        fieldLineId: null,
-        fieldName: "Fund from Commission → Cash",
-      });
-      accountingLines.push({
-        summaryObjectId: commissionObjId,
-        summaryId: SID.COMMISSION,
-        debitOrCredit: "credit",
-        amount: transferFromCommission,
-        fieldLineObjectId: null,
-        fieldLineId: null,
-        fieldName: "Reduce Commission (fund expenses)",
-      });
-
-      remainingToFund -= transferFromCommission;
-      remainingToFund = Math.round(remainingToFund * 100) / 100;
+      accountingLines.push(
+        { summaryObjectId: cashSummaryObjId, summaryId: SID.CASH, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "debit", amount: transferFromCommission, fieldName: "Fund from Commission -> Cash" },
+        { summaryObjectId: commissionSummaryObjId, summaryId: SID.COMMISSION, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "credit", amount: transferFromCommission, fieldName: "Reduce Commission" }
+      );
+      remainingToFund = Math.round((remainingToFund - transferFromCommission) * 100) / 100;
     }
 
+    // Remaining from Capital
     if (remainingToFund > 0.00001) {
-      const capitalObjId = await getSummaryObjectId(SID.CAPITAL, session);
-
-      accountingLines.push({
-        summaryObjectId: cashSummaryObjId,
-        summaryId: SID.CASH,
-        debitOrCredit: "debit",
-        amount: remainingToFund,
-        fieldLineObjectId: null,
-        fieldLineId: null,
-        fieldName: "Fund from Capital → Cash",
-      });
-      accountingLines.push({
-        summaryObjectId: capitalObjId,
-        summaryId: SID.CAPITAL,
-        debitOrCredit: "credit",
-        amount: remainingToFund,
-        fieldLineObjectId: null,
-        fieldLineId: null,
-        fieldName: "Reduce Capital (fund shortage)",
-      });
+      accountingLines.push(
+        { summaryObjectId: cashSummaryObjId, summaryId: SID.CASH, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "debit", amount: remainingToFund, fieldName: "Fund from Capital -> Cash" },
+        { summaryObjectId: capitalSummaryObjId, summaryId: SID.CAPITAL, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "credit", amount: remainingToFund, fieldName: "Reduce Capital" }
+      );
       remainingToFund = 0;
     }
 
-    // 3) Pay Allowances from Cash
-    const allowanceCredits = accountingLines.filter(
-      (l) => l.summaryId === SID.ALLOWANCES && l.debitOrCredit === "credit"
-    );
-
+    // 3️⃣ Pay Allowances from Cash
+    const allowanceCredits = accountingLines.filter(l => l.summaryId === SID.ALLOWANCES && l.debitOrCredit === "credit");
     for (const allow of allowanceCredits) {
       const payAmount = allow.amount;
-      const allowanceFieldObjId = allow.fieldLineId
-        ? await getFieldLineObjectId(allow.fieldLineId, session)
-        : null;
-
-      // Debit allowance
-      accountingLines.push({
-        summaryObjectId: allow.summaryObjectId,
-        summaryId: SID.ALLOWANCES,
-        fieldLineObjectId: allowanceFieldObjId,
-        fieldLineId: allow.fieldLineId,
-        debitOrCredit: "debit",
-        amount: payAmount,
-        fieldName: `Pay Allowance - ${allow.fieldName}`,
-      });
-
-      // Credit cash
-      accountingLines.push({
-        summaryObjectId: cashSummaryObjId,
-        summaryId: SID.CASH,
-        fieldLineObjectId: null,
-        fieldLineId: null,
-        debitOrCredit: "credit",
-        amount: payAmount,
-        fieldName: `Cash Payment for Allowance - ${allow.fieldName}`,
-      });
+      accountingLines.push(
+        {
+          summaryObjectId: allow.summaryObjectId,
+          summaryId: SID.ALLOWANCES,
+          fieldLineObjectId: allow.fieldLineObjectId,
+          fieldLineId: allow.fieldLineId,
+          debitOrCredit: "debit",
+          amount: payAmount,
+          fieldName: `Pay Allowance - ${allow.fieldName}`,
+        },
+        {
+          summaryObjectId: cashSummaryObjId,
+          summaryId: SID.CASH,
+          fieldLineObjectId: null,
+          fieldLineId: null,
+          debitOrCredit: "credit",
+          amount: payAmount,
+          fieldName: `Cash Payment for Allowance - ${allow.fieldName}`,
+        }
+      );
     }
 
-    // Persist Transaction
+    // Persist transaction
     const txDoc = await TransactionModel.create(
-      [
-        {
-          transactionId: Date.now(),
-          date: new Date(),
-          description: description || name || "Expense Transaction",
-          amount,
-          lines: accountingLines.map((l) => ({
-            fieldLineId: l.fieldLineId,
-            summaryId: l.summaryId,
-            debitOrCredit: l.debitOrCredit,
-            amount: l.amount,
-          })),
-        },
-      ],
+      [{ transactionId: Date.now(), date: new Date(), description: description || name || "Expense Transaction", amount, lines: accountingLines.map(l => ({ fieldLineId: l.fieldLineId, summaryId: l.summaryId, debitOrCredit: l.debitOrCredit, amount: l.amount })) }],
       { session }
     );
 
@@ -277,11 +219,7 @@ export const ExpenseTransactionController = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(201).json({
-      message: "Expense transaction posted successfully",
-      transactionId: txDoc[0].transactionId,
-      accountingLines,
-    });
+    return res.status(201).json({ message: "Expense transaction posted successfully", transactionId: txDoc[0].transactionId, accountingLines });
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
@@ -290,57 +228,25 @@ export const ExpenseTransactionController = async (req, res) => {
   }
 };
 
-/**
- * Commission Transaction Controller
- */
+// --------------------- Commission Transaction ---------------------
 export const CommissionTransactionController = async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
+    session.startTransaction();
+
     const { amount, description } = req.body;
-    if (!amount || amount <= 0) throw new Error("Invalid commission amount");
+    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid commission amount" });
 
     const cashObjId = await getSummaryObjectId(SID.CASH, session);
     const commissionObjId = await getSummaryObjectId(SID.COMMISSION, session);
 
     const accountingLines = [
-      {
-        summaryObjectId: cashObjId,
-        summaryId: SID.CASH,
-        fieldLineObjectId: null,
-        fieldLineId: null,
-        debitOrCredit: "debit",
-        amount,
-        fieldName: "Commission received (Cash)",
-      },
-      {
-        summaryObjectId: commissionObjId,
-        summaryId: SID.COMMISSION,
-        fieldLineObjectId: null,
-        fieldLineId: null,
-        debitOrCredit: "credit",
-        amount,
-        fieldName: "Commission Income",
-      },
+      { summaryObjectId: cashObjId, summaryId: SID.CASH, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "debit", amount, fieldName: "Commission received (Cash)" },
+      { summaryObjectId: commissionObjId, summaryId: SID.COMMISSION, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "credit", amount, fieldName: "Commission Income" }
     ];
 
-    // Save transaction
     const txDoc = await TransactionModel.create(
-      [
-        {
-          transactionId: Date.now(),
-          date: new Date(),
-          description: description || "Commission Transaction",
-          amount,
-          lines: accountingLines.map((l) => ({
-            fieldLineId: l.fieldLineId,
-            summaryId: l.summaryId,
-            debitOrCredit: l.debitOrCredit,
-            amount: l.amount,
-          })),
-        },
-      ],
+      [{ transactionId: Date.now(), date: new Date(), description: description || "Commission Transaction", amount, lines: accountingLines.map(l => ({ fieldLineId: l.fieldLineId, summaryId: l.summaryId, debitOrCredit: l.debitOrCredit, amount: l.amount })) }],
       { session }
     );
 
@@ -349,10 +255,7 @@ export const CommissionTransactionController = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(201).json({
-      message: "Commission transaction posted successfully",
-      transactionId: txDoc[0].transactionId,
-    });
+    return res.status(201).json({ message: "Commission transaction posted successfully", transactionId: txDoc[0].transactionId });
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
