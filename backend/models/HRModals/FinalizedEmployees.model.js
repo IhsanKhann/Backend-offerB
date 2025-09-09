@@ -25,6 +25,13 @@ const employmentHistorySchema = new mongoose.Schema({
   organizationsWorkedFor: { type: String },
 });
 
+const salaryDetailSchema = new mongoose.Schema({
+  type: { type: String },         // e.g., "Allowance", "Deduction", "Bonus"
+  name: { type: String },         // e.g., "Gratuity Fund"
+  value: { type: Number, default: 0 },
+  calculation: { type: String },  // optional: "percentage of base", etc.
+});
+
 const salarySchema = new mongoose.Schema({
   startDate: { type: Date, required: true },
   type: {

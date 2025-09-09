@@ -56,16 +56,16 @@ export const getSalaryRulesByRoleName = async (req, res) => {
   }
 };
 
-// Helper function to calculate salary breakup
+// Helper to calculate salary breakup
 const calculateSalaryBreakup = (salaryRules) => {
-  const { baseSalary, allowances = [], deductions = [], terminalBenefits = [] } = salaryRules;
+  const { baseSalary = 0, allowances = [], deductions = [], terminalBenefits = [] } = salaryRules;
 
   let totalAllowances = 0;
   let totalDeductions = 0;
   let totalTerminal = 0;
   const breakdown = [];
 
-  // Calculate Allowances
+  // Allowances
   allowances.forEach(a => {
     const value = a.type === "percentage" ? (baseSalary * a.value) / 100 : a.value;
     totalAllowances += value;
@@ -73,11 +73,11 @@ const calculateSalaryBreakup = (salaryRules) => {
       type: "allowance",
       name: a.name,
       value,
-      calculation: a.type === "percentage" ? `${a.value}% of ${baseSalary}` : "Fixed amount",
+      calculation: a.type === "percentage" ? `${a.value}% of ${baseSalary}` : "Fixed amount"
     });
   });
 
-  // Calculate Deductions
+  // Deductions
   deductions.forEach(d => {
     const value = d.type === "percentage" ? (baseSalary * d.value) / 100 : d.value;
     totalDeductions += value;
@@ -85,11 +85,11 @@ const calculateSalaryBreakup = (salaryRules) => {
       type: "deduction",
       name: d.name,
       value,
-      calculation: d.type === "percentage" ? `${d.value}% of ${baseSalary}` : "Fixed amount",
+      calculation: d.type === "percentage" ? `${d.value}% of ${baseSalary}` : "Fixed amount"
     });
   });
 
-  // Calculate Terminal Benefits
+  // Terminal Benefits
   terminalBenefits.forEach(t => {
     const value = t.type === "percentage" ? (baseSalary * t.value) / 100 : t.value;
     totalTerminal += value;
@@ -97,49 +97,56 @@ const calculateSalaryBreakup = (salaryRules) => {
       type: "terminal",
       name: t.name,
       value,
-      calculation: t.type === "percentage" ? `${t.value}% of ${baseSalary}` : "Fixed amount",
+      calculation: t.type === "percentage" ? `${t.value}% of ${baseSalary}` : "Fixed amount"
     });
   });
 
-  // Final Net Salary
   const netSalary = baseSalary + totalAllowances + totalTerminal - totalDeductions;
 
   return {
     totalAllowances,
     totalDeductions,
+    totalTerminal,
     netSalary,
     breakdown
   };
 };
 
-// Controller to create a breakup file
 export const createBreakupFile = async (req, res) => {
   try {
-    const { roleId, salaryRules } = req.body;
-    const { employeeId } = req.params;
+    const { employeeId, roleId, salaryRules } = req.body;
 
-    if (!roleId || !salaryRules) {
-      return res.status(400).json({ success: false, message: "Missing roleId or salaryRules" });
+    // Validate IDs
+    if (!mongoose.Types.ObjectId.isValid(employeeId) || !mongoose.Types.ObjectId.isValid(roleId)) {
+      return res.status(400).json({ message: "Invalid employee or role ID" });
     }
 
-    console.log("Received salaryRules:", salaryRules);
-    console.log("Received roleId:", roleId);
+    // Calculate breakup
+    const { totalAllowances, totalDeductions, totalTerminal, netSalary, breakdown } = calculateSalaryBreakup(salaryRules);
 
-    const calculatedBreakup = calculateSalaryBreakup(salaryRules);
-
-    const breakup = await BreakupFile.create({
+    // Create new BreakupFile document
+    const breakup = new BreakupFile({
       employeeId,
       roleId,
       salaryRules,
-      calculatedBreakup
+      calculatedBreakup: {
+        totalAllowances,
+        totalDeductions,
+        netSalary,
+        breakdown
+      }
     });
 
-    console.log("Breakup file created successfully:", breakup._id);
+    await breakup.save();
 
-    res.status(201).json({ success: true, data: breakup });
+    res.status(200).json({
+      success: true,
+      message: "Breakup file created successfully",
+      data: breakup
+    });
   } catch (err) {
     console.error("Error creating breakup file:", err);
-    res.status(500).json({ success: false, message: "Server error", error: err.message });
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
@@ -161,7 +168,6 @@ export const getBreakupFile = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 };
-
 
 // 4. Initiate salary transaction (handler placeholder)
 export const initiateSalaryTransaction = async (req, res) => {

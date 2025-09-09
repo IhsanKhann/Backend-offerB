@@ -64,7 +64,7 @@ export default function SalaryRulesTable() {
   // Save edits
   const handleSave = async () => {
     try {
-      await api.put(`/salarytable/${editRoleId}`, { salaryRules: formData });
+      await api.put(`/summaries/salarytable/${editRoleId}`, { salaryRules: formData });
       handleCancel();
       fetchRoles();
       alert("Salary rules updated!");

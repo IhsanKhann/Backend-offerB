@@ -1,3 +1,4 @@
+// SalaryDashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -101,29 +102,37 @@ const SalaryDashboard = () => {
                   </div>
                 </div>
 
-                {/* Salary Info */}
-                <div className="flex flex-col space-y-1 text-right">
-                  <p className="text-sm">
-                    <span className="font-medium">Base Salary:</span>{" "}
-                    {emp.salary?.amount || "N/A"}
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-medium">Salary Type:</span>{" "}
-                    {emp.salary?.type || "N/A"}
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-medium">Terminal Benefits:</span>{" "}
-                    {emp.salary?.terminalBenefits?.length || 0}
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-medium">EOBI:</span>{" "}
-                    {emp.salary?.EOBI || "N/A"}
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-medium">Gratuity Fund:</span>{" "}
-                    {emp.salary?.employeeGratuityFund || "N/A"}
-                  </p>
-                </div>
+               <div className="flex flex-col space-y-1 text-right">
+  <p className="text-sm">
+    <span className="font-medium">Base Salary:</span> {emp.salary?.amount || "N/A"}
+  </p>
+  <p className="text-sm">
+    <span className="font-medium">Salary Type:</span> {emp.salary?.type || "N/A"}
+  </p>
+  <p className="text-sm">
+    <span className="font-medium">Terminal Benefits:</span> {emp.salary?.terminalBenefits?.join(", ") || "N/A"}
+  </p>
+  <p className="text-sm">
+    <span className="font-medium">EOBI:</span> {emp.salary?.EOBI || "N/A"}
+  </p>
+  <p className="text-sm">
+    <span className="font-medium">Gratuity Fund:</span> {emp.salary?.employeeGratuityFund || "N/A"}
+  </p>
+  <p className="text-sm">
+    <span className="font-medium">Group Term Insurance:</span> {emp.salary?.groupTermInsurance || "N/A"}
+  </p>
+
+  {/* Display all salary details */}
+  {emp.salary?.salaryDetails?.length > 0 && (
+    <div className="mt-2 text-xs text-gray-500">
+      {emp.salary.salaryDetails.map((detail, idx) => (
+        <p key={idx}>
+          {detail.name}: {detail.value} {detail.calculation ? `(${detail.calculation})` : ""}
+        </p>
+      ))}
+    </div>
+  )}
+</div>
 
                 {/* Action Menu */}
                 <div className="relative">

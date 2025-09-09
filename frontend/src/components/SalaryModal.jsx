@@ -9,6 +9,9 @@ export default function SalaryModal({ isOpen, onClose, employee = null, roleName
     allowances: [],
     deductions: [],
     terminalBenefits: [],
+    EOBI: 0,
+    employeeGratuityFund: 0,
+    groupTermInsurance: 0,
   });
   const [originalRules, setOriginalRules] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,16 +37,28 @@ export default function SalaryModal({ isOpen, onClose, employee = null, roleName
           salaryRules = res.data?.data || {};
         }
 
-        const rules = {
+        setFormData({
           baseSalary: salaryRules.baseSalary || "",
           salaryType: salaryRules.salaryType || "monthly",
           allowances: salaryRules.allowances || [],
           deductions: salaryRules.deductions || [],
           terminalBenefits: salaryRules.terminalBenefits || [],
-        };
+          EOBI: salaryRules.EOBI || 0,
+          employeeGratuityFund: salaryRules.employeeGratuityFund || 0,
+          groupTermInsurance: salaryRules.groupTermInsurance || 0,
+        });
 
-        setFormData(rules);
-        setOriginalRules(rules);
+        setOriginalRules({
+          baseSalary: salaryRules.baseSalary || "",
+          salaryType: salaryRules.salaryType || "monthly",
+          allowances: salaryRules.allowances || [],
+          deductions: salaryRules.deductions || [],
+          terminalBenefits: salaryRules.terminalBenefits || [],
+          EOBI: salaryRules.EOBI || 0,
+          employeeGratuityFund: salaryRules.employeeGratuityFund || 0,
+          groupTermInsurance: salaryRules.groupTermInsurance || 0,
+        });
+
         setError(null);
       } catch (err) {
         console.error("Error fetching rules:", err);
@@ -87,57 +102,39 @@ export default function SalaryModal({ isOpen, onClose, employee = null, roleName
     }));
   };
 
-  const handleCreateBreakup = async () => {
-    if (isRoleView) return; // Breakup creation only for employees
+const handleCreateBreakup = async (useEdited = false) => {
+  if (isRoleView) return; // Breakup only for employees
 
-    try {
-      const roleIdentifier = employee?.role?._id || employee?.role?.roleName;
-      if (!roleIdentifier) {
-        alert("Missing role information. Cannot create breakup.");
-        return;
-      }
+  try {
+    const employeeId = employee?._id;
+    const roleId = employee?.role?._id;
 
-      const payload = { roleId: roleIdentifier, salaryRules: originalRules };
-      const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
-
-      if (res?.data?.success) {
-        alert("Breakup file created using role salary!");
-        onClose?.();
-        navigate(`/salary/breakup/${employee._id}`);
-      } else {
-        alert(res?.data?.message || "Failed to create breakup file.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error creating breakup file.");
+    if (!employeeId || !roleId) {
+      alert("Missing employee or role information. Cannot create breakup.");
+      return;
     }
-  };
 
-  const handleCreateBreakupEdited = async () => {
-    if (isRoleView) return; // Breakup creation only for employees
+    // Prepare payload with full salary rules
+    const payload = {
+      employeeId,
+      roleId,
+      salaryRules: useEdited ? formData : originalRules
+    };
 
-    try {
-      const roleIdentifier = employee?.role?._id || employee?.role?.roleName;
-      if (!roleIdentifier) {
-        alert("Missing role information. Cannot create breakup.");
-        return;
-      }
+    const res = await api.post(`/summaries/salary/breakup/${employeeId}`, payload);
 
-      const payload = { roleId: roleIdentifier, salaryRules: formData };
-      const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
-
-      if (res?.data?.success) {
-        alert("Breakup file created using edited salary!");
-        onClose?.();
-        navigate(`/salary/breakup/${employee._id}`);
-      } else {
-        alert(res?.data?.message || "Failed to create breakup file.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error creating breakup file.");
+    if (res?.data?.success) {
+      alert("Breakup file created successfully!");
+      onClose?.();
+      navigate(`/salary/breakup/${employeeId}`);
+    } else {
+      alert(res?.data?.message || "Failed to create breakup file.");
     }
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Error creating breakup file.");
+  }
+};
 
   const renderValue = (item) =>
     item.type === "percentage" ? `${item.value}%` : `PKR ${item.value?.toLocaleString()}`;
@@ -154,7 +151,9 @@ export default function SalaryModal({ isOpen, onClose, employee = null, roleName
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-bold">
-            {isRoleView ? `Role Salary Rules: ${roleName}` : `Salary Rules: ${employee?.individualName}`}
+            {isRoleView
+              ? `Role Salary Rules: ${roleName}`
+              : `Salary Rules: ${employee?.individualName}`}
           </h2>
           {!isRoleView && (
             <button
@@ -246,10 +245,11 @@ export default function SalaryModal({ isOpen, onClose, employee = null, roleName
             />
 
             {!isRoleView && (
-              <>
-                <p><strong>EOBI:</strong> {formData.EOBI || "N/A"}</p>
-                <p><strong>Gratuity Fund:</strong> {formData.employeeGratuityFund || "N/A"}</p>
-              </>
+              <div className="space-y-1">
+                <p><strong>EOBI:</strong> PKR {formData.EOBI?.toLocaleString()}</p>
+                <p><strong>Gratuity Fund:</strong> PKR {formData.employeeGratuityFund?.toLocaleString()}</p>
+                <p><strong>Group Term Insurance:</strong> PKR {formData.groupTermInsurance?.toLocaleString()}</p>
+              </div>
             )}
           </form>
         )}
@@ -264,20 +264,18 @@ export default function SalaryModal({ isOpen, onClose, employee = null, roleName
               Cancel
             </button>
 
-            {!isEditing && (
+            {!isEditing ? (
               <button
                 type="button"
-                onClick={handleCreateBreakup}
+                onClick={() => handleCreateBreakup(false)}
                 className="px-5 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
               >
                 Create Breakup
               </button>
-            )}
-
-            {isEditing && (
+            ) : (
               <button
                 type="button"
-                onClick={handleCreateBreakupEdited}
+                onClick={() => handleCreateBreakup(true)}
                 className="px-5 py-2 rounded bg-green-600 text-white hover:bg-green-700"
               >
                 Create Breakup with Edited Data
@@ -290,16 +288,7 @@ export default function SalaryModal({ isOpen, onClose, employee = null, roleName
   );
 }
 
-function SectionEditor({
-  title,
-  section,
-  items,
-  handleArrayChange,
-  addItem,
-  removeItem,
-  isEditing,
-  renderValue,
-}) {
+function SectionEditor({ title, section, items, handleArrayChange, addItem, removeItem, isEditing, renderValue }) {
   return (
     <div className="border rounded-lg p-4 bg-gray-50">
       <h3 className="text-xl font-semibold mb-3">{title}</h3>
@@ -313,16 +302,12 @@ function SectionEditor({
                     type="text"
                     placeholder="Name"
                     value={item.name}
-                    onChange={(e) =>
-                      handleArrayChange(section, idx, "name", e.target.value)
-                    }
+                    onChange={(e) => handleArrayChange(section, idx, "name", e.target.value)}
                     className="flex-1 border rounded px-2 py-1"
                   />
                   <select
                     value={item.type}
-                    onChange={(e) =>
-                      handleArrayChange(section, idx, "type", e.target.value)
-                    }
+                    onChange={(e) => handleArrayChange(section, idx, "type", e.target.value)}
                     className="w-32 border rounded px-2 py-1"
                   >
                     <option value="fixed">Fixed</option>
@@ -332,9 +317,7 @@ function SectionEditor({
                     type="number"
                     placeholder="Value"
                     value={item.value}
-                    onChange={(e) =>
-                      handleArrayChange(section, idx, "value", e.target.value)
-                    }
+                    onChange={(e) => handleArrayChange(section, idx, "value", e.target.value)}
                     className="w-32 border rounded px-2 py-1"
                   />
                   <button
