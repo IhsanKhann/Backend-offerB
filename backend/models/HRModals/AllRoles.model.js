@@ -1,33 +1,23 @@
 import mongoose from "mongoose";
 
+const BenefitSchema = new mongoose.Schema({
+  name: String,
+  type: { type: String, enum: ["fixed", "percentage"] },
+  value: Number,
+}, { _id: false });
+
+const SalaryRulesSchema = new mongoose.Schema({
+  baseSalary: { type: Number, required: true },
+  salaryType: { type: String, enum: ["monthly", "hourly"], default: "monthly" },
+  terminalBenefits: [BenefitSchema],
+  deductions: [BenefitSchema],
+  allowances: [BenefitSchema],
+}, { _id: false });
+
 const RoleSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  description: { type: String },
-  salaryRules: {
-    baseSalary: { type: Number, required: true },
-    salaryType: { type: String, enum: ["monthly", "hourly"], default: "monthly" },
-    terminalBenefits: [
-      {
-        name: String,
-        type: String, // e.g., "fixed" or "percentage"
-        value: Number, // amount or percentage
-      },
-    ],
-    deductions: [
-      {
-        name: String,
-        type: String, // "fixed" or "percentage"
-        value: Number,
-      },
-    ],
-    allowances: [
-      {
-        name: String,
-        type: String, // "fixed" or "percentage"
-        value: Number,
-      },
-    ],
-  },
+  description: String,
+  salaryRules: SalaryRulesSchema
 });
 
-export default mongoose.model("allroles", RoleSchema);
+export default mongoose.model("AllRoles", RoleSchema);

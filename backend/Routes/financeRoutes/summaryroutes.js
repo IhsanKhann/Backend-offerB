@@ -16,20 +16,24 @@ import {
 } from "../../contollers/FinanceControllers/RulesController.js";
 
 import {
-  getEmployeeRules,
+  getSalaryRulesByRoleName,
   createBreakupFile,
   getBreakupFile,
   initiateSalaryTransaction,
 } from "../../contollers/FinanceControllers/SalaryController.js"; // new controllers
+
+import {
+    getAllSalaryRules,
+    getSalaryRulesByRole,
+    updateSalaryRules,
+    createRoleWithSalaryRules,
+} from "../../contollers/FinanceControllers/TablesControllers.js"; // salary rules table
 
 import RuleModel from "../../models/FinanceModals/TablesModel.js";
 import { authenticate } from "../../middlewares/authMiddlewares.js";
 
 const router = express.Router();
 
-/**
- * Public routes
- */
 // Summaries
 router.get("/", getSummaries);                    
 router.get("/summaries-with-lines", getSummariesWithFieldLines); // summaries + fieldlines
@@ -40,7 +44,7 @@ router.get("/rules", getRules);                               // all rules
 router.get("/rules/:ruleId", getRuleById);                    // rule by id
 
 // Salary / Breakup
-router.post("/salary/rules-by-role/:roleName", getEmployeeRules);    // get employee salary rules
+router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);    // get employee salary rules
 router.post("/salary/breakup/:employeeId", createBreakupFile); // create breakup file
 router.get("/salary/breakup/:employeeId", getBreakupFile);    // get latest breakup file
 router.post("/salary/transaction/:employeeId", initiateSalaryTransaction); // placeholder
@@ -56,6 +60,7 @@ router.post("/init-capital-cash", initCapitalCash);
 router.post("/rules", createRule);
 router.put("/rules/:ruleId", updateRule);
 router.delete("/rules/:ruleId/delete", deleteRule);
+router.get("/salary/breakup':employeeId", getBreakupFile);    // get latest breakup file
 
 // Delete a split from a rule
 router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
@@ -90,5 +95,12 @@ router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, 
     res.status(500).json({ message: "Error deleting mirror" });
   }
 });
+
+// salary rules table.
+router.get("/salarytable/all", getAllSalaryRules);
+router.get("/salarytable/:roleId", getSalaryRulesByRole);
+router.put("/salarytable/:roleId", updateSalaryRules);
+router.post("/salarytable/", createRoleWithSalaryRules);
+
 
 export default router;

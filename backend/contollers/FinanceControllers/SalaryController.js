@@ -3,80 +3,132 @@ import AllRolesModel from "../../models/HRModals/AllRoles.model.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 import BreakupFile from "../../models/FinanceModals/BreakupfileModel.js";
 
-// 1. Get employee salary rules (from role collection)
-export const getEmployeeRules = async (req, res) => {
-  const { roleName } = req.params;
-
+export const getSalaryRulesByRoleName = async (req, res) => {
   try {
-    const role = await AllRolesModel.findOne({ name: roleName });
+    const roleNameDecoded = decodeURIComponent(req.params.roleName).trim();
 
-    if (!role) return res.status(404).json({ message: "Role not found" });
+    const role = await AllRolesModel.findOne({
+      name: { $regex: new RegExp(`^${roleNameDecoded}$`, "i") },
+    });
 
-    res.json({
+    if (!role) {
+      return res.status(404).json({ success: false, message: "Role not found" });
+    }
+
+    // Return only the salaryRules part
+    return res.status(200).json({
       success: true,
-      data: role.salaryRules,
-      roleId: role._id
+      data: role.salaryRules || null, // Return ONLY salaryRules
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching salary rules:", err.stack || err.message);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// 2. Create breakup file
+// Helper function to calculate salary breakup
+const calculateSalaryBreakup = (salaryRules) => {
+  const { baseSalary, allowances = [], deductions = [], terminalBenefits = [] } = salaryRules;
+
+  let totalAllowances = 0;
+  let totalDeductions = 0;
+  let totalTerminal = 0;
+  const breakdown = [];
+
+  // Calculate Allowances
+  allowances.forEach(a => {
+    const value = a.type === "percentage" ? (baseSalary * a.value) / 100 : a.value;
+    totalAllowances += value;
+    breakdown.push({
+      type: "allowance",
+      name: a.name,
+      value,
+      calculation: a.type === "percentage" ? `${a.value}% of ${baseSalary}` : "Fixed amount",
+    });
+  });
+
+  // Calculate Deductions
+  deductions.forEach(d => {
+    const value = d.type === "percentage" ? (baseSalary * d.value) / 100 : d.value;
+    totalDeductions += value;
+    breakdown.push({
+      type: "deduction",
+      name: d.name,
+      value,
+      calculation: d.type === "percentage" ? `${d.value}% of ${baseSalary}` : "Fixed amount",
+    });
+  });
+
+  // Calculate Terminal Benefits
+  terminalBenefits.forEach(t => {
+    const value = t.type === "percentage" ? (baseSalary * t.value) / 100 : t.value;
+    totalTerminal += value;
+    breakdown.push({
+      type: "terminal",
+      name: t.name,
+      value,
+      calculation: t.type === "percentage" ? `${t.value}% of ${baseSalary}` : "Fixed amount",
+    });
+  });
+
+  // Final Net Salary
+  const netSalary = baseSalary + totalAllowances + totalTerminal - totalDeductions;
+
+  return {
+    totalAllowances,
+    totalDeductions,
+    netSalary,
+    breakdown
+  };
+};
+
+// Controller to create a breakup file
 export const createBreakupFile = async (req, res) => {
-  const { employeeId } = req.params;
-  const { salaryRules } = req.body; // can be edited or default from frontend
-
   try {
-    // Calculate breakup
-    let totalAllowances = 0, totalDeductions = 0, breakdown = [];
-    
-    salaryRules.allowances.forEach(a => {
-      const value = a.type === "percentage" ? (salaryRules.baseSalary * a.value) / 100 : a.value;
-      totalAllowances += value;
-      breakdown.push({ name: a.name, type: "allowance", value });
-    });
+    const { roleId, salaryRules } = req.body;
+    const { employeeId } = req.params;
 
-    salaryRules.deductions.forEach(d => {
-      const value = d.type === "percentage" ? (salaryRules.baseSalary * d.value) / 100 : d.value;
-      totalDeductions += value;
-      breakdown.push({ name: d.name, type: "deduction", value });
-    });
+    if (!roleId || !salaryRules) {
+      return res.status(400).json({ success: false, message: "Missing roleId or salaryRules" });
+    }
 
-    salaryRules.terminalBenefits.forEach(t => {
-      const value = t.type === "percentage" ? (salaryRules.baseSalary * t.value) / 100 : t.value;
-      breakdown.push({ name: t.name, type: "terminal", value });
-    });
+    console.log("Received salaryRules:", salaryRules);
+    console.log("Received roleId:", roleId);
 
-    const netSalary = salaryRules.baseSalary + totalAllowances - totalDeductions;
+    const calculatedBreakup = calculateSalaryBreakup(salaryRules);
 
-    const breakupFile = new BreakupFile({
+    const breakup = await BreakupFile.create({
       employeeId,
-      roleId: req.body.roleId,
+      roleId,
       salaryRules,
-      calculatedBreakup: { totalAllowances, totalDeductions, netSalary, breakdown },
+      calculatedBreakup
     });
 
-    await breakupFile.save();
+    console.log("Breakup file created successfully:", breakup._id);
 
-    res.json({ success: true, data: breakupFile });
+    res.status(201).json({ success: true, data: breakup });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to create breakup file" });
+    console.error("Error creating breakup file:", err);
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 };
 
-// 3. Get breakup file for employee
+// Optional: Controller to fetch breakup file for an employee
 export const getBreakupFile = async (req, res) => {
-  const { employeeId } = req.params;
   try {
-    const breakup = await BreakupFile.findOne({ employeeId }).sort({ createdAt: -1 });
-    if (!breakup) return res.status(404).json({ message: "Breakup file not found" });
-    res.json({ success: true, data: breakup });
+    const { employeeId } = req.params;
+    const breakup = await BreakupFile.findOne({ employeeId })
+      .populate("employeeId", "individualName") // optional: populate employee info
+      .populate("roleId", "name");             // optional: populate role info
+
+    if (!breakup) {
+      return res.status(404).json({ success: false, message: "Breakup file not found" });
+    }
+
+    res.status(200).json({ success: true, data: breakup });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching breakup file:", err);
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 };
 

@@ -20,6 +20,7 @@ import SummaryTable from "./Pages/Finance/SummaryTable.jsx";
 import RuleTable from "./Pages/Finance/Table.jsx";
 import SalaryDashboard from "./Pages/Finance/SalaryDashboard.jsx";
 import BreakupSummary from "./Pages/Finance/BreakupSummary.jsx";
+import SalaryRulesTable from "./Pages/Finance/SalaryRules.jsx";
 
 import "./index.css";
 import store from "./store/store.jsx";
@@ -148,7 +149,24 @@ const router = createBrowserRouter([
        <BreakupSummary />
      </ProtectedRoute> 
    ),
-  }
+  },
+  {
+   path: "/salary/breakup",
+   element: (
+     <ProtectedRoute>
+       <BreakupSummary />
+     </ProtectedRoute> 
+   ),
+  },
+  {
+   path: "/salary/rulesTable",
+   element: (
+     <ProtectedRoute>
+       <SalaryRulesTable />
+     </ProtectedRoute> 
+   ),
+  },
+
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
