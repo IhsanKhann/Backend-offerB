@@ -3,9 +3,10 @@ import { useParams } from "react-router-dom";
 import api from "../../api/axios.js";
 
 const BreakupSummary = () => {
-  const { employeeId } = useParams(); // Get employeeId from URL
+  const { employeeId } = useParams();
   const [breakup, setBreakup] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -27,12 +28,18 @@ const BreakupSummary = () => {
   }, [employeeId]);
 
   const handleSalaryTransaction = async () => {
+    if (!window.confirm("Are you sure you want to process this salary transaction?")) return;
+
+    setProcessing(true);
     try {
-      const res = await api.post(`/salary/transaction/${employeeId}`);
+      const res = await api.post(`/transactions/salary/${employeeId}`);
       alert(res.data.message || "Salary transaction completed");
+      setBreakup(null);
     } catch (err) {
       console.error(err);
       alert("Failed to initiate salary transaction");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -40,36 +47,90 @@ const BreakupSummary = () => {
   if (!breakup) return <div className="p-6">No breakup file found for this employee.</div>;
 
   const { salaryRules, calculatedBreakup } = breakup;
+  const formatRupees = (amt) => `PKR ${Number(amt || 0).toLocaleString()}`;
 
-  // Helper to format numbers in PKR
-  const formatRupees = (amount) => `PKR ${Number(amount).toLocaleString()}`;
+  // Separate breakdown into categories
+  const allowances = calculatedBreakup.breakdown.filter(b => b.type === "allowance");
+  const deductions = calculatedBreakup.breakdown.filter(b => b.type === "deduction");
+  const terminal = calculatedBreakup.breakdown.filter(b => b.type === "terminal");
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen space-y-4">
-      <h1 className="text-3xl font-bold mb-6">Breakup Summary</h1>
+    <div className="p-6 bg-gray-100 min-h-screen flex justify-center">
+      <div className="bg-white shadow-lg rounded-lg w-full max-w-xl p-6 space-y-6">
+        <h1 className="text-3xl font-bold text-center mb-4">Salary Slip</h1>
+        <p className="text-center text-gray-600">This is how your salary has been split</p>
 
-      <div className="bg-white p-4 rounded shadow space-y-2">
-        <p><strong>Base Salary:</strong> {formatRupees(salaryRules.baseSalary)}</p>
-        <p><strong>Total Allowances:</strong> {formatRupees(calculatedBreakup.totalAllowances)}</p>
-        <p><strong>Total Deductions:</strong> {formatRupees(calculatedBreakup.totalDeductions)}</p>
-        <p><strong>Net Salary:</strong> {formatRupees(calculatedBreakup.netSalary)}</p>
+        <div className="border-t border-b py-4">
+          <h2 className="text-lg font-semibold mb-2">Base Salary</h2>
+          <div className="flex justify-between">
+            <span>Base Salary:</span>
+            <span>{formatRupees(salaryRules.baseSalary)}</span>
+          </div>
+        </div>
 
-        <h3 className="font-semibold mt-2">Breakdown:</h3>
-        <ul className="list-disc pl-5">
-          {calculatedBreakup.breakdown.map((b, idx) => (
-            <li key={idx}>
-              {b.name} ({b.type}): {formatRupees(b.value)}
-            </li>
-          ))}
-        </ul>
+        <div className="border-b py-4">
+          <h2 className="text-lg font-semibold mb-2">Allowances</h2>
+          {allowances.length ? (
+            allowances.map((item, idx) => (
+              <div key={idx} className="flex justify-between">
+                <span>{item.name}</span>
+                <span>{formatRupees(item.value)}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No allowances</p>
+          )}
+          <div className="flex justify-between mt-2 font-semibold">
+            <span>Total Allowances:</span>
+            <span>{formatRupees(calculatedBreakup.totalAllowances)}</span>
+          </div>
+        </div>
+
+        <div className="border-b py-4">
+          <h2 className="text-lg font-semibold mb-2">Deductions</h2>
+          {deductions.length ? (
+            deductions.map((item, idx) => (
+              <div key={idx} className="flex justify-between">
+                <span>{item.name}</span>
+                <span>{formatRupees(item.value)}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No deductions</p>
+          )}
+          <div className="flex justify-between mt-2 font-semibold">
+            <span>Total Deductions:</span>
+            <span>{formatRupees(calculatedBreakup.totalDeductions)}</span>
+          </div>
+        </div>
+
+        {terminal.length > 0 && (
+          <div className="border-b py-4">
+            <h2 className="text-lg font-semibold mb-2">Terminal Benefits</h2>
+            {terminal.map((item, idx) => (
+              <div key={idx} className="flex justify-between">
+                <span>{item.name}</span>
+                <span>{formatRupees(item.value)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="py-4 flex justify-between items-center font-bold text-lg">
+          <span>Net Salary:</span>
+          <span>{formatRupees(calculatedBreakup.netSalary)}</span>
+        </div>
+
+        <button
+          onClick={handleSalaryTransaction}
+          disabled={processing}
+          className={`w-full py-3 rounded text-white font-semibold ${
+            processing ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
+          }`}
+        >
+          {processing ? "Processing..." : "Initiate Salary Transaction"}
+        </button>
       </div>
-
-      <button
-        onClick={handleSalaryTransaction}
-        className="mt-4 px-4 py-2 bg-green-500 text-white rounded"
-      >
-        Initiate Salary Transaction
-      </button>
     </div>
   );
 };

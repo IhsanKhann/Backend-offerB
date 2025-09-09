@@ -4,6 +4,8 @@ import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
 import SummaryFieldLineModel from "../../models/FinanceModals/SummaryFieldLinesModel.js";
 import TablesModel from "../../models/FinanceModals/TablesModel.js";
+import BreakupFileModel from "../../models/FinanceModals/BreakupfileModel.js";
+import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 
 // Summary numeric IDs
 const SID = {
@@ -404,6 +406,127 @@ export const transferRetainedIncomeToCapital = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.error(err);
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+};
+
+export const SalaryTransactionController = async (req, res) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const { employeeId } = req.params;
+    if (!employeeId) return res.status(400).json({ error: "employeeId is required" });
+
+    // Fetch the latest breakup file for the employee
+    const breakupFile = await BreakupFileModel.findOne({ employeeId }).sort({ createdAt: -1 }).session(session);
+    if (!breakupFile) return res.status(404).json({ error: "Breakup file not found" });
+
+    const { calculatedBreakup } = breakupFile;
+    if (!calculatedBreakup?.breakdown?.length) {
+      return res.status(400).json({ error: "Breakup file has no breakdown data" });
+    }
+
+    const accountingLines = [];
+    let totalExpenseDebit = 0;
+
+    // Process each split/component in the breakup file
+    for (const item of calculatedBreakup.breakdown) {
+      const amount = item.value;
+      if (amount <= 0) continue;
+
+      // Compute expense summary and field line IDs
+      let expenseSummaryId = SID.EXPENSES; // default for all allowances/deductions
+      const expenseFieldLineId = item.fieldLineId;
+
+      const expenseSummaryObjId = await getSummaryObjectId(expenseSummaryId, session);
+      const expenseFieldObjId = await getFieldLineObjectId(expenseFieldLineId, session);
+
+      // 1️⃣ Debit Expense / Deduction
+      accountingLines.push({
+        summaryObjectId: expenseSummaryObjId,
+        summaryId: expenseSummaryId,
+        fieldLineObjectId: expenseFieldObjId,
+        fieldLineId: expenseFieldLineId,
+        debitOrCredit: item.type === "deduction" ? "credit" : "debit", // deductions are credit
+        amount,
+        fieldName: item.componentName,
+      });
+
+      totalExpenseDebit += item.type === "deduction" ? -amount : amount;
+
+      // 2️⃣ Credit Mirrors (Allowances)
+      if (item.mirrors && item.mirrors.length) {
+        for (const mirror of item.mirrors) {
+          const mirrorFieldObjId = await getFieldLineObjectId(mirror.fieldLineId, session);
+          const mirrorSummaryObjId = await getSummaryObjectId(mirror.summaryId, session);
+
+          accountingLines.push({
+            summaryObjectId: mirrorSummaryObjId,
+            summaryId: mirror.summaryId,
+            fieldLineObjectId: mirrorFieldObjId,
+            fieldLineId: mirror.fieldLineId,
+            debitOrCredit: mirror.debitOrCredit,
+            amount,
+            fieldName: `Mirror for ${item.componentName}`,
+          });
+        }
+      }
+    }
+
+    // -------------------- Fund Expenses from Commission → Cash → Capital --------------------
+    let remainingToFund = totalExpenseDebit;
+
+    const commissionSummary = await SummaryModel.findOne({ summaryId: SID.COMMISSION }).session(session);
+    const commissionBalance = commissionSummary ? commissionSummary.endingBalance || 0 : 0;
+
+    const cashSummaryObjId = await getSummaryObjectId(SID.CASH, session);
+    const commissionSummaryObjId = await getSummaryObjectId(SID.COMMISSION, session);
+    const capitalSummaryObjId = await getSummaryObjectId(SID.CAPITAL, session);
+
+    if (commissionBalance > 0 && remainingToFund > 0) {
+      const transferAmount = Math.min(commissionBalance, remainingToFund);
+      accountingLines.push(
+        { summaryObjectId: cashSummaryObjId, summaryId: SID.CASH, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "debit", amount: transferAmount, fieldName: "Fund from Commission → Cash" },
+        { summaryObjectId: commissionSummaryObjId, summaryId: SID.COMMISSION, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "credit", amount: transferAmount, fieldName: "Reduce Commission" }
+      );
+      remainingToFund -= transferAmount;
+    }
+
+    if (remainingToFund > 0.01) {
+      accountingLines.push(
+        { summaryObjectId: cashSummaryObjId, summaryId: SID.CASH, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "debit", amount: remainingToFund, fieldName: "Fund from Capital → Cash" },
+        { summaryObjectId: capitalSummaryObjId, summaryId: SID.CAPITAL, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "credit", amount: remainingToFund, fieldName: "Reduce Capital" }
+      );
+    }
+
+    // -------------------- Pay Allowances from Cash --------------------
+    const allowanceCredits = accountingLines.filter(l => l.debitOrCredit === "credit");
+    for (const allow of allowanceCredits) {
+      const payAmount = allow.amount;
+      accountingLines.push(
+        { summaryObjectId: allow.summaryObjectId, summaryId: allow.summaryId, fieldLineObjectId: allow.fieldLineObjectId, fieldLineId: allow.fieldLineId, debitOrCredit: "debit", amount: payAmount, fieldName: `Pay Allowance - ${allow.fieldName}` },
+        { summaryObjectId: cashSummaryObjId, summaryId: SID.CASH, fieldLineObjectId: null, fieldLineId: null, debitOrCredit: "credit", amount: payAmount, fieldName: `Cash Payment for Allowance - ${allow.fieldName}` }
+      );
+    }
+
+    // -------------------- Save Transaction & Update Balances --------------------
+    const txDoc = await TransactionModel.create(
+      [{ transactionId: Date.now(), date: new Date(), description: `Salary Payment - Employee ${employeeId}`, amount: totalExpenseDebit, lines: accountingLines.map(l => ({ fieldLineId: l.fieldLineId, summaryId: l.summaryId, debitOrCredit: l.debitOrCredit, amount: l.amount })) }],
+      { session }
+    );
+
+    await updateBalances(accountingLines, session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({ message: "Salary transaction posted successfully", transactionId: txDoc[0].transactionId, accountingLines });
+
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("SalaryTransactionController Error:", err);
     return res.status(500).json({ error: err.message || String(err) });
   }
 };

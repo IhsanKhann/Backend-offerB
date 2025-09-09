@@ -5,6 +5,7 @@ import {
     CommissionTransactionController,
     transferCommissionToRetained,  
     transferRetainedIncomeToCapital,
+    SalaryTransactionController,
 }
 from "../../contollers/FinanceControllers/TransactionController.js";
 
@@ -15,6 +16,8 @@ router.post("/commission/test", CommissionTransactionController);
 
 router.post('/commission/close-to-retained', transferCommissionToRetained);
 router.post('/transfer-retained-to-capital', transferRetainedIncomeToCapital);
+
+router.post("/salary/:employeeId", SalaryTransactionController);
 
 router.use(authenticate);
 

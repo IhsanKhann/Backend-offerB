@@ -1,0 +1,78 @@
+{
+  "transactionType": "Salary",
+  "incrementType": "both",
+  "splits": [
+    {
+      "componentName": "Base Salary",
+      "type": "allowance",
+      "fieldLineId": 4101,
+      "summaryId": 1200,  
+      "debitOrCredit": "debit",
+      "fixedAmount": 0,
+      "percentage": 100,
+      "mirrors": [
+        {
+          "fieldLineId": 1101, 
+          "summaryId": 1100,   
+          "debitOrCredit": "credit"
+        }
+      ]
+    },
+    {
+      "componentName": "Gratuity",
+      "type": "allowance",
+      "fieldLineId": 2108,
+      "summaryId": 1200, 
+      "debitOrCredit": "debit",
+      "mirrors": [
+        {
+          "fieldLineId": 1108,
+          "summaryId": 1100,
+          "debitOrCredit": "credit"
+        }
+      ]
+    },
+    {
+      "componentName": "EOBI",
+      "type": "allowance",
+      "fieldLineId": 2109,
+      "summaryId": 1200,
+      "debitOrCredit": "debit",
+      "mirrors": [
+        {
+          "fieldLineId": 1109,
+          "summaryId": 1100,
+          "debitOrCredit": "credit"
+        }
+      ]
+    },
+    {
+      "componentName": "Group Term Insurance",
+      "type": "allowance",
+      "fieldLineId": 2110,
+      "summaryId": 1200,
+      "debitOrCredit": "debit",
+      "mirrors": [
+        {
+          "fieldLineId": 1110,
+          "summaryId": 1100,
+          "debitOrCredit": "credit"
+        }
+      ]
+    },
+    {
+      "componentName": "Income Tax",
+      "type": "deduction",
+      "fieldLineId": 2107,
+      "summaryId": 1200,
+      "debitOrCredit": "credit",
+      "mirrors": [
+        {
+          "fieldLineId": 1107,
+          "summaryId": 1500,  
+          "debitOrCredit": "debit"
+        }
+      ]
+    }
+  ]
+}
