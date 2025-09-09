@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios.js";
 
-export default function SalaryModal({ isOpen, onClose, employee }) {
+export default function SalaryModal({ isOpen, onClose, employee = null, roleName = null }) {
   const [formData, setFormData] = useState({
     baseSalary: "",
     salaryType: "monthly",
@@ -13,32 +13,48 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
   const [originalRules, setOriginalRules] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState(null);
+
   const navigate = useNavigate();
+  const isRoleView = !!roleName;
 
   useEffect(() => {
-    if (isOpen && employee?.role?.roleName) {
-      setLoading(true);
-      api
-        .get(`/summaries/salary/rules-by-role/${encodeURIComponent(employee.role.roleName)}`)
-        .then((res) => {
-          const salaryRules = res.data?.data || {};
-          const rules = {
-            baseSalary: salaryRules.baseSalary || "",
-            salaryType: salaryRules.salaryType || "monthly",
-            allowances: salaryRules.allowances || [],
-            deductions: salaryRules.deductions || [],
-            terminalBenefits: salaryRules.terminalBenefits || [],
-          };
-          setFormData(rules);
-          setOriginalRules(rules);
-        })
-        .catch((err) => {
-          console.error("Error fetching rules:", err);
-          alert("Failed to fetch salary rules");
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [isOpen, employee]);
+    if (!isOpen) return;
+
+    const fetchSalaryRules = async () => {
+      try {
+        setLoading(true);
+        let salaryRules = {};
+
+        if (isRoleView) {
+          const res = await api.get(`/summaries/salary/rules-by-role/${encodeURIComponent(roleName)}`);
+          salaryRules = res.data?.data || {};
+        } else if (employee?.role?.roleName) {
+          const res = await api.get(`/summaries/salary/rules-by-role/${encodeURIComponent(employee.role.roleName)}`);
+          salaryRules = res.data?.data || {};
+        }
+
+        const rules = {
+          baseSalary: salaryRules.baseSalary || "",
+          salaryType: salaryRules.salaryType || "monthly",
+          allowances: salaryRules.allowances || [],
+          deductions: salaryRules.deductions || [],
+          terminalBenefits: salaryRules.terminalBenefits || [],
+        };
+
+        setFormData(rules);
+        setOriginalRules(rules);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching rules:", err);
+        setError("Failed to fetch salary rules");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSalaryRules();
+  }, [isOpen, employee, roleName, isRoleView]);
 
   if (!isOpen) return null;
 
@@ -71,8 +87,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
     }));
   };
 
-  // Create breakup using role-based salary
   const handleCreateBreakup = async () => {
+    if (isRoleView) return; // Breakup creation only for employees
+
     try {
       const roleIdentifier = employee?.role?._id || employee?.role?.roleName;
       if (!roleIdentifier) {
@@ -81,11 +98,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
       }
 
       const payload = { roleId: roleIdentifier, salaryRules: originalRules };
-
-      const res = await api.post(
-        `/summaries/salary/breakup/${employee._id}`,
-        payload
-      );
+      const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
 
       if (res?.data?.success) {
         alert("Breakup file created using role salary!");
@@ -100,8 +113,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
     }
   };
 
-  // Create breakup using edited salary
   const handleCreateBreakupEdited = async () => {
+    if (isRoleView) return; // Breakup creation only for employees
+
     try {
       const roleIdentifier = employee?.role?._id || employee?.role?.roleName;
       if (!roleIdentifier) {
@@ -110,11 +124,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
       }
 
       const payload = { roleId: roleIdentifier, salaryRules: formData };
-
-      const res = await api.post(
-        `/summaries/salary/breakup/${employee._id}`,
-        payload
-      );
+      const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
 
       if (res?.data?.success) {
         alert("Breakup file created using edited salary!");
@@ -130,9 +140,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
   };
 
   const renderValue = (item) =>
-    item.type === "percentage"
-      ? `${item.value}%`
-      : `PKR ${item.value?.toLocaleString()}`;
+    item.type === "percentage" ? `${item.value}%` : `PKR ${item.value?.toLocaleString()}`;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
@@ -145,28 +153,36 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
         </button>
 
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold">Salary Rules</h2>
-          <button
-            type="button"
-            onClick={() => setIsEditing((prev) => !prev)}
-            className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
-          >
-            {isEditing ? "Cancel Edit" : "Edit"}
-          </button>
+          <h2 className="text-3xl font-bold">
+            {isRoleView ? `Role Salary Rules: ${roleName}` : `Salary Rules: ${employee?.individualName}`}
+          </h2>
+          {!isRoleView && (
+            <button
+              type="button"
+              onClick={() => setIsEditing((prev) => !prev)}
+              className="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600"
+            >
+              {isEditing ? "Cancel Edit" : "Edit"}
+            </button>
+          )}
         </div>
 
         {loading ? (
           <p className="text-gray-500">Loading salary rules...</p>
+        ) : error ? (
+          <p className="text-red-600">{error}</p>
         ) : (
           <form className="space-y-6">
-            <div className="border-b pb-3">
-              <p className="text-lg font-semibold">
-                Employee: {employee?.individualName || "N/A"}
-              </p>
-              <p className="text-md text-gray-600">
-                Role: {employee?.role?.roleName || "N/A"}
-              </p>
-            </div>
+            {!isRoleView && (
+              <div className="border-b pb-3">
+                <p className="text-lg font-semibold">
+                  Employee: {employee?.individualName || "N/A"}
+                </p>
+                <p className="text-md text-gray-600">
+                  Role: {employee?.role?.roleName || "N/A"}
+                </p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -176,10 +192,8 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
                   name="baseSalary"
                   value={formData.baseSalary}
                   onChange={handleChange}
-                  readOnly={!isEditing}
-                  className={`w-full border rounded px-3 py-2 ${
-                    !isEditing ? "bg-gray-100" : ""
-                  }`}
+                  readOnly={!isEditing && !isRoleView}
+                  className={`w-full border rounded px-3 py-2 ${!isEditing ? "bg-gray-100" : ""}`}
                 />
               </div>
 
@@ -189,7 +203,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
                   name="salaryType"
                   value={formData.salaryType}
                   onChange={handleChange}
-                  disabled={!isEditing}
+                  disabled={!isEditing && !isRoleView}
                   className="w-full border rounded px-3 py-2"
                 >
                   <option value="monthly">Monthly</option>
@@ -205,7 +219,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               handleArrayChange={handleArrayChange}
               addItem={addItem}
               removeItem={removeItem}
-              isEditing={isEditing}
+              isEditing={isEditing && !isRoleView}
               renderValue={renderValue}
             />
 
@@ -216,7 +230,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               handleArrayChange={handleArrayChange}
               addItem={addItem}
               removeItem={removeItem}
-              isEditing={isEditing}
+              isEditing={isEditing && !isRoleView}
               renderValue={renderValue}
             />
 
@@ -227,43 +241,50 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               handleArrayChange={handleArrayChange}
               addItem={addItem}
               removeItem={removeItem}
-              isEditing={isEditing}
+              isEditing={isEditing && !isRoleView}
               renderValue={renderValue}
             />
+
+            {!isRoleView && (
+              <>
+                <p><strong>EOBI:</strong> {formData.EOBI || "N/A"}</p>
+                <p><strong>Gratuity Fund:</strong> {formData.employeeGratuityFund || "N/A"}</p>
+              </>
+            )}
           </form>
         )}
 
-        <div className="flex justify-end mt-8 space-x-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded bg-gray-200 hover:bg-gray-300"
-          >
-            Cancel
-          </button>
-
-          {/* If editing, disable normal create */}
-          {!isEditing && (
+        {!isRoleView && (
+          <div className="flex justify-end mt-8 space-x-3">
             <button
               type="button"
-              onClick={handleCreateBreakup}
-              className="px-5 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              onClick={onClose}
+              className="px-5 py-2 rounded bg-gray-200 hover:bg-gray-300"
             >
-              Create Breakup
+              Cancel
             </button>
-          )}
 
-          {/* If editing, enable create with edited data */}
-          {isEditing && (
-            <button
-              type="button"
-              onClick={handleCreateBreakupEdited}
-              className="px-5 py-2 rounded bg-green-600 text-white hover:bg-green-700"
-            >
-              Create Breakup with Edited Data
-            </button>
-          )}
-        </div>
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={handleCreateBreakup}
+                className="px-5 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Create Breakup
+              </button>
+            )}
+
+            {isEditing && (
+              <button
+                type="button"
+                onClick={handleCreateBreakupEdited}
+                className="px-5 py-2 rounded bg-green-600 text-white hover:bg-green-700"
+              >
+                Create Breakup with Edited Data
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

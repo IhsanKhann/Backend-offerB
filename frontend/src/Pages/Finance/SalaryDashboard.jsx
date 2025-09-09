@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/axios.js";
 import SalaryModal from "../../components/SalaryModal.jsx";
 import Sidebar from "../../components/Sidebar.jsx";
@@ -14,6 +15,7 @@ const SalaryDashboard = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [openActionMenu, setOpenActionMenu] = useState(null);
 
   const navigate = useNavigate();
 
@@ -46,15 +48,21 @@ const SalaryDashboard = () => {
   // Sidebar nav items
   const navItems = [
     { name: "Salary Dashboard", path: "/salary-dashboard" },
-    { name: "Salary and Roles Table", path: "/salary/rulesTable" },
-    { name: "Rules Table", path: "/tables" },
-    { name: "Breakup Summary", path: "/salary/breakup" },
+    { name: "All Summaries", path: "/summary-table" },
+    { name: "Salary Table", path: "/salary/rulesTable" },
+    { name: "All Tables", path: "/tables" },
   ];
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar navItems={navItems} fetchEmployeesByNode={() => {}} />
+      {/* Fixed Sidebar */}
+      <div className="sticky top-0 h-screen">
+        <Sidebar
+          navItems={navItems}
+          fetchEmployeesByNode={() => {}}
+          title="SalaryDashboard"
+        />
+      </div>
 
       {/* Main content */}
       <div className="flex-1 p-6 space-y-4">
@@ -67,7 +75,7 @@ const SalaryDashboard = () => {
             {employees.map((emp) => (
               <div
                 key={emp._id}
-                className="bg-white shadow rounded-xl p-4 flex justify-between items-start space-x-4 hover:shadow-xl transition-all"
+                className="bg-white shadow rounded-xl p-4 flex justify-between items-start space-x-4 hover:shadow-xl transition-all relative"
               >
                 {/* Employee Info */}
                 <div className="flex items-center space-x-4">
@@ -84,7 +92,9 @@ const SalaryDashboard = () => {
                   )}
                   <div className="flex flex-col">
                     <p className="text-lg font-semibold">{emp.individualName}</p>
-                    <p className="text-sm text-gray-500">{emp.officialEmail || emp.personalEmail}</p>
+                    <p className="text-sm text-gray-500">
+                      {emp.officialEmail || emp.personalEmail}
+                    </p>
                     <p className="text-xs text-gray-400">ID: {emp.UserId}</p>
                     <p className="text-xs text-gray-400">Org Unit: {emp.organizationUnit || "N/A"}</p>
                     <p className="text-xs text-gray-400">Role: {emp.roleName}</p>
@@ -115,26 +125,63 @@ const SalaryDashboard = () => {
                   </p>
                 </div>
 
-                {/* Action */}
-                <div className="flex flex-col gap-2">
+                {/* Action Menu */}
+                <div className="relative">
                   <button
-                    onClick={() => setSelectedEmployee(emp)}
-                    className="px-4 py-2 bg-green-500 text-white rounded-md shadow hover:bg-green-600"
+                    onClick={() =>
+                      setOpenActionMenu(openActionMenu === emp._id ? null : emp._id)
+                    }
+                    className="px-3 py-1 bg-gray-200 rounded shadow hover:bg-gray-300 flex items-center justify-between w-36"
                   >
-                    Pay Salary
+                    Actions
+                    <span
+                      className={`ml-2 transition-transform duration-300 ${
+                        openActionMenu === emp._id ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▼
+                    </span>
                   </button>
-                  <button
-                    onClick={() => navigate(`/salary/breakup/${emp._id}`)}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600"
-                  >
-                    View Breakup
-                  </button>
-                  <button
-                    onClick={() => navigate(`/salarytable/${emp.role?._id}`)}
-                    className="px-4 py-2 bg-purple-500 text-white rounded-md shadow hover:bg-purple-600"
-                  >
-                    Role Salary Table
-                  </button>
+
+                  <AnimatePresence>
+                    {openActionMenu === emp._id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3, ease: "easeOut" }}
+                        className="absolute right-0 mt-1 w-36 bg-white border rounded shadow-lg flex flex-col overflow-hidden z-50"
+                      >
+                        <button
+                          onClick={() => {
+                            setSelectedEmployee(emp);
+                            setOpenActionMenu(null);
+                          }}
+                          className="px-4 py-2 text-left hover:bg-gray-100"
+                        >
+                          Pay Salary
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate(`/salary/breakup/${emp._id}`);
+                            setOpenActionMenu(null);
+                          }}
+                          className="px-4 py-2 text-left hover:bg-gray-100"
+                        >
+                          View Breakup
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate(`/salarytable/${emp.role?._id}`);
+                            setOpenActionMenu(null);
+                          }}
+                          className="px-4 py-2 text-left hover:bg-gray-100"
+                        >
+                          Role Salary Table
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             ))}

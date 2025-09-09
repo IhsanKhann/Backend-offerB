@@ -17,6 +17,7 @@ import {
 
 import {
   getSalaryRulesByRoleName,
+  getSingleSalaryRole,
   createBreakupFile,
   getBreakupFile,
   initiateSalaryTransaction,
@@ -101,6 +102,7 @@ router.get("/salarytable/all", getAllSalaryRules);
 router.get("/salarytable/:roleId", getSalaryRulesByRole);
 router.put("/salarytable/:roleId", updateSalaryRules);
 router.post("/salarytable/", createRoleWithSalaryRules);
+router.get("/salary/role/:roleName", getSingleSalaryRole); // single role salary details
 
 
 export default router;

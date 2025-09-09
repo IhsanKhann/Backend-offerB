@@ -166,7 +166,6 @@ const router = createBrowserRouter([
      </ProtectedRoute> 
    ),
   },
-
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
