@@ -4,12 +4,36 @@
     "transactionType": "Expense Allocation",
     "incrementType": "percentage",
     "splits": [
-      { "fieldLineId": 2102, "fieldName": "Marketing Expenses", "percentage": 35, "summaryId": 1200, "debitOrCredit": "debit", 
-      "mirrors": [{ "fieldLineId": 1102, "summaryId": 1100, "debitOrCredit": "credit" }] },
-      { "fieldLineId": 2103, "fieldName": "Establishment Expenses", "percentage": 30, "summaryId": 1200, "debitOrCredit": "debit", 
-      "mirrors": [{ "fieldLineId": 1103, "summaryId": 1100, "debitOrCredit": "credit" }] },
-      { "fieldLineId": 2106, "fieldName": "Management Expenses", "percentage": 35, "summaryId": 1200, "debitOrCredit": "debit", 
-      "mirrors": [{ "fieldLineId": 1106, "summaryId": 1100, "debitOrCredit": "credit" }] }
+      {
+        "fieldLineId": 2102,
+        "fieldName": "Marketing Expenses",
+        "percentage": 35,
+        "summaryId": 1200,
+        "debitOrCredit": "debit",
+        "mirrors": [
+          { "fieldLineId": 1102, "summaryId": 1100, "debitOrCredit": "credit" }
+        ]
+      },
+      {
+        "fieldLineId": 2103,
+        "fieldName": "Establishment Expenses",
+        "percentage": 30,
+        "summaryId": 1200,
+        "debitOrCredit": "debit",
+        "mirrors": [
+          { "fieldLineId": 1103, "summaryId": 1100, "debitOrCredit": "credit" }
+        ]
+      },
+      {
+        "fieldLineId": 2106,
+        "fieldName": "Management Expenses",
+        "percentage": 35,
+        "summaryId": 1200,
+        "debitOrCredit": "debit",
+        "mirrors": [
+          { "fieldLineId": 1106, "summaryId": 1100, "debitOrCredit": "credit" }
+        ]
+      }
     ]
   },
   {
@@ -17,7 +41,27 @@
     "transactionType": "Commission Income",
     "incrementType": "both",
     "splits": [
-      { "fieldLineId": 5201, "fieldName": "Commission Income", "percentage": 100, "summaryId": 1700, "debitOrCredit": "credit", "mirrors": [{ "fieldLineId": 5301, "summaryId": 1500, "debitOrCredit": "debit" }] }
+      {
+        "fieldLineId": 5201,
+        "fieldName": "Commission Income",
+        "percentage": 100,
+        "summaryId": 1700,
+        "debitOrCredit": "credit",
+        "mirrors": [
+          {
+            "fieldLineId": 5301,
+            "summaryId": 1500,
+            "debitOrCredit": "debit"
+          }
+        ]
+      },
+      {
+        "fieldLineId": 5302,
+        "fieldName": "Cash from Commission",
+        "percentage": 100,
+        "summaryId": 1500,
+        "debitOrCredit": "debit"
+      }
     ]
   },
   {
@@ -25,7 +69,20 @@
     "transactionType": "Surplus Handling",
     "incrementType": "both",
     "splits": [
-      { "fieldLineId": 5401, "fieldName": "Retained Income", "percentage": 100, "summaryId": 1600, "debitOrCredit": "credit", "mirrors": [{ "fieldLineId": 5101, "summaryId": 1600, "debitOrCredit": "credit" }] }
+      {
+        "fieldLineId": 5401,
+        "fieldName": "Retained Income",
+        "percentage": 100,
+        "summaryId": 1600,
+        "debitOrCredit": "credit",
+        "mirrors": [
+          {
+            "fieldLineId": 5101,
+            "summaryId": 1600,
+            "debitOrCredit": "credit"
+          }
+        ]
+      }
     ]
   }
 ]

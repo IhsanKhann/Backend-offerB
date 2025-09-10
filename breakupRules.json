@@ -6,14 +6,20 @@
       "componentName": "Base Salary",
       "type": "allowance",
       "fieldLineId": 4101,
-      "summaryId": 1200,  
+      "summaryId": 1200,
       "debitOrCredit": "debit",
       "fixedAmount": 0,
       "percentage": 100,
+      "fallbackAmount": 0,
       "mirrors": [
         {
-          "fieldLineId": 1101, 
-          "summaryId": 1100,   
+          "fieldLineId": 2101,
+          "summaryId": 1200,
+          "debitOrCredit": "debit"
+        },
+        {
+          "fieldLineId": 1101,
+          "summaryId": 1100,
           "debitOrCredit": "credit"
         }
       ]
@@ -22,8 +28,11 @@
       "componentName": "Gratuity",
       "type": "allowance",
       "fieldLineId": 2108,
-      "summaryId": 1200, 
+      "summaryId": 1200,
       "debitOrCredit": "debit",
+      "fixedAmount": 0,
+      "percentage": 0,
+      "fallbackAmount": 0,
       "mirrors": [
         {
           "fieldLineId": 1108,
@@ -38,6 +47,9 @@
       "fieldLineId": 2109,
       "summaryId": 1200,
       "debitOrCredit": "debit",
+      "fixedAmount": 0,
+      "percentage": 0,
+      "fallbackAmount": 0,
       "mirrors": [
         {
           "fieldLineId": 1109,
@@ -52,6 +64,9 @@
       "fieldLineId": 2110,
       "summaryId": 1200,
       "debitOrCredit": "debit",
+      "fixedAmount": 0,
+      "percentage": 0,
+      "fallbackAmount": 0,
       "mirrors": [
         {
           "fieldLineId": 1110,
@@ -66,10 +81,13 @@
       "fieldLineId": 2107,
       "summaryId": 1200,
       "debitOrCredit": "credit",
+      "fixedAmount": 0,
+      "percentage": 0,
+      "fallbackAmount": 0,
       "mirrors": [
         {
           "fieldLineId": 1107,
-          "summaryId": 1500,  
+          "summaryId": 1500,
           "debitOrCredit": "debit"
         }
       ]

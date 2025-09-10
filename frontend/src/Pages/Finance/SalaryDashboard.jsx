@@ -8,7 +8,7 @@ import Sidebar from "../../components/Sidebar.jsx";
 
 const Loader = () => (
   <div className="flex justify-center items-center min-h-[60vh]">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
   </div>
 );
 
@@ -20,7 +20,7 @@ const SalaryDashboard = () => {
 
   const navigate = useNavigate();
 
-  // Fetch all employees
+  // Fetch employees
   const fetchEmployees = async () => {
     try {
       setLoading(true);
@@ -46,7 +46,6 @@ const SalaryDashboard = () => {
 
   if (loading) return <Loader />;
 
-  // Sidebar nav items
   const navItems = [
     { name: "Salary Dashboard", path: "/salary-dashboard" },
     { name: "All Summaries", path: "/summary-table" },
@@ -56,98 +55,82 @@ const SalaryDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Fixed Sidebar */}
+      {/* Sidebar */}
       <div className="sticky top-0 h-screen">
-        <Sidebar
-          navItems={navItems}
-          fetchEmployeesByNode={() => {}}
-          title="SalaryDashboard"
-        />
+        <Sidebar navItems={navItems} title="SalaryDashboard" />
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 p-6 space-y-4">
-        <h1 className="text-3xl font-bold mb-6">Employee Salaries</h1>
+      {/* Main Content */}
+      <div className="flex-1 p-4 md:p-6 space-y-4">
+        <h1 className="text-2xl md:text-3xl font-bold mb-4">Employee Salaries</h1>
 
         {employees.length === 0 ? (
-          <p className="text-gray-500 text-lg">No employees found.</p>
+          <p className="text-gray-500 text-sm md:text-base">No employees found.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {employees.map((emp) => (
               <div
                 key={emp._id}
-                className="bg-white shadow rounded-xl p-4 flex justify-between items-start space-x-4 hover:shadow-xl transition-all relative"
+                className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition-all border border-gray-200"
               >
                 {/* Employee Info */}
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3 md:w-1/3">
                   {emp.avatar?.url ? (
                     <img
                       src={emp.avatar.url}
                       alt="Avatar"
-                      className="w-16 h-16 rounded-full object-cover"
+                      className="w-16 h-16 rounded-full object-cover border border-blue-300"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-gray-500">
+                    <div className="w-14 h-14 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-sm font-semibold">
                       N/A
                     </div>
                   )}
                   <div className="flex flex-col">
-                    <p className="text-lg font-semibold">{emp.individualName}</p>
-                    <p className="text-sm text-gray-500">
-                      {emp.officialEmail || emp.personalEmail}
-                    </p>
-                    <p className="text-xs text-gray-400">ID: {emp.UserId}</p>
-                    <p className="text-xs text-gray-400">Org Unit: {emp.organizationUnit || "N/A"}</p>
-                    <p className="text-xs text-gray-400">Role: {emp.roleName}</p>
+                    <p className="text-base font-semibold text-gray-800">{emp.individualName}</p>
+                    <p className="text-xs text-gray-500">{emp.personalEmail}</p>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      <span className="text-xs text-gray-400">ID: {emp.UserId}</span>
+                      <span className="text-xs text-gray-400">Org: {emp.organizationUnit || "N/A"}</span>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">{emp.roleName}</span>
+                    </div>
                   </div>
                 </div>
 
-               <div className="flex flex-col space-y-1 text-right">
-  <p className="text-sm">
-    <span className="font-medium">Base Salary:</span> {emp.salary?.amount || "N/A"}
-  </p>
-  <p className="text-sm">
-    <span className="font-medium">Salary Type:</span> {emp.salary?.type || "N/A"}
-  </p>
-  <p className="text-sm">
-    <span className="font-medium">Terminal Benefits:</span> {emp.salary?.terminalBenefits?.join(", ") || "N/A"}
-  </p>
-  <p className="text-sm">
-    <span className="font-medium">EOBI:</span> {emp.salary?.EOBI || "N/A"}
-  </p>
-  <p className="text-sm">
-    <span className="font-medium">Gratuity Fund:</span> {emp.salary?.employeeGratuityFund || "N/A"}
-  </p>
-  <p className="text-sm">
-    <span className="font-medium">Group Term Insurance:</span> {emp.salary?.groupTermInsurance || "N/A"}
-  </p>
+                {/* Salary Info */}
+                <div className="mt-3 md:mt-0 md:w-2/3 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700">
+                  <p><span className="font-medium">Base:</span> {emp.salary?.amount || "N/A"}</p>
+                  <p><span className="font-medium">Type:</span> {emp.salary?.type || "N/A"}</p>
+                  <p><span className="font-medium">EOBI:</span> {emp.salary?.EOBI || "N/A"}</p>
+                  <p><span className="font-medium">Gratuity:</span> {emp.salary?.employeeGratuityFund || "N/A"}</p>
+                  <p><span className="font-medium">Insurance:</span> {emp.salary?.groupTermInsurance || "N/A"}</p>
+                  <p><span className="font-medium">Benefits:</span> {emp.salary?.terminalBenefits?.join(", ") || "N/A"}</p>
 
-  {/* Display all salary details */}
-  {emp.salary?.salaryDetails?.length > 0 && (
-    <div className="mt-2 text-xs text-gray-500">
-      {emp.salary.salaryDetails.map((detail, idx) => (
-        <p key={idx}>
-          {detail.name}: {detail.value} {detail.calculation ? `(${detail.calculation})` : ""}
-        </p>
-      ))}
-    </div>
-  )}
-</div>
+                  {/* Detailed Salary */}
+                  {emp.salary?.salaryDetails?.length > 0 && (
+                    <div className="col-span-full mt-1 border-t pt-1 text-xs text-gray-500">
+                      {emp.salary.salaryDetails.map((detail, idx) => (
+                        <p key={idx} className="flex justify-between">
+                          <span>{detail.name}</span>
+                          <span>
+                            {detail.value} {detail.calculation ? `(${detail.calculation})` : ""}
+                          </span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 {/* Action Menu */}
-                <div className="relative">
+                <div className="mt-3 md:mt-0 relative">
                   <button
                     onClick={() =>
                       setOpenActionMenu(openActionMenu === emp._id ? null : emp._id)
                     }
-                    className="px-3 py-1 bg-gray-200 rounded shadow hover:bg-gray-300 flex items-center justify-between w-36"
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs flex items-center justify-between w-28"
                   >
                     Actions
-                    <span
-                      className={`ml-2 transition-transform duration-300 ${
-                        openActionMenu === emp._id ? "rotate-180" : ""
-                      }`}
-                    >
+                    <span className={`ml-1 transition-transform duration-300 ${openActionMenu === emp._id ? "rotate-180" : ""}`}>
                       ▼
                     </span>
                   </button>
@@ -155,18 +138,18 @@ const SalaryDashboard = () => {
                   <AnimatePresence>
                     {openActionMenu === emp._id && (
                       <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="absolute right-0 mt-1 w-36 bg-white border rounded shadow-lg flex flex-col overflow-hidden z-50"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
                       >
                         <button
                           onClick={() => {
                             setSelectedEmployee(emp);
                             setOpenActionMenu(null);
                           }}
-                          className="px-4 py-2 text-left hover:bg-gray-100"
+                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
                         >
                           Pay Salary
                         </button>
@@ -175,7 +158,7 @@ const SalaryDashboard = () => {
                             navigate(`/salary/breakup/${emp._id}`);
                             setOpenActionMenu(null);
                           }}
-                          className="px-4 py-2 text-left hover:bg-gray-100"
+                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
                         >
                           View Breakup
                         </button>
@@ -184,9 +167,9 @@ const SalaryDashboard = () => {
                             navigate(`/salarytable/${emp.role?._id}`);
                             setOpenActionMenu(null);
                           }}
-                          className="px-4 py-2 text-left hover:bg-gray-100"
+                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
                         >
-                          Role Salary Table
+                          Role Table
                         </button>
                       </motion.div>
                     )}
