@@ -20,7 +20,6 @@ import {
   getSingleSalaryRole,
   createBreakupFile,
   getBreakupFile,
-  initiateSalaryTransaction,
 } from "../../contollers/FinanceControllers/SalaryController.js"; // new controllers
 
 import {
@@ -48,7 +47,6 @@ router.get("/rules/:ruleId", getRuleById);                    // rule by id
 router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);    // get employee salary rules
 router.post("/salary/breakup/:employeeId", createBreakupFile); // create breakup file
 router.get("/salary/breakup/:employeeId", getBreakupFile);    // get latest breakup file
-router.post("/salary/transaction/:employeeId", initiateSalaryTransaction); // placeholder
 
 /**
  * Protected routes (admin only)

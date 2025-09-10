@@ -102,37 +102,31 @@ export default function SalaryModal({ isOpen, onClose, employee = null, roleName
     }));
   };
 
-const handleCreateBreakup = async (useEdited = false) => {
-  if (isRoleView) return; // Breakup only for employees
+const handleCreateBreakup = async () => {
+  if (!employee?._id) return alert("Missing employee info");
 
   try {
-    const employeeId = employee?._id;
-    const roleId = employee?.role?._id;
-
-    if (!employeeId || !roleId) {
-      alert("Missing employee or role information. Cannot create breakup.");
-      return;
-    }
-
-    // Prepare payload with full salary rules
-    const payload = {
-      employeeId,
-      roleId,
-      salaryRules: useEdited ? formData : originalRules
+    // Build editedFields
+    const editedFields = {
+      baseSalary: formData.baseSalary,
+      salaryType: formData.salaryType,
+      allowances: formData.allowances,
+      deductions: formData.deductions,
+      terminalBenefits: formData.terminalBenefits,
     };
 
-    const res = await api.post(`/summaries/salary/breakup/${employeeId}`, payload);
+    const res = await api.post(`/summaries/salary/breakup/${employee._id}`, { editedFields });
 
     if (res?.data?.success) {
       alert("Breakup file created successfully!");
       onClose?.();
-      navigate(`/salary/breakup/${employeeId}`);
+      navigate(`/salary/breakup/${employee._id}`);
     } else {
-      alert(res?.data?.message || "Failed to create breakup file.");
+      alert(res?.data?.message || "Failed to create breakup");
     }
   } catch (err) {
     console.error(err);
-    alert("Error creating breakup file.");
+    alert("Error creating breakup");
   }
 };
 

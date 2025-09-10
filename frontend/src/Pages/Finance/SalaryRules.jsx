@@ -26,7 +26,6 @@ export default function SalaryRulesTable() {
     fetchRoles();
   }, []);
 
-  // Edit role
   const handleEdit = (role) => {
     setEditRoleId(role._id);
     setFormData(JSON.parse(JSON.stringify(role.salaryRules)));
@@ -37,7 +36,6 @@ export default function SalaryRulesTable() {
     setFormData(null);
   };
 
-  // Input changes
   const handleInputChange = (section, index, field, value) => {
     const updated = { ...formData };
     if (section === "baseSalary" || section === "salaryType") {
@@ -48,7 +46,6 @@ export default function SalaryRulesTable() {
     setFormData(updated);
   };
 
-  // Add/Remove benefit
   const addBenefit = (section) => {
     const updated = { ...formData };
     updated[section].push({ name: "", type: "fixed", value: 0 });
@@ -61,7 +58,6 @@ export default function SalaryRulesTable() {
     setFormData(updated);
   };
 
-  // Save edits
   const handleSave = async () => {
     try {
       await api.put(`/summaries/salarytable/${editRoleId}`, { salaryRules: formData });
@@ -74,7 +70,6 @@ export default function SalaryRulesTable() {
     }
   };
 
-  // Create new role
   const handleCreate = async () => {
     const roleName = prompt("Enter new role name:");
     if (!roleName) return;
@@ -103,33 +98,47 @@ export default function SalaryRulesTable() {
   if (error) return <div className="p-6 text-red-600">{error}</div>;
 
   return (
-    <div className="p-6 space-y-6">
-      <h2 className="text-xl font-semibold mb-2">Salary Rules Table</h2>
-         {/* Explanation Note */}
-        <div className="p-4 bg-yellow-100 border-l-4 border-yellow-400 text-yellow-800 rounded">
-          <p>
-            This dashboard shows the salary rules for each role. Each employee has an assigned role, 
-            and each role has specific salary rules attached to it. When we pay the salary, these rules 
-            are used to calculate allowances, deductions, terminal benefits, and other components 
-            for the employees.
-          </p>
-        </div>
+    <div className="p-8 space-y-8 bg-gray-100 min-h-screen">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">Salary Rules Table</h2>
+        <button
+          onClick={handleCreate}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition"
+        >
+          + Create New Role
+        </button>
+      </div>
+
+      {/* Explanation Note */}
+      <div className="p-4 bg-blue-50 border-l-4 border-blue-500 text-blue-800 rounded-lg shadow-sm">
+        <p>
+          Each card below represents a <strong>Role</strong>. Inside each card are the{" "}
+          <strong>Salary Rules</strong> like base salary, allowances, deductions, 
+          and terminal benefits. Employees linked to this role will follow these rules 
+          when salaries are calculated.
+        </p>
+      </div>
+
       {roles.map((role) => (
-        <div key={role._id} className="border rounded-lg shadow-md bg-white p-4 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">{role.name}</h3>
+        <div
+          key={role._id}
+          className="border rounded-xl shadow-md bg-white p-6 space-y-6 hover:shadow-lg transition"
+        >
+          {/* Role Header */}
+          <div className="flex justify-between items-center border-b pb-3">
+            <h3 className="text-xl font-semibold text-gray-700">{role.name}</h3>
             <div className="flex gap-2">
               {editRoleId === role._id ? (
                 <>
                   <button
                     onClick={handleSave}
-                    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
                   >
                     Save
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+                    className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition"
                   >
                     Cancel
                   </button>
@@ -138,7 +147,7 @@ export default function SalaryRulesTable() {
                 <button
                   onClick={() => handleEdit(role)}
                   disabled={editRoleId !== null}
-                  className={`bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 ${
+                  className={`bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition ${
                     editRoleId !== null ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
@@ -149,102 +158,130 @@ export default function SalaryRulesTable() {
           </div>
 
           {/* Base Salary & Type */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block font-medium">Base Salary</label>
+              <label className="block font-medium mb-1 text-gray-600">Base Salary</label>
               {editRoleId === role._id ? (
                 <input
                   type="number"
                   value={formData.baseSalary}
                   onChange={(e) => handleInputChange("baseSalary", null, null, e.target.value)}
-                  className="border px-2 py-1 rounded w-full"
+                  className="border px-3 py-2 rounded-lg w-full"
                 />
               ) : (
-                <p>PKR {role.salaryRules.baseSalary?.toLocaleString()}</p>
+                <p className="text-gray-800 font-medium">
+                  PKR {role.salaryRules.baseSalary?.toLocaleString()}
+                </p>
               )}
             </div>
             <div>
-              <label className="block font-medium">Salary Type</label>
+              <label className="block font-medium mb-1 text-gray-600">Salary Type</label>
               {editRoleId === role._id ? (
                 <select
                   value={formData.salaryType}
                   onChange={(e) => handleInputChange("salaryType", null, null, e.target.value)}
-                  className="border px-2 py-1 rounded w-full"
+                  className="border px-3 py-2 rounded-lg w-full"
                 >
                   <option value="monthly">Monthly</option>
                   <option value="hourly">Hourly</option>
                 </select>
               ) : (
-                <p>{role.salaryRules.salaryType}</p>
+                <p className="text-gray-800 font-medium">{role.salaryRules.salaryType}</p>
               )}
             </div>
           </div>
 
           {/* Allowances, Deductions, Terminal Benefits */}
           {["allowances", "deductions", "terminalBenefits"].map((section) => (
-            <div key={section} className="border rounded-md p-3 bg-gray-50">
-              <h4 className="font-semibold mb-2">
-                {section.charAt(0).toUpperCase() + section.slice(1)}
+            <div key={section} className="border rounded-lg overflow-hidden shadow-sm">
+              <h4 className="bg-blue-50 px-4 py-2 font-semibold text-lg capitalize border-b border-blue-200 text-blue-800">
+                {section}
               </h4>
-              {(editRoleId === role._id ? formData[section] : role.salaryRules[section])?.map((item, idx) => (
-                <div key={idx} className="flex gap-2 items-center mb-1">
-                  {editRoleId === role._id ? (
-                    <>
-                      <input
-                        type="text"
-                        value={item.name}
-                        onChange={(e) => handleInputChange(section, idx, "name", e.target.value)}
-                        placeholder="Name"
-                        className="border px-2 py-1 rounded w-40"
-                      />
-                      <select
-                        value={item.type}
-                        onChange={(e) => handleInputChange(section, idx, "type", e.target.value)}
-                        className="border px-2 py-1 rounded w-32"
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-blue-100 text-blue-900">
+                  <tr>
+                    <th className="border px-4 py-2">Name</th>
+                    <th className="border px-4 py-2">Type</th>
+                    <th className="border px-4 py-2">Value</th>
+                    {editRoleId === role._id && <th className="border px-4 py-2">Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(editRoleId === role._id ? formData[section] : role.salaryRules[section])?.map(
+                    (item, idx) => (
+                      <tr
+                        key={idx}
+                        className={idx % 2 === 0 ? "bg-white" : "bg-blue-50"}
                       >
-                        <option value="fixed">Fixed</option>
-                        <option value="percentage">Percentage</option>
-                      </select>
-                      <input
-                        type="number"
-                        value={item.value}
-                        onChange={(e) => handleInputChange(section, idx, "value", e.target.value)}
-                        placeholder="Value"
-                        className="border px-2 py-1 rounded w-24"
-                      />
-                      <button
-                        onClick={() => removeBenefit(section, idx)}
-                        className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm"
-                      >
-                        Delete
-                      </button>
-                    </>
-                  ) : (
-                    <p>
-                      {item.name} - {item.type} - {item.value}
-                    </p>
+                        {editRoleId === role._id ? (
+                          <>
+                            <td className="border px-4 py-2">
+                              <input
+                                type="text"
+                                value={item.name}
+                                onChange={(e) =>
+                                  handleInputChange(section, idx, "name", e.target.value)
+                                }
+                                className="border px-2 py-1 rounded w-full"
+                              />
+                            </td>
+                            <td className="border px-4 py-2">
+                              <select
+                                value={item.type}
+                                onChange={(e) =>
+                                  handleInputChange(section, idx, "type", e.target.value)
+                                }
+                                className="border px-2 py-1 rounded w-full"
+                              >
+                                <option value="fixed">Fixed</option>
+                                <option value="percentage">Percentage</option>
+                              </select>
+                            </td>
+                            <td className="border px-4 py-2">
+                              <input
+                                type="number"
+                                value={item.value}
+                                onChange={(e) =>
+                                  handleInputChange(section, idx, "value", e.target.value)
+                                }
+                                className="border px-2 py-1 rounded w-full"
+                              />
+                            </td>
+                            <td className="border px-4 py-2 text-center">
+                              <button
+                                onClick={() => removeBenefit(section, idx)}
+                                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="border px-4 py-2">{item.name}</td>
+                            <td className="border px-4 py-2">{item.type}</td>
+                            <td className="border px-4 py-2">{item.value}</td>
+                          </>
+                        )}
+                      </tr>
+                    )
                   )}
-                </div>
-              ))}
+                </tbody>
+              </table>
               {editRoleId === role._id && (
-                <button
-                  onClick={() => addBenefit(section)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm mt-1"
-                >
-                  + Add
-                </button>
+                <div className="p-3 bg-gray-50 border-t">
+                  <button
+                    onClick={() => addBenefit(section)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                  >
+                    + Add {section.slice(0, -1)}
+                  </button>
+                </div>
               )}
             </div>
           ))}
         </div>
       ))}
-
-      <button
-        onClick={handleCreate}
-        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-      >
-        + Create New Role
-      </button>
     </div>
   );
 }

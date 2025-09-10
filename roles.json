@@ -14,9 +14,21 @@
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
       "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -34,10 +46,22 @@
       "deductions": [
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
-      "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+     "allowances": [
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -56,9 +80,21 @@
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
       "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -76,10 +112,22 @@
       "deductions": [
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
-      "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+     "allowances": [
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -97,10 +145,22 @@
       "deductions": [
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
-      "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+     "allowances": [
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -118,10 +178,22 @@
       "deductions": [
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
-      "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+"allowances": [
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -140,9 +212,21 @@
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
       "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -161,9 +245,21 @@
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
       "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -182,9 +278,21 @@
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
       "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -203,9 +311,21 @@
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
       "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -223,10 +343,22 @@
       "deductions": [
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
-      "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+     "allowances": [
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -244,10 +376,22 @@
       "deductions": [
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
-      "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+     "allowances": [
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -265,10 +409,22 @@
       "deductions": [
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
-      "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+     "allowances": [
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   },
@@ -286,10 +442,22 @@
       "deductions": [
         { "name": "Income Tax", "type": "percentage", "value": 10 }
       ],
-      "allowances": [
-        { "name": "Gratuity", "type": "percentage", "value": 5 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
-        { "name": "Group Term Insurance", "type": "fixed", "value": 1500 }
+     "allowances": [
+        { "name": "House Rent", "type": "percentage", "value": 40 },
+        { "name": "Medical Allowance", "type": "percentage", "value": 10 },
+        { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
+        { "name": "Hospitalization", "type": "fixed", "value": 2500 },
+        { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
+        { "name": "Income Tax on Employee Salary", "type": "percentage", "value": 5 },
+        { "name": "Special Allowance", "type": "fixed", "value": 3000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
+        { "name": "Servant", "type": "fixed", "value": 6000 },
+        { "name": "Telephone", "type": "fixed", "value": 1500 },
+        { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
       ]
     }
   }

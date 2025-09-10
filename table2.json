@@ -1,7 +1,102 @@
-{
-  "fieldLineId": 5302,
-  "name": "Cash from Commission",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-  "accountNumber": 1500,
-  "balance": 0
-}
+
+[
+  {
+    "fieldLineId": 1111,
+    "name": "Allowance for House Rent",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1111",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1112,
+    "name": "Allowance for Medical Allowance",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1112",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1113,
+    "name": "Allowance for Medicine Allowance",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1113",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1114,
+    "name": "Allowance for Fuel Expenses",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1114",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1115,
+    "name": "Allowance for Gratuity Deduction",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1115",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1116,
+    "name": "Allowance for Provident Fund Deduction",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1116",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1117,
+    "name": "Allowance for Training Allowance Expenses",
+    "summaryId":{ "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1117",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1118,
+    "name": "Allowance for Hospitalization",
+    "summaryId":{ "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1118",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1119,
+    "name": "Allowance for Utility Expenses",
+    "summaryId":{ "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1119",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1120,
+    "name": "Allowance for Special Allowance",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1120",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1122,
+    "name": "Allowance for Cost of Funds",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1121",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1122,
+    "name": "Allowance for Servant",
+    "summaryId":{ "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1122",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1123,
+    "name": "Allowance for Telephone",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1123",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1124,
+    "name": "Allowance for Car Maintenance",
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "accountNumber": "1124",
+    "balance": 0
+  }
+]
+
