@@ -49,9 +49,8 @@ const BreakupSummary = () => {
   const { salaryRules, calculatedBreakup } = breakup;
   const formatRupees = (amt) => `PKR ${Number(amt || 0).toLocaleString()}`;
 
-  // Separate breakdown into categories
+  // Only keep allowances and terminal benefits
   const allowances = calculatedBreakup.breakdown.filter(b => b.type === "allowance");
-  const deductions = calculatedBreakup.breakdown.filter(b => b.type === "deduction");
   const terminal = calculatedBreakup.breakdown.filter(b => b.type === "terminal");
 
   return (
@@ -60,6 +59,7 @@ const BreakupSummary = () => {
         <h1 className="text-3xl font-bold text-center mb-4">Salary Slip</h1>
         <p className="text-center text-gray-600">This is how your salary has been split</p>
 
+        {/* Base Salary */}
         <div className="border-t border-b py-4">
           <h2 className="text-lg font-semibold mb-2">Base Salary</h2>
           <div className="flex justify-between">
@@ -68,6 +68,7 @@ const BreakupSummary = () => {
           </div>
         </div>
 
+        {/* Allowances */}
         <div className="border-b py-4">
           <h2 className="text-lg font-semibold mb-2">Allowances</h2>
           {allowances.length ? (
@@ -86,24 +87,7 @@ const BreakupSummary = () => {
           </div>
         </div>
 
-        <div className="border-b py-4">
-          <h2 className="text-lg font-semibold mb-2">Deductions</h2>
-          {deductions.length ? (
-            deductions.map((item, idx) => (
-              <div key={idx} className="flex justify-between">
-                <span>{item.name}</span>
-                <span>{formatRupees(item.value)}</span>
-              </div>
-            ))
-          ) : (
-            <p className="text-gray-500">No deductions</p>
-          )}
-          <div className="flex justify-between mt-2 font-semibold">
-            <span>Total Deductions:</span>
-            <span>{formatRupees(calculatedBreakup.totalDeductions)}</span>
-          </div>
-        </div>
-
+        {/* Terminal Benefits (if any) */}
         {terminal.length > 0 && (
           <div className="border-b py-4">
             <h2 className="text-lg font-semibold mb-2">Terminal Benefits</h2>
@@ -116,11 +100,13 @@ const BreakupSummary = () => {
           </div>
         )}
 
+        {/* Net Salary */}
         <div className="py-4 flex justify-between items-center font-bold text-lg">
           <span>Net Salary:</span>
           <span>{formatRupees(calculatedBreakup.netSalary)}</span>
         </div>
 
+        {/* Process Salary Button */}
         <button
           onClick={handleSalaryTransaction}
           disabled={processing}

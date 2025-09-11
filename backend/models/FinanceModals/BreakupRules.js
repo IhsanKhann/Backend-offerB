@@ -10,8 +10,8 @@ const MirrorSchema = new mongoose.Schema({
 
 // Each component of the breakup
 const SplitSchema = new mongoose.Schema({
-  componentName: { type: String, required: true },   // e.g., "Base Salary", "Gratuity"
-  type: { type: String, enum: ["allowance", "deduction", "terminal"], required: false },
+  componentName: { type: String, required: true },   // e.g., "Base Salary", "Gratuity",
+  type: { type: String, enum: ["allowance"], required: false },
   fieldLineId: { type: Number, ref: "SummaryFieldLine" },
   summaryId: { type: Number, ref: "Summary" },
   debitOrCredit: { type: String, enum: ["debit", "credit"], required: true },

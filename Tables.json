@@ -48,18 +48,14 @@
         "summaryId": 1700,
         "debitOrCredit": "credit",
         "mirrors": [
-          {
-            "fieldLineId": 5301,
-            "summaryId": 1500,
-            "debitOrCredit": "debit"
-          }
+          { "fieldLineId": 5301, "summaryId": 1500, "debitOrCredit": "debit" }
         ]
       },
       {
         "fieldLineId": 5302,
         "fieldName": "Cash from Commission",
         "percentage": 100,
-        "summaryId": 1500,
+        "summaryId": 1700,
         "debitOrCredit": "debit"
       }
     ]
@@ -76,11 +72,7 @@
         "summaryId": 1600,
         "debitOrCredit": "credit",
         "mirrors": [
-          {
-            "fieldLineId": 5101,
-            "summaryId": 1600,
-            "debitOrCredit": "credit"
-          }
+          { "fieldLineId": 5101, "summaryId": 1600, "debitOrCredit": "credit" }
         ]
       }
     ]

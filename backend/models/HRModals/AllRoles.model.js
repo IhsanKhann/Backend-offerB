@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const BenefitSchema = new mongoose.Schema({
+const AllowanceSchema = new mongoose.Schema({
   name: String,
   type: { type: String, enum: ["fixed", "percentage"] },
   value: Number,
@@ -9,9 +9,7 @@ const BenefitSchema = new mongoose.Schema({
 const SalaryRulesSchema = new mongoose.Schema({
   baseSalary: { type: Number, required: true },
   salaryType: { type: String, enum: ["monthly", "hourly"], default: "monthly" },
-  terminalBenefits: [BenefitSchema],
-  deductions: [BenefitSchema],
-  allowances: [BenefitSchema],
+  allowances: [AllowanceSchema],
 }, { _id: false });
 
 const RoleSchema = new mongoose.Schema({

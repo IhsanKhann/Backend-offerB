@@ -546,54 +546,56 @@ export const SalaryTransactionController = async (req, res) => {
     const { employeeId } = req.params;
     if (!employeeId) return res.status(400).json({ error: "employeeId is required" });
 
-    // fetch employee & breakup file
+    // 1. Fetch employee
     const employee = await FinalizedEmployeeModel.findById(employeeId).session(session);
     if (!employee) throw new Error(`Employee not found: ${employeeId}`);
 
-    const breakupFile = await BreakupFileModel.findOne({ employeeId }).sort({ createdAt: -1 }).session(session);
-    if (!breakupFile) throw new Error(`Breakup file not found for employee ${employeeId}`);
+    // 2. Get latest breakup file
+    const breakupFile = await BreakupFileModel.findOne({ employeeId })
+      .sort({ createdAt: -1 })
+      .session(session);
+    if (!breakupFile) throw new Error(`No breakup file found for employee ${employeeId}`);
 
-    // fetch salary rule
+    // 3. Load breakup rule
     const salaryRule = await BreakupRuleModel.findOne({ transactionType: "Salary" }).session(session);
-    if (!salaryRule || !salaryRule.splits?.length) throw new Error("Salary breakup rule not found in DB");
+    if (!salaryRule || !salaryRule.splits?.length)
+      throw new Error("Salary breakup rules not configured in DB");
 
-    // validate cash & capital exist
+    // 4. Validate cash & capital
     await validateInitialCashAndCapital(session);
 
-    const accountingLines = [];
-    let recognitionTotal = 0;
-    let totalAllowanceCredits = 0;
-    let netPay = 0;
-
+    // === Build accounting lines ===
     const breakdown = breakupFile.calculatedBreakup?.breakdown || [];
+    const accountingLines = [];
+    let netPay = 0;
+    let allowanceCredits = 0;
 
-    // Recognition: salary components & mirrors
     for (const split of salaryRule.splits) {
-      const calcItem = breakdown.find(b => String(b.name).trim().toLowerCase() === String(split.componentName).trim().toLowerCase() && b.type === split.type);
-      if (!calcItem) {
-        console.warn(`[DEBUG][Salary] No calculated value for component: ${split.componentName}`);
-        continue;
-      }
+      // Find matching item from breakup breakdown
+      const calcItem = breakdown.find(
+        b => b.name?.toLowerCase().trim() === split.componentName?.toLowerCase().trim()
+      );
+      if (!calcItem) continue;
 
       const amount = Math.round((calcItem.value || 0) * 100) / 100;
       if (!amount) continue;
-      recognitionTotal += amount;
 
+      // Get linked summary/fieldLine
       const fieldLineObjId = await getFieldLineObjectId(split.fieldLineId, session);
-      // resolve parent summary object id
       let summaryObjectId = null;
+
       if (fieldLineObjId) {
         const fld = await SummaryFieldLineModel.findById(fieldLineObjId).session(session);
-        if (fld && fld.summaryId) {
-          summaryObjectId = mongoose.Types.ObjectId.isValid(String(fld.summaryId)) ? fld.summaryId : await getSummaryObjectId(fld.summaryId, session);
-        } else {
-          summaryObjectId = await getSummaryObjectId(split.summaryId, session);
-        }
+        summaryObjectId = fld?.summaryId
+          ? (mongoose.Types.ObjectId.isValid(String(fld.summaryId))
+              ? fld.summaryId
+              : await getSummaryObjectId(fld.summaryId, session))
+          : await getSummaryObjectId(split.summaryId, session);
       } else {
         summaryObjectId = await getSummaryObjectId(split.summaryId, session);
       }
 
-      // main recognition line
+      // Main recognition line
       accountingLines.push({
         summaryObjectId,
         summaryId: split.summaryId,
@@ -604,76 +606,30 @@ export const SalaryTransactionController = async (req, res) => {
         fieldName: split.componentName
       });
 
-      // mirrors
-      if (Array.isArray(split.mirrors) && split.mirrors.length) {
-        for (const mirror of split.mirrors) {
-          const mirrorFieldObjId = await getFieldLineObjectId(mirror.fieldLineId, session);
-          let mirrorSummaryObjId = null;
-          if (mirrorFieldObjId) {
-            const mf = await SummaryFieldLineModel.findById(mirrorFieldObjId).session(session);
-            mirrorSummaryObjId = (mf && mf.summaryId)
-              ? (mongoose.Types.ObjectId.isValid(String(mf.summaryId)) ? mf.summaryId : await getSummaryObjectId(mf.summaryId, session))
-              : await getSummaryObjectId(mirror.summaryId, session);
-          } else {
-            mirrorSummaryObjId = await getSummaryObjectId(mirror.summaryId, session);
-          }
-
-          accountingLines.push({
-            summaryObjectId: mirrorSummaryObjId,
-            summaryId: mirror.summaryId,
-            fieldLineObjectId: mirrorFieldObjId,
-            fieldLineId: mirror.fieldLineId,
-            debitOrCredit: mirror.debitOrCredit,
-            amount,
-            fieldName: `Mirror for ${split.componentName}`
-          });
-
-          // track allowance credits
-          if (mirror.summaryId === SID.ALLOWANCES && mirror.debitOrCredit === "credit") {
-            totalAllowanceCredits += amount;
-          }
-        }
-      } else {
-        // if no mirror and this is an allowance, we will credit ALLOWANCES summary
-        if (split.type === "allowance") {
-          accountingLines.push({
-            summaryObjectId: await getSummaryObjectId(SID.ALLOWANCES, session),
-            summaryId: SID.ALLOWANCES,
-            fieldLineObjectId: null,
-            fieldLineId: null,
-            debitOrCredit: "credit",
-            amount,
-            fieldName: `Allowance for ${split.componentName}`
-          });
-          totalAllowanceCredits += amount;
-        }
-      }
-
-      if (split.type === "allowance") netPay += amount;
+      // Track salary totals
+      if (split.type === "allowance") allowanceCredits += amount;
+      if (split.type !== "deduction" && split.type !== "terminal") netPay += amount;
       if (split.type === "deduction") netPay -= amount;
-    } // end recognition
+    }
 
-    totalAllowanceCredits = Math.round(totalAllowanceCredits * 100) / 100;
+    allowanceCredits = Math.round(allowanceCredits * 100) / 100;
     netPay = Math.round(netPay * 100) / 100;
 
-    console.log(`[DEBUG][Salary] recognitionTotal=${recognitionTotal}, totalAllowanceCredits=${totalAllowanceCredits}, netPay=${netPay}`);
+    // === Funding lines ===
+    const fundingLines = await buildFundingLines(allowanceCredits, session);
 
-    // Build funding requirements: allowances + positive net pay are paid from cash
-    const requiredCash = Math.round(((Math.abs(totalAllowanceCredits) || 0) + Math.max(0, netPay)) * 100) / 100;
-    const fundingLines = await buildFundingLines(requiredCash, session);
-
-    // Payment lines: pay allowances then net pay
-    if (totalAllowanceCredits > 0) {
+    // === Payment lines ===
+    if (allowanceCredits > 0) {
+      // Debit allowances
       accountingLines.push({
         summaryObjectId: await getSummaryObjectId(SID.ALLOWANCES, session),
         summaryId: SID.ALLOWANCES,
-        fieldLineObjectId: null,
-        fieldLineId: null,
         debitOrCredit: "debit",
-        amount: totalAllowanceCredits,
+        amount: allowanceCredits,
         fieldName: "Pay Allowances (bulk)"
       });
 
+      // Credit cash
       const cashFieldObjId = await getFieldLineObjectId(5301, session);
       accountingLines.push({
         summaryObjectId: await getSummaryObjectId(SID.CASH, session),
@@ -681,74 +637,42 @@ export const SalaryTransactionController = async (req, res) => {
         fieldLineObjectId: cashFieldObjId,
         fieldLineId: 5301,
         debitOrCredit: "credit",
-        amount: totalAllowanceCredits,
+        amount: allowanceCredits,
         fieldName: "Cash Payment for Allowances"
       });
     }
 
-    if (netPay > 0) {
-      const salaryFieldObjId = await getFieldLineObjectId(4101, session);
-      const salarySummaryObj = salaryFieldObjId
-        ? (await SummaryFieldLineModel.findById(salaryFieldObjId).session(session)).summaryId
-        : await getSummaryObjectId(SID.SALARIES, session);
-
-      accountingLines.push({
-        summaryObjectId: salarySummaryObj,
-        summaryId: SID.SALARIES,
-        fieldLineObjectId: salaryFieldObjId,
-        fieldLineId: 4101,
-        debitOrCredit: "debit",
-        amount: netPay,
-        fieldName: "Pay Net Salary to Employee"
-      });
-
-      const cashFieldObjId = await getFieldLineObjectId(5301, session);
-      accountingLines.push({
-        summaryObjectId: await getSummaryObjectId(SID.CASH, session),
-        summaryId: SID.CASH,
-        fieldLineObjectId: cashFieldObjId,
-        fieldLineId: 5301,
-        debitOrCredit: "credit",
-        amount: netPay,
-        fieldName: "Cash Payment - Net Salary"
-      });
-    }
-
-    // Merge funding lines before payment lines
     const finalAccountingLines = [...fundingLines, ...accountingLines];
 
-    // Compute actual cash outflow (sum of lines that credit Cash)
-    const cashCreditsTotal = finalAccountingLines.filter(l => l.summaryId === SID.CASH && l.debitOrCredit === "credit").reduce((s, l) => s + Number(l.amount || 0), 0);
+    // === Persist transaction ===
+    const cashCreditsTotal = finalAccountingLines
+      .filter(l => l.summaryId === SID.CASH && l.debitOrCredit === "credit")
+      .reduce((s, l) => s + Number(l.amount || 0), 0);
 
-    // Persist transaction
-    const txDoc = await TransactionModel.create([{
-      transactionId: Date.now(),
-      date: new Date(),
-      description: `Salary Payment - Employee ${employeeId}`,
-      amount: Math.round(cashCreditsTotal * 100) / 100,
-      lines: finalAccountingLines.map(l => ({
-        fieldLineId: l.fieldLineId,
-        summaryId: l.summaryId,
-        debitOrCredit: l.debitOrCredit,
-        amount: l.amount,
-        fieldName: l.fieldName
-      }))
-    }], { session });
+    const txDoc = await TransactionModel.create(
+      [{
+        transactionId: Date.now(),
+        date: new Date(),
+        description: `Salary Payment - Employee ${employeeId}`,
+        amount: Math.round(cashCreditsTotal * 100) / 100,
+        lines: finalAccountingLines.map(l => ({
+          fieldLineId: l.fieldLineId,
+          summaryId: l.summaryId,
+          debitOrCredit: l.debitOrCredit,
+          amount: l.amount,
+          fieldName: l.fieldName
+        }))
+      }],
+      { session }
+    );
 
-    // Apply balances
+    // Update balances
     await updateBalances(finalAccountingLines, session);
 
-    // Save employee salary details
-    employee.salary.amount = Math.round((breakupFile.calculatedBreakup.netSalary || netPay || 0) * 100) / 100;
-    employee.salary.terminalBenefits = (breakupFile.calculatedBreakup.breakdown || []).filter(b => b.type === "terminal").map(b => b.name);
-    employee.salary.salaryDetails = breakupFile.calculatedBreakup.breakdown || [];
+    // Save salary details
+    employee.salary.amount = netPay;
+    employee.salary.salaryDetails = breakdown;
     await employee.save({ session });
-
-    // Return updated snapshots for verification
-    const affectedSummaryIds = [SID.EXPENSES, SID.ALLOWANCES, SID.SALARIES, SID.CASH, SID.COMMISSION, SID.CAPITAL];
-    const summaryDocs = await SummaryModel.find({ summaryId: { $in: affectedSummaryIds } }).session(session);
-    const affectedFieldLines = [1101, 1107, 1108, 1109, 1110, 2101, 2107, 2108, 2109, 2110, 4101, 5101, 5201, 5301, 5401];
-    const fieldLineDocs = await SummaryFieldLineModel.find({ fieldLineId: { $in: affectedFieldLines } }).session(session);
 
     await session.commitTransaction();
     session.endSession();
@@ -756,11 +680,10 @@ export const SalaryTransactionController = async (req, res) => {
     return res.status(201).json({
       message: "Salary transaction posted successfully",
       transactionId: txDoc[0].transactionId,
-      netSalary: employee.salary.amount,
-      accountingLines: finalAccountingLines,
-      updatedSummaries: summaryDocs,
-      updatedFieldLines: fieldLineDocs
+      netSalary: netPay,
+      accountingLines: finalAccountingLines
     });
+
   } catch (err) {
     await session.abortTransaction();
     session.endSession();

@@ -1,44 +1,34 @@
+// models/FinanceModals/BreakupfileModel.js
 import mongoose from "mongoose";
 
-// Reusable Benefit schema
-const BenefitSchema = new mongoose.Schema({
+const BreakdownSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  type: { type: String, enum: ["fixed", "percentage"], required: true },
+  type: { type: String, enum: ["base", "allowance"], required: true },
   value: { type: Number, required: true },
+  calculation: { type: String, required: true },
 }, { _id: false });
 
-// Salary Rules schema
-const SalaryRulesSchema = new mongoose.Schema({
-  baseSalary: { type: Number, required: true },
-  salaryType: { type: String, enum: ["monthly", "hourly"], default: "monthly" },
-  terminalBenefits: [BenefitSchema],
-  deductions: [BenefitSchema],
-  allowances: [BenefitSchema],
+const CalculatedBreakupSchema = new mongoose.Schema({
+  breakdown: { type: [BreakdownSchema], default: [] },
+  totalAllowances: { type: Number, default: 0 },
+  netSalary: { type: Number, default: 0 },
 }, { _id: false });
 
-// Breakdown schema for calculated salary
-const BreakupDetailSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // e.g., "House Rent Allowance"
-  type: { type: String, enum: ["allowance", "deduction", "terminal"], required: true },
-  value: { type: Number, required: true },
-  calculation: { type: String }, // optional e.g., "5% of base salary"
-}, { _id: false });
-
-// Final BreakupFile schema
 const BreakupFileSchema = new mongoose.Schema({
-  employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "Employee", required: true },
+  employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee", required: true },
   roleId: { type: mongoose.Schema.Types.ObjectId, ref: "AllRoles", required: true },
-
-  salaryRules: SalaryRulesSchema,
-
-  calculatedBreakup: {
-    totalAllowances: { type: Number, default: 0 },
-    totalDeductions: { type: Number, default: 0 },
-    netSalary: { type: Number, default: 0 },
-    breakdown: [BreakupDetailSchema],  // detailed breakdown
+  salaryRules: {
+    baseSalary: { type: Number, required: true },
+    salaryType: { type: String, enum: ["monthly", "yearly"], default: "monthly" },
+    allowances: [
+      {
+        name: String,
+        type: { type: String, enum: ["fixed", "percentage"] },
+        value: Number,
+      }
+    ],
   },
-
-  createdAt: { type: Date, default: Date.now },
+  calculatedBreakup: { type: CalculatedBreakupSchema, default: {} },
 }, { timestamps: true });
 
 export default mongoose.model("BreakupFile", BreakupFileSchema);

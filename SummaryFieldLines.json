@@ -6,9 +6,22 @@
   { "fieldLineId": 2105, "name": "Tax Sellers", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2105", "balance": 0 },
   { "fieldLineId": 2106, "name": "Management Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2106", "balance": 0 },
   { "fieldLineId": 2107, "name": "Expense Income Tax", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2107", "balance": 0 },
-  { "fieldLineId": 2108, "name": "Employee Gratuity Expense", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2108", "balance": 0 },
-  { "fieldLineId": 2109, "name": "EOBI", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2109", "balance": 0 },
-  { "fieldLineId": 2110, "name": "Group Term Insurance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2110", "balance": 0 },
+  { "fieldLineId": 2108, "name": "EOBI", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2109", "balance": 0 },
+  { "fieldLineId": 2109, "name": "Group Term Insurance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2110", "balance": 0 },
+  { "fieldLineId": 2110, "name": "Expense for House Rent", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1111", "balance": 0 },
+  { "fieldLineId": 2111, "name": "Expense for Medical Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1112", "balance": 0 },
+  { "fieldLineId": 2112, "name": "Expense for Medicine Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1113", "balance": 0 },
+  { "fieldLineId": 2113, "name": "Expense for Fuel Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1114", "balance": 0 },
+  { "fieldLineId": 2114, "name": "Expense for Gratuity Deduction", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1115", "balance": 0 },
+  { "fieldLineId": 2115, "name": "Expense for Provident Fund Deduction", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1116", "balance": 0 },
+  { "fieldLineId": 2116, "name": "Expense for Training Allowance Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1117", "balance": 0 },
+  { "fieldLineId": 2117, "name": "Expense for Hospitalization", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1118", "balance": 0 },
+  { "fieldLineId": 2118, "name": "Expense for Utility Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1119", "balance": 0 },
+  { "fieldLineId": 2119, "name": "Expense for Special Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1120", "balance": 0 },
+  { "fieldLineId": 2120, "name": "Expense for Cost of Funds", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1121", "balance": 0 },
+  { "fieldLineId": 2121, "name": "Expense for Servant", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1122", "balance": 0 },
+  { "fieldLineId": 2122, "name": "Expense for Telephone", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1123", "balance": 0 },
+  { "fieldLineId": 2123, "name": "Expense for Car Maintenance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1124", "balance": 0 },
 
   { "fieldLineId": 1101, "name": "Allowance for Administrative Expense", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1101", "balance": 0 },
   { "fieldLineId": 1102, "name": "Allowance for Market", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1102", "balance": 0 },
@@ -17,10 +30,23 @@
   { "fieldLineId": 1105, "name": "Allowance for Store Seller Taxes", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1105", "balance": 0 },
   { "fieldLineId": 1106, "name": "Allowance for Management Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1106", "balance": 0 },
   { "fieldLineId": 1107, "name": "Allowance for Income Tax Employee Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1107", "balance": 0 },
-  { "fieldLineId": 1108, "name": "Allowance for Employee Gratuity Expense", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1108", "balance": 0 },
-  { "fieldLineId": 1109, "name": "Allowance for EOBI", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1109", "balance": 0 },
-  { "fieldLineId": 1110, "name": "Allowance for Group Term Insurance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1110", "balance": 0 },
-
+  { "fieldLineId": 1108, "name": "Allowance for EOBI", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1108", "balance": 0 },
+  { "fieldLineId": 1109, "name": "Allowance for Group Term Insurance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1109", "balance": 0 },
+  { "fieldLineId": 1110, "name": "Allowance for House Rent", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1110", "balance": 0 },
+  { "fieldLineId": 1111, "name": "Allowance for Medical Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1111", "balance": 0 },
+  { "fieldLineId": 1112, "name": "Allowance for Medicine Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1112", "balance": 0 },
+  { "fieldLineId": 1113, "name": "Allowance for Fuel Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1113", "balance": 0 },
+  { "fieldLineId": 1114, "name": "Allowance for Gratuity Deduction", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1114", "balance": 0 },
+  { "fieldLineId": 1115, "name": "Allowance for Provident Fund Deduction", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1115", "balance": 0 },
+  { "fieldLineId": 1116, "name": "Allowance for Training Allowance Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1116", "balance": 0 },
+  { "fieldLineId": 1117, "name": "Allowance for Hospitalization", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1117", "balance": 0 },
+  { "fieldLineId": 1118, "name": "Allowance for Utility Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1118", "balance": 0 },
+  { "fieldLineId": 1119, "name": "Allowance for Special Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1119", "balance": 0 },
+  { "fieldLineId": 1120, "name": "Allowance for Cost of Funds", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1120", "balance": 0 },
+  { "fieldLineId": 1121, "name": "Allowance for Servant", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1121", "balance": 0 },
+  { "fieldLineId": 1122, "name": "Allowance for Telephone", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1122", "balance": 0 },
+  { "fieldLineId": 1123, "name": "Allowance for Car Maintenance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1123", "balance": 0 },
+  
   { "fieldLineId": 3101, "name": "Tax Bank - Website", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "accountNumber": "3101", "balance": 0 },
   { "fieldLineId": 3102, "name": "Tax Bank - Sellers", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "accountNumber": "3102", "balance": 0 },
 
@@ -32,5 +58,8 @@
 
   { "fieldLineId": 5301, "name": "Cash", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5301", "balance": 0 },
 
-  { "fieldLineId": 5401, "name": "Retained Income", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5401", "balance": 0 }
+  { "fieldLineId": 5401, "name": "Retained Income", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5401", "balance": 0 },
+
+  { "fieldLineId": 5302, "name": "Cash from Commission", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5302", "balance": 0 },
+  { "fieldLineId": 4101, "name": "Salaries Payable", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5997" }, "accountNumber": "4101", "balance": 0 }
 ]
