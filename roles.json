@@ -5,28 +5,26 @@
     "salaryRules": {
       "baseSalary": 100000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+       "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -36,28 +34,26 @@
     "salaryRules": {
       "baseSalary": 80000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+       "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -68,27 +64,25 @@
       "baseSalary": 70000,
       "salaryType": "monthly",
       "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -99,27 +93,25 @@
       "baseSalary": 70000,
       "salaryType": "monthly",
       "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -129,28 +121,26 @@
     "salaryRules": {
       "baseSalary": 60000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+       "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -160,28 +150,26 @@
     "salaryRules": {
       "baseSalary": 55000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+       "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -192,27 +180,25 @@
       "baseSalary": 50000,
       "salaryType": "monthly",
       "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -222,28 +208,26 @@
     "salaryRules": {
       "baseSalary": 45000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+       "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -253,28 +237,26 @@
     "salaryRules": {
       "baseSalary": 35000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+       "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -284,28 +266,26 @@
     "salaryRules": {
       "baseSalary": 40000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+ "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -316,27 +296,25 @@
       "baseSalary": 50000,
       "salaryType": "monthly",
       "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -346,28 +324,26 @@
     "salaryRules": {
       "baseSalary": 38000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+       "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -377,28 +353,26 @@
     "salaryRules": {
       "baseSalary": 30000,
       "salaryType": "monthly",
-     "allowances": [
-       {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+      "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -408,28 +382,26 @@
     "salaryRules": {
       "baseSalary": 35000,
       "salaryType": "monthly",
-      "allowances": [
-         {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+       "allowances": [
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   },
@@ -440,27 +412,25 @@
       "baseSalary": 70000,
       "salaryType": "monthly",
      "allowances": [
-       {
-          "name": "Administrative Allowance",
-          "type": "percentage",
-          "value": 100
-        },
+        { "name": "Administrative Allowance", "type": "percentage", "value": 100 },
         { "name": "House Rent", "type": "percentage", "value": 40 },
         { "name": "Medical Allowance", "type": "percentage", "value": 10 },
         { "name": "Medicine Allowance", "type": "fixed", "value": 3000 },
         { "name": "Fuel Expenses", "type": "fixed", "value": 5000 },
-        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
-        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
         { "name": "Training Allowance Expenses", "type": "fixed", "value": 2000 },
         { "name": "Hospitalization", "type": "fixed", "value": 2500 },
         { "name": "Utility Expenses", "type": "fixed", "value": 4000 },
-        { "name": "Income Tax", "type": "percentage", "value": 10 },
-        { "name": "EOBI", "type": "fixed", "value": 2000 },
         { "name": "Special Allowance", "type": "fixed", "value": 3000 },
-        { "name": "Cost of Funds", "type": "percentage", "value": 2 },
         { "name": "Servant", "type": "fixed", "value": 6000 },
         { "name": "Telephone", "type": "fixed", "value": 1500 },
         { "name": "Car Maintenance", "type": "fixed", "value": 5000 }
+      ],
+      "deductions": [
+        { "name": "Gratuity Deduction", "type": "percentage", "value": 5 },
+        { "name": "Provident Fund Deduction", "type": "percentage", "value": 8 },
+        { "name": "Income Tax", "type": "percentage", "value": 10 },
+        { "name": "EOBI", "type": "fixed", "value": 2000 },
+        { "name": "Cost of Funds", "type": "percentage", "value": 2 }
       ]
     }
   }

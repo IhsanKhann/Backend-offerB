@@ -2,7 +2,7 @@
   "transactionType": "Salary",
   "incrementType": "both",
   "splits": [
-     {
+    {
       "componentName": "Base Salary",
       "type": "base",
       "fieldLineId": 2101,
@@ -11,128 +11,158 @@
       "fixedAmount": 0,
       "percentage": 100,
       "mirrors": [
-        {
-          "fieldLineId": 1101,
-          "summaryId": 1200,
-          "debitOrCredit": "credit"
-        }
+        { "fieldLineId": 1101, "summaryId": 1200, "debitOrCredit": "credit" }
       ]
     },
     {
       "componentName": "House Rent",
       "type": "allowance",
-      "fieldLineId": 1111,
+      "fieldLineId": 1110,
       "summaryId": 1200,
       "debitOrCredit": "debit",
-      "fixedAmount": 0,
       "percentage": 40,
       "mirrors": [
-        { "fieldLineId": 2111, "summaryId": 1200, "debitOrCredit": "debit" }
+        { "fieldLineId": 2110, "summaryId": 1200, "debitOrCredit": "debit" }
       ]
     },
     {
       "componentName": "Medical Allowance",
       "type": "allowance",
-      "fieldLineId": 1112,
+      "fieldLineId": 1111,
       "summaryId": 1200,
       "debitOrCredit": "debit",
-      "fixedAmount": 0,
       "percentage": 10,
       "mirrors": [
-        { "fieldLineId": 2112, "summaryId": 1200, "debitOrCredit": "debit" }
+        { "fieldLineId": 2111, "summaryId": 1200, "debitOrCredit": "debit" }
       ]
     },
     {
       "componentName": "Medicine Allowance",
       "type": "allowance",
-      "fieldLineId": 1113,
+      "fieldLineId": 1112,
       "summaryId": 1200,
       "debitOrCredit": "debit",
       "fixedAmount": 3000,
-      "percentage": 0,
       "mirrors": [
-        { "fieldLineId": 2113, "summaryId": 1200, "debitOrCredit": "debit" }
+        { "fieldLineId": 2112, "summaryId": 1200, "debitOrCredit": "debit" }
       ]
     },
     {
       "componentName": "Fuel Expenses",
       "type": "allowance",
-      "fieldLineId": 1114,
+      "fieldLineId": 1113,
       "summaryId": 1200,
       "debitOrCredit": "debit",
       "fixedAmount": 5000,
-      "percentage": 0,
       "mirrors": [
-        { "fieldLineId": 2114, "summaryId": 1200, "debitOrCredit": "debit" }
-      ]
-    },
-    {
-      "componentName": "Gratuity Deduction",
-      "type": "allowance",
-      "fieldLineId": 1115,
-      "summaryId": 1200,
-      "debitOrCredit": "credit",
-      "fixedAmount": 0,
-      "percentage": 5,
-      "mirrors": [
-        { "fieldLineId": 2115, "summaryId": 1200, "debitOrCredit": "credit" }
-      ]
-    },
-    {
-      "componentName": "Provident Fund Deduction",
-      "type": "allowance",
-      "fieldLineId": 1116,
-      "summaryId": 1200,
-      "debitOrCredit": "credit",
-      "fixedAmount": 0,
-      "percentage": 8,
-      "mirrors": [
-        { "fieldLineId": 2116, "summaryId": 1200, "debitOrCredit": "credit" }
+        { "fieldLineId": 2113, "summaryId": 1200, "debitOrCredit": "debit" }
       ]
     },
     {
       "componentName": "Training Allowance Expenses",
       "type": "allowance",
-      "fieldLineId": 1117,
+      "fieldLineId": 1116,
       "summaryId": 1200,
       "debitOrCredit": "debit",
       "fixedAmount": 2000,
-      "percentage": 0,
       "mirrors": [
-        { "fieldLineId": 2117, "summaryId": 1200, "debitOrCredit": "debit" }
+        { "fieldLineId": 2116, "summaryId": 1200, "debitOrCredit": "debit" }
       ]
     },
     {
       "componentName": "Hospitalization",
       "type": "allowance",
-      "fieldLineId": 1118,
+      "fieldLineId": 1117,
       "summaryId": 1200,
       "debitOrCredit": "debit",
       "fixedAmount": 2500,
-      "percentage": 0,
       "mirrors": [
-        { "fieldLineId": 2118, "summaryId": 1200, "debitOrCredit": "debit" }
+        { "fieldLineId": 2117, "summaryId": 1200, "debitOrCredit": "debit" }
       ]
     },
     {
       "componentName": "Utility Expenses",
       "type": "allowance",
-      "fieldLineId": 1119,
+      "fieldLineId": 1118,
       "summaryId": 1200,
       "debitOrCredit": "debit",
       "fixedAmount": 4000,
-      "percentage": 0,
+      "mirrors": [
+        { "fieldLineId": 2118, "summaryId": 1200, "debitOrCredit": "debit" }
+      ]
+    },
+    {
+      "componentName": "Special Allowance",
+      "type": "allowance",
+      "fieldLineId": 1119,
+      "summaryId": 1200,
+      "debitOrCredit": "debit",
+      "fixedAmount": 3000,
       "mirrors": [
         { "fieldLineId": 2119, "summaryId": 1200, "debitOrCredit": "debit" }
       ]
     },
     {
-      "componentName": "Income Tax",
+      "componentName": "Servant",
       "type": "allowance",
+      "fieldLineId": 1121,
+      "summaryId": 1200,
+      "debitOrCredit": "debit",
+      "fixedAmount": 6000,
+      "mirrors": [
+        { "fieldLineId": 2121, "summaryId": 1200, "debitOrCredit": "debit" }
+      ]
+    },
+    {
+      "componentName": "Telephone",
+      "type": "allowance",
+      "fieldLineId": 1122,
+      "summaryId": 1200,
+      "debitOrCredit": "debit",
+      "fixedAmount": 1500,
+      "mirrors": [
+        { "fieldLineId": 2122, "summaryId": 1200, "debitOrCredit": "debit" }
+      ]
+    },
+    {
+      "componentName": "Car Maintenance",
+      "type": "allowance",
+      "fieldLineId": 1123,
+      "summaryId": 1200,
+      "debitOrCredit": "debit",
+      "fixedAmount": 5000,
+      "mirrors": [
+        { "fieldLineId": 2123, "summaryId": 1200, "debitOrCredit": "debit" }
+      ]
+    },
+    {
+      "componentName": "Gratuity Deduction",
+      "type": "deduction",
+      "fieldLineId": 1114,
+      "summaryId": 1200,
+      "debitOrCredit": "credit",
+      "percentage": 5,
+      "mirrors": [
+        { "fieldLineId": 2114, "summaryId": 1200, "debitOrCredit": "credit" }
+      ]
+    },
+    {
+      "componentName": "Provident Fund Deduction",
+      "type": "deduction",
+      "fieldLineId": 1115,
+      "summaryId": 1200,
+      "debitOrCredit": "credit",
+      "percentage": 8,
+      "mirrors": [
+        { "fieldLineId": 2115, "summaryId": 1200, "debitOrCredit": "credit" }
+      ]
+    },
+    {
+      "componentName": "Income Tax",
+      "type": "deduction",
       "fieldLineId": 1120,
       "summaryId": 1200,
       "debitOrCredit": "credit",
-      "fixedAmount": 0,
       "percentage": 10,
       "mirrors": [
         { "fieldLineId": 2120, "summaryId": 1200, "debitOrCredit": "credit" }
@@ -140,74 +170,24 @@
     },
     {
       "componentName": "EOBI",
-      "type": "allowance",
-      "fieldLineId": 2109,
+      "type": "deduction",
+      "fieldLineId": 1108,
       "summaryId": 1200,
-      "debitOrCredit": "debit",
+      "debitOrCredit": "credit",
       "fixedAmount": 2000,
-      "percentage": 0,
       "mirrors": [
-        { "fieldLineId": 1109, "summaryId": 1100, "debitOrCredit": "credit" }
-      ]
-    },
-    {
-      "componentName": "Special Allowance",
-      "type": "allowance",
-      "fieldLineId": 1121,
-      "summaryId": 1200,
-      "debitOrCredit": "debit",
-      "fixedAmount": 3000,
-      "percentage": 0,
-      "mirrors": [
-        { "fieldLineId": 2121, "summaryId": 1200, "debitOrCredit": "debit" }
+        { "fieldLineId": 2108, "summaryId": 1200, "debitOrCredit": "credit" }
       ]
     },
     {
       "componentName": "Cost of Funds",
-      "type": "allowance",
-      "fieldLineId": 1122,
+      "type": "deduction",
+      "fieldLineId": 1120,
       "summaryId": 1200,
-      "debitOrCredit": "debit",
-      "fixedAmount": 0,
+      "debitOrCredit": "credit",
       "percentage": 2,
       "mirrors": [
-        { "fieldLineId": 2122, "summaryId": 1200, "debitOrCredit": "debit" }
-      ]
-    },
-    {
-      "componentName": "Servant",
-      "type": "allowance",
-      "fieldLineId": 1123,
-      "summaryId": 1200,
-      "debitOrCredit": "debit",
-      "fixedAmount": 6000,
-      "percentage": 0,
-      "mirrors": [
-        { "fieldLineId": 2123, "summaryId": 1200, "debitOrCredit": "debit" }
-      ]
-    },
-    {
-      "componentName": "Telephone",
-      "type": "allowance",
-      "fieldLineId": 1124,
-      "summaryId": 1200,
-      "debitOrCredit": "debit",
-      "fixedAmount": 1500,
-      "percentage": 0,
-      "mirrors": [
-        { "fieldLineId": 2124, "summaryId": 1200, "debitOrCredit": "debit" }
-      ]
-    },
-    {
-      "componentName": "Car Maintenance",
-      "type": "allowance",
-      "fieldLineId": 1125,
-      "summaryId": 1200,
-      "debitOrCredit": "debit",
-      "fixedAmount": 5000,
-      "percentage": 0,
-      "mirrors": [
-        { "fieldLineId": 2125, "summaryId": 1200, "debitOrCredit": "debit" }
+        { "fieldLineId": 2120, "summaryId": 1200, "debitOrCredit": "credit" }
       ]
     }
   ]

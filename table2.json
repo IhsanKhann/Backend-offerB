@@ -1,102 +1,215 @@
-
 [
   {
-    "fieldLineId": 1111,
-    "name": "Allowance for House Rent",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1111",
+    "fieldLineId": 1501,
+    "name": "Initial Deposit",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-01",
     "balance": 0
   },
   {
-    "fieldLineId": 1112,
-    "name": "Allowance for Medical Allowance",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1112",
+    "fieldLineId": 1502,
+    "name": "Deposit",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-02",
     "balance": 0
   },
   {
-    "fieldLineId": 1113,
-    "name": "Allowance for Medicine Allowance",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1113",
+    "fieldLineId": 1503,
+    "name": "Initial Withdrawal",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-03",
     "balance": 0
   },
   {
-    "fieldLineId": 1114,
-    "name": "Allowance for Fuel Expenses",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1114",
+    "fieldLineId": 1504,
+    "name": "Withdrawal",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-04",
     "balance": 0
   },
   {
-    "fieldLineId": 1115,
-    "name": "Allowance for Gratuity Deduction",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1115",
+    "fieldLineId": 1505,
+    "name": "Security Deposit Received from Bidder",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-05",
     "balance": 0
   },
   {
-    "fieldLineId": 1116,
-    "name": "Allowance for Provident Fund Deduction",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1116",
+    "fieldLineId": 1506,
+    "name": "Security Deposit Released to Bidder",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-06",
     "balance": 0
   },
   {
-    "fieldLineId": 1117,
-    "name": "Allowance for Training Allowance Expenses",
-    "summaryId":{ "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1117",
+    "fieldLineId": 1507,
+    "name": "Security Deposit Forfeited (Private/Government)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-07",
     "balance": 0
   },
   {
-    "fieldLineId": 1118,
-    "name": "Allowance for Hospitalization",
-    "summaryId":{ "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1118",
+    "fieldLineId": 1508,
+    "name": "To Private Customer Net of Commission when forfeited",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-08",
     "balance": 0
   },
   {
-    "fieldLineId": 1119,
-    "name": "Allowance for Utility Expenses",
-    "summaryId":{ "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1119",
+    "fieldLineId": 1509,
+    "name": "To Government Customer Net of Commission when forfeited",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-09",
     "balance": 0
   },
   {
-    "fieldLineId": 1120,
-    "name": "Allowance for Special Allowance",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1120",
+    "fieldLineId": 1510,
+    "name": "Cash from Commission Income (Retail)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-10",
     "balance": 0
   },
   {
-    "fieldLineId": 1122,
-    "name": "Allowance for Cost of Funds",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1121",
+    "fieldLineId": 1511,
+    "name": "Cash from Commission Income (Wholesale)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-11",
     "balance": 0
   },
   {
-    "fieldLineId": 1122,
-    "name": "Allowance for Servant",
-    "summaryId":{ "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1122",
+    "fieldLineId": 1512,
+    "name": "Cash from Commission Income (Service Provider)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-12",
     "balance": 0
   },
   {
-    "fieldLineId": 1123,
-    "name": "Allowance for Telephone",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1123",
+    "fieldLineId": 1513,
+    "name": "Cash from Commission Income (Auction)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-13",
     "balance": 0
   },
   {
-    "fieldLineId": 1124,
-    "name": "Allowance for Car Maintenance",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
-    "accountNumber": "1124",
+    "fieldLineId": 1514,
+    "name": "Cash from Commission Income (Advertisement)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-14",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1515,
+    "name": "Excess Expenses",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "accountNumber": "1500-15",
+    "balance": 0
+  },
+
+  {
+    "fieldLineId": 1601,
+    "name": "Initial Deposit",
+    "summaryId": "SUMMARY_ID_CAPITAL",
+    "accountNumber": "1600-01",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1602,
+    "name": "Deposit",
+    "summaryId": "SUMMARY_ID_CAPITAL",
+    "accountNumber": "1600-02",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1603,
+    "name": "Withdrawal",
+    "summaryId": "SUMMARY_ID_CAPITAL",
+    "accountNumber": "1600-03",
+    "balance": 0
+  },
+
+  {
+    "fieldLineId": 1701,
+    "name": "Employee Gratuity Expense (Website Contribution)",
+    "summaryId": "SUMMARY_ID_COMMISSION",
+    "accountNumber": "1700-01",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 1702,
+    "name": "Outstanding Expenses",
+    "summaryId": "SUMMARY_ID_COMMISSION",
+    "accountNumber": "1700-02",
+    "balance": 0
+  },
+
+  {
+    "fieldLineId": 2701,
+    "name": "Sales Tax",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-01",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2702,
+    "name": "Excise Tax",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-02",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2703,
+    "name": "Central Excise Duty",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-03",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2704,
+    "name": "Service Charges",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-04",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2705,
+    "name": "Custom Duty",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-05",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2706,
+    "name": "Website Income Tax (Table)",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-06",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2707,
+    "name": "Website Service Tax (Table)",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-07",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2708,
+    "name": "Wholesales - Store Tax",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-08",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2709,
+    "name": "Auction - Stores Tax",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-09",
+    "balance": 0
+  },
+  {
+    "fieldLineId": 2710,
+    "name": "Retail - STORES TAX TABLE",
+    "summaryId": "SUMMARY_ID_TAXES",
+    "accountNumber": "2700-10",
     "balance": 0
   }
 ]
-

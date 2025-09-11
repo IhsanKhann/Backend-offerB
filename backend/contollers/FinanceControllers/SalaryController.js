@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import AllRolesModel from "../../models/HRModals/AllRoles.model.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
-import BreakupFile from "../../models/FinanceModals/BreakupfileModel.js";
+import BreakupFile from "../../models/FinanceModals/SalaryBreakupModel.js";
 
 export const getSalaryRulesByRoleName = async (req, res) => {
   try {
@@ -64,87 +64,109 @@ export const getBreakupFile = async (req, res) => {
 
 export const createBreakupFile = async (req, res) => {
   try {
-    const { employeeId, roleId, salaryRules, breakup } = req.body;
+    const { employeeId, roleId, salaryRules } = req.body;
 
-    // ---------- VALIDATION ----------
-    if (!employeeId || !mongoose.Types.ObjectId.isValid(employeeId)) {
-      return res.status(400).json({ message: "Invalid or missing employeeId" });
-    }
-
-    if (!roleId || !mongoose.Types.ObjectId.isValid(roleId)) {
-      return res.status(400).json({ message: "Invalid or missing roleId" });
-    }
-
+    // 1️⃣ Validate Employee
     const employee = await FinalizedEmployeeModel.findById(employeeId);
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
 
+    // 2️⃣ Validate Role
     const role = await AllRolesModel.findById(roleId);
-    if (!role) return res.status(404).json({ message: "Role not found" });
-
-    if (!salaryRules || typeof salaryRules.baseSalary !== "number") {
-      return res.status(400).json({ message: "Invalid salaryRules" });
+    if (!role) {
+      return res.status(404).json({ success: false, message: "Role not found" });
     }
 
-    if (!Array.isArray(breakup) || breakup.length === 0) {
-      return res.status(400).json({ message: "Breakup must be a non-empty array" });
-    }
+    // 3️⃣ Extract rules
+    const { baseSalary = 0, allowances = [], deductions = [] } = salaryRules;
 
-    // ---------- VALIDATE EACH BREAKUP ITEM ----------
-    const validatedBreakup = breakup.map(item => {
-      if (
-        !item.name ||
-        !item.type ||
-        !["base", "allowance"].includes(item.type) ||
-        typeof item.value !== "number" ||
-        !item.calculation
-      ) {
-        throw new Error(`Invalid breakup item: ${JSON.stringify(item)}`);
+    // 🔄 Normalize into a single `components` array
+    const components = [
+      ...allowances.map(a => ({ ...a, category: "allowance" })),
+      ...deductions.map(d => ({ ...d, category: "deduction" })),
+    ];
+
+    // 4️⃣ Build Breakdown
+    let breakdown = [
+      {
+        name: "Base Salary",
+        category: "base",
+        value: baseSalary,
+        calculation: `Fixed base salary = ${baseSalary}`,
+      },
+    ];
+
+    let totalAllowances = 0;
+    let totalDeductions = 0;
+
+    for (const component of components) {
+      let calculatedValue = 0;
+
+      if (component.type === "percentage") {
+        calculatedValue = (baseSalary * component.value) / 100;
+
+        // Special case
+        if (component.name === "Administrative Allowance") {
+          calculatedValue = baseSalary;
+        }
+      } else {
+        calculatedValue = component.value;
       }
 
-      return {
-        name: String(item.name),
-        type: item.type,
-        value: Number(item.value),
-        calculation: String(item.calculation),
-      };
-    });
-
-    // ---------- CALCULATE TOTAL ALLOWANCES AND NET SALARY ----------
-    const totalAllowances = validatedBreakup
-      .filter(item => item.type === "allowance")
-      .reduce((sum, item) => sum + item.value, 0);
-
-    const baseSalaryItem = validatedBreakup.find(item => item.type === "base");
-    const baseSalary = baseSalaryItem ? baseSalaryItem.value : salaryRules.baseSalary;
-
-    const netSalary = baseSalary + totalAllowances;
-
-    const calculatedBreakup = {
-      breakdown: validatedBreakup,
-      totalAllowances,
-      netSalary,
-    };
-
-    // ---------- CREATE OR UPDATE BREAKUP FILE ----------
-    let breakupFile = await BreakupFile.findOne({ employeeId });
-    if (breakupFile) {
-      breakupFile.salaryRules = salaryRules;
-      breakupFile.calculatedBreakup = calculatedBreakup;
-      breakupFile.roleId = roleId;
-      await breakupFile.save();
-    } else {
-      breakupFile = await BreakupFile.create({
-        employeeId,
-        roleId,
-        salaryRules,
-        calculatedBreakup,
+      breakdown.push({
+        name: component.name,
+        category: component.category,
+        value: calculatedValue,
+        calculation:
+          component.type === "percentage"
+            ? `${component.value}% of base = ${calculatedValue}`
+            : `Fixed = ${calculatedValue}`,
       });
+
+      if (component.category === "deduction") {
+        totalDeductions += calculatedValue;
+      } else {
+        totalAllowances += calculatedValue;
+      }
     }
 
-    return res.status(200).json({ message: "Breakup file created/updated successfully", breakupFile });
+    // 5️⃣ Calculate Net Salary
+    const netSalary = baseSalary + totalAllowances - totalDeductions;
 
-  } catch (error) {
-    console.error("Error creating breakup file:", error);
-    return res.status(500).json({ message: error.message || "Internal server error" });
+    // 6️⃣ Create/Update BreakupFile
+    const breakupFile = await BreakupFile.findOneAndUpdate(
+      { employeeId },
+      {
+        employeeId,
+        roleId,
+        salaryRules: {
+          baseSalary,
+          salaryType: salaryRules.salaryType || "monthly",
+          allowances,
+          deductions,
+        },
+        calculatedBreakup: {
+          breakdown,
+          totalAllowances,
+          totalDeductions,
+          netSalary,
+        },
+      },
+      { new: true, upsert: true } // ✅ update if exists, create if not
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Breakup file created/updated successfully",
+      data: breakupFile,
+    });
+  } catch (err) {
+    console.error("Error creating breakup file:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Error creating breakup file",
+      error: err.message,
+    });
   }
 };

@@ -4,7 +4,7 @@ import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
 import SummaryFieldLineModel from "../../models/FinanceModals/SummaryFieldLinesModel.js";
 import TablesModel from "../../models/FinanceModals/TablesModel.js";
-import BreakupFileModel from "../../models/FinanceModals/BreakupfileModel.js";
+import BreakupFileModel from "../../models/FinanceModals/SalaryBreakupModel.js";
 import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 
@@ -570,66 +570,119 @@ export const SalaryTransactionController = async (req, res) => {
     let netPay = 0;
     let allowanceCredits = 0;
 
+    // Debug logs
+    console.log("[DEBUG] Salary Rule Splits:", salaryRule.splits.map(s => s.componentName));
+    console.log("[DEBUG] Breakup Breakdown:", breakdown.map(b => `${b.name}: ${b.value}`));
+
+    const normalize = str => (str || "").toString().toLowerCase().trim();
+
     for (const split of salaryRule.splits) {
-      // Find matching item from breakup breakdown
+      const type = split.type || "allowance"; // default to allowance
+      const debitOrCredit = split.debitOrCredit || "debit";
+
+      // Find matching calculated item
       const calcItem = breakdown.find(
-        b => b.name?.toLowerCase().trim() === split.componentName?.toLowerCase().trim()
+        b => normalize(b.name) === normalize(split.componentName)
       );
-      if (!calcItem) continue;
+
+      if (!calcItem) {
+        console.warn(`[DEBUG] No match for rule component "${split.componentName}" in breakupFile`);
+        continue;
+      }
 
       const amount = Math.round((calcItem.value || 0) * 100) / 100;
       if (!amount) continue;
 
-      // Get linked summary/fieldLine
+      // Resolve fieldLine & summary for main recognition line
       const fieldLineObjId = await getFieldLineObjectId(split.fieldLineId, session);
       let summaryObjectId = null;
 
       if (fieldLineObjId) {
         const fld = await SummaryFieldLineModel.findById(fieldLineObjId).session(session);
-        summaryObjectId = fld?.summaryId
-          ? (mongoose.Types.ObjectId.isValid(String(fld.summaryId))
-              ? fld.summaryId
-              : await getSummaryObjectId(fld.summaryId, session))
-          : await getSummaryObjectId(split.summaryId, session);
+        if (fld && fld.summaryId) {
+          summaryObjectId = mongoose.Types.ObjectId.isValid(String(fld.summaryId))
+            ? fld.summaryId
+            : await getSummaryObjectId(fld.summaryId, session);
+        } else {
+          summaryObjectId = await getSummaryObjectId(split.summaryId, session);
+        }
       } else {
         summaryObjectId = await getSummaryObjectId(split.summaryId, session);
       }
 
-      // Main recognition line
+      // --- Recognition line (main) ---
       accountingLines.push({
         summaryObjectId,
         summaryId: split.summaryId,
         fieldLineObjectId: fieldLineObjId,
         fieldLineId: split.fieldLineId,
-        debitOrCredit: split.debitOrCredit,
+        debitOrCredit,
         amount,
         fieldName: split.componentName
       });
 
-      // Track salary totals
-      if (split.type === "allowance") allowanceCredits += amount;
-      if (split.type !== "deduction" && split.type !== "terminal") netPay += amount;
-      if (split.type === "deduction") netPay -= amount;
-    }
+      // --- Mirror lines (if configured) ---
+      if (Array.isArray(split.mirrors) && split.mirrors.length) {
+        for (const mirror of split.mirrors) {
+          const mirrorFieldObjId = await getFieldLineObjectId(mirror.fieldLineId, session);
+          let mirrorSummaryObjId = null;
+
+          if (mirrorFieldObjId) {
+            const mf = await SummaryFieldLineModel.findById(mirrorFieldObjId).session(session);
+            if (mf && mf.summaryId) {
+              mirrorSummaryObjId = mongoose.Types.ObjectId.isValid(String(mf.summaryId))
+                ? mf.summaryId
+                : await getSummaryObjectId(mf.summaryId, session);
+            } else {
+              mirrorSummaryObjId = await getSummaryObjectId(mirror.summaryId, session);
+            }
+          } else {
+            mirrorSummaryObjId = await getSummaryObjectId(mirror.summaryId, session);
+          }
+
+          const mirDebitOrCredit = mirror.debitOrCredit || "credit";
+
+          accountingLines.push({
+            summaryObjectId: mirrorSummaryObjId,
+            summaryId: mirror.summaryId,
+            fieldLineObjectId: mirrorFieldObjId,
+            fieldLineId: mirror.fieldLineId,
+            debitOrCredit: mirDebitOrCredit,
+            amount,
+            fieldName: mirror.fieldName || `Mirror for ${split.componentName}`
+          });
+        }
+      }
+
+      // --- Salary totals calculation ---
+      if (type === "allowance") {
+        allowanceCredits += amount;
+        netPay += amount;
+      } else if (type === "deduction") {
+        netPay -= amount;
+      } else if (type === "base") {
+        netPay += amount;
+      }
+    } // end splits loop
 
     allowanceCredits = Math.round(allowanceCredits * 100) / 100;
     netPay = Math.round(netPay * 100) / 100;
 
-    // === Funding lines ===
+    // === Funding lines (Commission -> Cash, Capital -> Cash) ===
     const fundingLines = await buildFundingLines(allowanceCredits, session);
 
-    // === Payment lines ===
+    // === Payment lines (bulk allowances payment) ===
     if (allowanceCredits > 0) {
-      // Debit allowances
       accountingLines.push({
         summaryObjectId: await getSummaryObjectId(SID.ALLOWANCES, session),
         summaryId: SID.ALLOWANCES,
+        fieldLineObjectId: null,
+        fieldLineId: null,
         debitOrCredit: "debit",
         amount: allowanceCredits,
         fieldName: "Pay Allowances (bulk)"
       });
 
-      // Credit cash
       const cashFieldObjId = await getFieldLineObjectId(5301, session);
       accountingLines.push({
         summaryObjectId: await getSummaryObjectId(SID.CASH, session),
@@ -666,10 +719,11 @@ export const SalaryTransactionController = async (req, res) => {
       { session }
     );
 
-    // Update balances
+    // Apply balances
     await updateBalances(finalAccountingLines, session);
 
-    // Save salary details
+    // Save net salary into employee record
+    employee.salary = employee.salary || {};
     employee.salary.amount = netPay;
     employee.salary.salaryDetails = breakdown;
     await employee.save({ session });
@@ -691,3 +745,4 @@ export const SalaryTransactionController = async (req, res) => {
     return res.status(500).json({ error: err.message || String(err) });
   }
 };
+

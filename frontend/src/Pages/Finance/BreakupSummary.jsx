@@ -17,7 +17,7 @@ const BreakupSummary = () => {
         const res = await api.get(`/summaries/salary/breakup/${employeeId}`);
         setBreakup(res.data.data);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching breakup:", err);
         alert("Failed to fetch breakup file");
       } finally {
         setLoading(false);
@@ -36,7 +36,7 @@ const BreakupSummary = () => {
       alert(res.data.message || "Salary transaction completed");
       setBreakup(null);
     } catch (err) {
-      console.error(err);
+      console.error("Error processing salary:", err);
       alert("Failed to initiate salary transaction");
     } finally {
       setProcessing(false);
@@ -49,9 +49,9 @@ const BreakupSummary = () => {
   const { salaryRules, calculatedBreakup } = breakup;
   const formatRupees = (amt) => `PKR ${Number(amt || 0).toLocaleString()}`;
 
-  // Only keep allowances and terminal benefits
-  const allowances = calculatedBreakup.breakdown.filter(b => b.type === "allowance");
-  const terminal = calculatedBreakup.breakdown.filter(b => b.type === "terminal");
+  // Group components by category
+  const allowances = calculatedBreakup.breakdown.filter(b => b.category === "allowance");
+  const deductions = calculatedBreakup.breakdown.filter(b => b.category === "deduction");
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen flex justify-center">
@@ -87,18 +87,24 @@ const BreakupSummary = () => {
           </div>
         </div>
 
-        {/* Terminal Benefits (if any) */}
-        {terminal.length > 0 && (
-          <div className="border-b py-4">
-            <h2 className="text-lg font-semibold mb-2">Terminal Benefits</h2>
-            {terminal.map((item, idx) => (
+        {/* Deductions */}
+        <div className="border-b py-4">
+          <h2 className="text-lg font-semibold mb-2">Deductions</h2>
+          {deductions.length ? (
+            deductions.map((item, idx) => (
               <div key={idx} className="flex justify-between">
                 <span>{item.name}</span>
-                <span>{formatRupees(item.value)}</span>
+                <span>-{formatRupees(item.value)}</span>
               </div>
-            ))}
+            ))
+          ) : (
+            <p className="text-gray-500">No deductions</p>
+          )}
+          <div className="flex justify-between mt-2 font-semibold">
+            <span>Total Deductions:</span>
+            <span>{formatRupees(calculatedBreakup.totalDeductions)}</span>
           </div>
-        )}
+        </div>
 
         {/* Net Salary */}
         <div className="py-4 flex justify-between items-center font-bold text-lg">
