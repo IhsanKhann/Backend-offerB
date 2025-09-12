@@ -1,10 +1,12 @@
 import express from "express";
 import {
-  getSummaries,                    // plain summaries
-  getSummariesWithFieldLines,      // summaries + fieldlines
-  resetSummaries,
-  initCapitalCash,
-  getAllSummaryFieldLines,
+  summariesGetAll,
+  summariesGetWithFieldLines,
+  summariesGetAllFieldLines,
+  summariesGetById,
+  summariesCreateDefinition,
+  summariesReset,
+  summariesInitCapitalCash,
 } from "../../contollers/FinanceControllers/SummaryController.js";
 
 import {
@@ -20,48 +22,55 @@ import {
   getSingleSalaryRole,
   createBreakupFile,
   getBreakupFile,
-} from "../../contollers/FinanceControllers/SalaryController.js"; // new controllers
+} from "../../contollers/FinanceControllers/SalaryController.js";
 
 import {
-    getAllSalaryRules,
-    getSalaryRulesByRole,
-    updateSalaryRules,
-    createRoleWithSalaryRules,
-} from "../../contollers/FinanceControllers/TablesControllers.js"; // salary rules table
+  getAllSalaryRules,
+  getSalaryRulesByRole,
+  updateSalaryRules,
+  createRoleWithSalaryRules,
+} from "../../contollers/FinanceControllers/TablesControllers.js";
 
 import RuleModel from "../../models/FinanceModals/TablesModel.js";
 import { authenticate } from "../../middlewares/authMiddlewares.js";
 
 const router = express.Router();
 
-// Summaries
-router.get("/", getSummaries);                    
-router.get("/summaries-with-lines", getSummariesWithFieldLines); // summaries + fieldlines
-router.get("/fieldlines", getAllSummaryFieldLines);
-
-// Rules
-router.get("/rules", getRules);                               // all rules
-router.get("/rules/:ruleId", getRuleById);                    // rule by id
-
-// Salary / Breakup
-router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);    // get employee salary rules
-router.post("/salary/breakup/:employeeId", createBreakupFile); // create breakup file
-router.get("/salary/breakup/:employeeId", getBreakupFile);    // get latest breakup file
+/**
+ * Summaries
+ */
+router.get("/", summariesGetAll);                       
+router.get("/definitions", summariesCreateDefinition);
+router.get("/with-fieldlines", summariesGetWithFieldLines);
+router.get("/fieldlines", summariesGetAllFieldLines);
+// router.get("/:summaryId", summariesGetById); 
 
 /**
- * Protected routes (admin only)
+ * Rules
+ */
+router.get("/rules", getRules);
+router.get("/rules/:ruleId", getRuleById);
+
+/**
+ * Salary / Breakup
+ */
+router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
+router.post("/salary/breakup/:employeeId", createBreakupFile);
+router.get("/salary/breakup/:employeeId", getBreakupFile);
+
+/**
+ * Protected (admin only)
  */
 router.use(authenticate);
 
-router.post("/reset-summaries", resetSummaries);
-router.post("/init-capital-cash", initCapitalCash);
+router.post("/reset", summariesReset);
+router.post("/init-capital-cash", summariesInitCapitalCash);
 
 router.post("/rules", createRule);
 router.put("/rules/:ruleId", updateRule);
 router.delete("/rules/:ruleId/delete", deleteRule);
-router.get("/salary/breakup':employeeId", getBreakupFile);    // get latest breakup file
 
-// Delete a split from a rule
+// Delete split
 router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
   const { ruleId, splitIdx } = req.params;
   try {
@@ -78,7 +87,7 @@ router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
   }
 });
 
-// Delete a mirror from a split
+// Delete mirror
 router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, res) => {
   const { ruleId, splitIdx, mirrorIdx } = req.params;
   try {
@@ -95,12 +104,13 @@ router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, 
   }
 });
 
-// salary rules table.
+/**
+ * Salary rules table
+ */
 router.get("/salarytable/all", getAllSalaryRules);
 router.get("/salarytable/:roleId", getSalaryRulesByRole);
 router.put("/salarytable/:roleId", updateSalaryRules);
-router.post("/salarytable/", createRoleWithSalaryRules);
-router.get("/salary/role/:roleName", getSingleSalaryRole); // single role salary details
-
+router.post("/salarytable", createRoleWithSalaryRules);
+router.get("/salary/role/:roleName", getSingleSalaryRole);
 
 export default router;

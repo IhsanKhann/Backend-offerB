@@ -1,34 +1,34 @@
 // controllers/FinanceControllers/SummaryController.js
 import mongoose from "mongoose";
 import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
-import SummaryFieldLineModel from "../../models/FinanceModals/SummaryFieldLinesModel.js";
+import SummaryFieldLineModel from "../../models/FinanceModals/FieldLineInstanceModel.js";
 import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
+import SummaryFieldLineDefinition from "../../models/FinanceModals/FieldLineDefinitionModel.js";
+import SummaryFieldLineInstance from "../../models/FinanceModals/FieldLineInstanceModel.js";
 
-export const getSummaries = async (req, res) => {
+
+export const summariesGetAll = async (req, res) => {
   try {
+    console.log("[summariesGetAll] Fetching all summaries");
     const summaries = await SummaryModel.find().lean();
+    console.log(`[summariesGetAll] Found ${summaries.length} summaries`);
     res.status(200).json(summaries);
   } catch (error) {
-    console.error("Error fetching summaries:", error);
-    res.status(500).json({ message: "Error fetching summaries", error });
+    console.error("[summariesGetAll] Error:", error.stack || error);
+    res.status(500).json({ message: "Error fetching summaries", error: error.message });
   }
 };
 
-export const resetSummaries = async (req, res) => {
+export const summariesReset = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
-
   try {
-    await SummaryModel.updateMany(
-      {},
-      { $set: { startingBalance: 0, endingBalance: 0 } },
-      { session }
-    );
-    await SummaryFieldLineModel.updateMany(
-      {},
-      { $set: { balance: 0 } },
-      { session }
-    );
+    console.log("[summariesReset] Resetting all summaries and field lines");
+
+    const sRes = await SummaryModel.updateMany({}, { $set: { startingBalance: 0, endingBalance: 0 } }, { session });
+    const fRes = await SummaryFieldLineModel.updateMany({}, { $set: { balance: 0 } }, { session });
+
+    console.log(`[summariesReset] Updated ${sRes.modifiedCount} summaries, ${fRes.modifiedCount} field lines`);
 
     await session.commitTransaction();
     session.endSession();
@@ -37,37 +37,33 @@ export const resetSummaries = async (req, res) => {
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    console.error("Error resetting summaries:", err);
+    console.error("[summariesReset] Error:", err.stack || err);
     res.status(500).json({ error: err.message });
   }
 };
 
-export const initCapitalCash = async (req, res) => {
+export const summariesInitCapitalCash = async (req, res) => {
   try {
+    console.log("[summariesInitCapitalCash] Body:", req.body);
     const { capitalAmount, cashAmount } = req.body;
 
     if (typeof capitalAmount !== "number" || typeof cashAmount !== "number") {
-      return res
-        .status(400)
-        .json({ error: "capitalAmount and cashAmount must be numbers." });
+      console.warn("[summariesInitCapitalCash] Invalid input types");
+      return res.status(400).json({ error: "capitalAmount and cashAmount must be numbers." });
     }
 
     const capitalSummary = await SummaryModel.findOne({ summaryId: 1600 });
     const cashSummary = await SummaryModel.findOne({ summaryId: 1500 });
+
+    console.log("[summariesInitCapitalCash] Found summaries:", { capitalSummary: !!capitalSummary, cashSummary: !!cashSummary });
 
     if (!capitalSummary || !cashSummary) {
       return res.status(404).json({ error: "Capital or Cash summary not found." });
     }
 
     await Promise.all([
-      SummaryModel.updateOne(
-        { _id: capitalSummary._id },
-        { $set: { startingBalance: capitalAmount, endingBalance: capitalAmount } }
-      ),
-      SummaryModel.updateOne(
-        { _id: cashSummary._id },
-        { $set: { startingBalance: cashAmount, endingBalance: cashAmount } }
-      ),
+      SummaryModel.updateOne({ _id: capitalSummary._id }, { $set: { startingBalance: capitalAmount, endingBalance: capitalAmount } }),
+      SummaryModel.updateOne({ _id: cashSummary._id }, { $set: { startingBalance: cashAmount, endingBalance: cashAmount } }),
     ]);
 
     res.status(200).json({
@@ -76,86 +72,129 @@ export const initCapitalCash = async (req, res) => {
       cash: cashAmount,
     });
   } catch (err) {
-    console.error("Error initializing Capital/Cash:", err);
+    console.error("[summariesInitCapitalCash] Error:", err.stack || err);
     res.status(500).json({ error: err.message });
   }
 };
 
-export const getSummariesWithFieldLines = async (req, res) => {
+export const summariesGetById = async (req, res) => {
   try {
-    const summaries = await SummaryModel.find()
-      .lean()
-      .populate({
-        path: "fieldLines", // <-- if you defined a virtual in Summary schema
-        model: "SummaryFieldLine",
-      });
+    console.log("[summariesGetById] Params:", req.params);
+    const { summaryId } = req.params;
 
-    // If you don’t have a virtual, fallback to manual query
-    const detailed = await Promise.all(
-      summaries.map(async (summary) => {
-        const fieldLines = await SummaryFieldLineModel.find({
-          summaryId: summary._id,   // <-- use _id since summaryId in fieldLine is ObjectId
-        }).lean();
+    const numericId = Number(summaryId);
+    console.log("[summariesGetById] Parsed numericId:", numericId);
 
-        return {
-          ...summary,
-          fieldLines: fieldLines.map((fl) => ({
-            ...fl,
-            balance: fl.balance ?? 0,
-            isExpense: summary.accountType === "expense",
-          })),
-        };
-      })
-    );
+    const summary = await SummaryModel.findOne({ summaryId: numericId }).lean();
+    console.log("[summariesGetById] Found summary:", summary ? summary._id : "NOT FOUND");
 
-    res.status(200).json(detailed);
-  } catch (error) {
-    console.error("Error fetching summaries with lines:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching summaries with lines", error });
-  }
-};
+    if (!summary) return res.status(404).json({ message: "Summary not found" });
 
-export const getSummariesAndFieldLines = async (req, res) => {
-  try {
-    const [summaries, fieldLines] = await Promise.all([
-      SummaryModel.find().lean(),
-      SummaryFieldLineModel.find().lean(),
-    ]);
-
-    res.status(200).json({
-      summaries,
-      fieldLines,
-    });
-  } catch (error) {
-    console.error("Error fetching summaries & field lines:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching summaries & field lines", error });
-  }
-};
-
-export const getAllSummaryFieldLines = async (req, res) => {
-  try {
-    const fieldLines = await SummaryFieldLineModel.find()
-      .populate("summaryId", "name summaryId") // get summary name + custom ID
+    const fieldLines = await SummaryFieldLineInstance.find({ summaryId: summary._id })
+      .populate("definitionId", "fieldLineNumericId name accountNumber")
       .lean();
 
-    res.status(200).json(fieldLines);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch summary field lines" });
+    console.log(`[summariesGetById] Found ${fieldLines.length} field lines`);
+
+    return res.json({
+      ...summary,
+      fieldLines: fieldLines.map(line => ({
+        id: line._id,
+        fieldLineNumericId: line.fieldLineNumericId,
+        name: line.name,
+        definition: line.definitionId,
+        balance: line.balance,
+      }))
+    });
+  } catch (error) {
+    console.error("[summariesGetById] Error:", error.stack || error);
+    return res.status(500).json({ message: "Server error" });
   }
 };
 
-const SID = {
-  COMMISSION: 1700,
-  CASH: 1500,
+export const summariesGetWithFieldLines = async (req, res) => {
+  try {
+    console.log("[summariesGetWithFieldLines] Fetching summaries + field lines");
+
+    const summaries = await SummaryModel.find().lean();
+    const fieldLines = await SummaryFieldLineInstance.find()
+      .populate("definitionId", "fieldLineNumericId name accountNumber")
+      .lean();
+
+    console.log(`[summariesGetWithFieldLines] Found ${summaries.length} summaries, ${fieldLines.length} field lines`);
+
+    const fieldLinesBySummary = {};
+    fieldLines.forEach(line => {
+      const sid = line.summaryId.toString();
+      if (!fieldLinesBySummary[sid]) fieldLinesBySummary[sid] = [];
+      fieldLinesBySummary[sid].push({
+        id: line._id,
+        fieldLineNumericId: line.fieldLineNumericId,
+        name: line.name,
+        definition: line.definitionId,
+        balance: line.balance,
+      });
+    });
+
+    const result = summaries.map(summary => ({
+      ...summary,
+      fieldLines: fieldLinesBySummary[summary._id.toString()] || []
+    }));
+
+    return res.json(result);
+  } catch (error) {
+    console.error("[summariesGetWithFieldLines] Error:", error.stack || error);
+    return res.status(500).json({ message: "Server error" });
+  }
 };
 
-async function getSummaryObjectId(numericSummaryId, session) {
-  const summary = await SummaryModel.findOne({ summaryId: numericSummaryId }).session(session);
-  if (!summary) throw new Error(`Summary ${numericSummaryId} not found`);
-  return summary._id;
-}
+export const summariesGetAllFieldLines = async (req, res) => {
+  try {
+    console.log("[summariesGetAllFieldLines] Fetching all field lines");
+
+    const fieldLines = await SummaryFieldLineInstance.find()
+      .populate("definitionId", "fieldLineNumericId name accountNumber")
+      .populate("summaryId", "summaryId name accountType")
+      .lean();
+
+    console.log(`[summariesGetAllFieldLines] Found ${fieldLines.length} field lines`);
+
+    return res.json(fieldLines.map(line => ({
+      id: line._id,
+      summary: line.summaryId,
+      definition: line.definitionId,
+      fieldLineNumericId: line.fieldLineNumericId,
+      name: line.name,
+      balance: line.balance
+    })));
+  } catch (error) {
+    console.error("[summariesGetAllFieldLines] Error:", error.stack || error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const summariesCreateDefinition = async (req, res) => {
+  try {
+    console.log("[summariesCreateDefinition] Body:", req.body);
+    const { fieldLineNumericId, name, accountNumber } = req.body;
+
+    if (!fieldLineNumericId || !name || !accountNumber) {
+      console.warn("[summariesCreateDefinition] Missing required fields");
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const fieldDefinition = new SummaryFieldLineDefinition({
+      fieldLineNumericId,
+      name,
+      accountNumber,
+    });
+
+    await fieldDefinition.save();
+    console.log("[summariesCreateDefinition] Created field definition:", fieldDefinition._id);
+
+    res.status(200).json({ message: "Field definition created successfully" });
+  } catch (error) {
+    console.error("[summariesCreateDefinition] Error:", error.stack || error);
+    res.status(500).json({ error: error.message });
+  }
+};

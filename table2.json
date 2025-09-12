@@ -1,198 +1,946 @@
 [
   {
-    "fieldLineId": 1501,
-    "name": "Initial Deposit",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1501",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1502,
-    "name": "Deposit",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1502",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1503,
-    "name": "Initial Withdrawal",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1503",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1504,
-    "name": "Withdrawal",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1504",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1505,
-    "name": "Security Deposit Received from Bidder",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1505",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1506,
-    "name": "Security Deposit Released to Bidder",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1506",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1507,
-    "name": "Security Deposit Forfeited (Private/Government)",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1507",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1508,
-    "name": "To Private Customer Net of Commission when forfeited",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1508",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1509,
-    "name": "To Government Customer Net of Commission when forfeited",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1509",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1510,
-    "name": "Cash from Commission Income (Retail)",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1510",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1511,
-    "name": "Cash from Commission Income (Wholesale)",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1511",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1512,
-    "name": "Cash from Commission Income (Service Provider)",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1512",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1513,
-    "name": "Cash from Commission Income (Auction)",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1513",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 1514,
-    "name": "Cash from Commission Income (Advertisement)",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
-    "accountNumber": "1514",
-    "balance": 0
-  },
-  {
-    "fieldLineId": 2124,
-    "name": "Excess Expenses",
+    "summaryNumericId": 1200,
     "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
-    "accountNumber": "2124",
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0774" },
+    "fieldLineNumericId": 2101,
+    "name": "Administrative Expenses",
     "balance": 0
   },
   {
-    "fieldLineId": 5102,
-    "name": "Initial Deposit",
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0774" },
+    "fieldLineNumericId": 2101,
+    "name": "Administrative Expenses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
     "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
-    "accountNumber": "5102",
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0774" },
+    "fieldLineNumericId": 2101,
+    "name": "Administrative Expenses",
     "balance": 0
   },
   {
-    "fieldLineId": 5103,
-    "name": "Deposit",
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0775" },
+    "fieldLineNumericId": 2102,
+    "name": "Marketing Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0775" },
+    "fieldLineNumericId": 2102,
+    "name": "Marketing Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
     "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
-    "accountNumber": "5103",
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0775" },
+    "fieldLineNumericId": 2102,
+    "name": "Marketing Expanses",
     "balance": 0
   },
   {
-    "fieldLineId": 5104,
-    "name": "Withdrawal",
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0776" },
+    "fieldLineNumericId": 2103,
+    "name": "Establishment Expenses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0776" },
+    "fieldLineNumericId": 2103,
+    "name": "Establishment Expenses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
     "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
-    "accountNumber": "5104",
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0776" },
+    "fieldLineNumericId": 2103,
+    "name": "Establishment Expenses",
     "balance": 0
   },
   {
-    "fieldLineId": 3103,
-    "name": "Sales Tax",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3103",
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0779" },
+    "fieldLineNumericId": 2106,
+    "name": "Management Expenses",
     "balance": 0
   },
   {
-    "fieldLineId": 3104,
-    "name": "Excise Tax",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3104",
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0779" },
+    "fieldLineNumericId": 2106,
+    "name": "Management Expenses",
     "balance": 0
   },
   {
-    "fieldLineId": 3105,
-    "name": "Central Excise Duty",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3105",
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0779" },
+    "fieldLineNumericId": 2106,
+    "name": "Management Expenses",
     "balance": 0
   },
   {
-    "fieldLineId": 3106,
-    "name": "Service Charges",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3106",
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077a" },
+    "fieldLineNumericId": 2107,
+    "name": "Expanse Income Tax",
     "balance": 0
   },
   {
-    "fieldLineId": 3107,
-    "name": "Custom Duty",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3107",
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077a" },
+    "fieldLineNumericId": 2107,
+    "name": "Expanse Income Tax",
     "balance": 0
   },
   {
-    "fieldLineId": 3108,
-    "name": "Website Income Tax",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3108",
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077a" },
+    "fieldLineNumericId": 2107,
+    "name": "Expanse Income Tax",
     "balance": 0
   },
   {
-    "fieldLineId": 3109,
-    "name": "Website Service Tax",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3109",
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077b" },
+    "fieldLineNumericId": 2108,
+    "name": "EOBI",
     "balance": 0
   },
   {
-    "fieldLineId": 3110,
-    "name": "Wholesales - Store Tax",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3110",
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077b" },
+    "fieldLineNumericId": 2108,
+    "name": "EOBI",
     "balance": 0
   },
   {
-    "fieldLineId": 3111,
-    "name": "Auction - Stores Tax",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3111",
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077b" },
+    "fieldLineNumericId": 2108,
+    "name": "EOBI",
     "balance": 0
   },
   {
-    "fieldLineId": 3112,
-    "name": "Retail - STORES TAX TABLE",
-    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
-    "accountNumber": "3112",
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077c" },
+    "fieldLineNumericId": 2109,
+    "name": "Group Term Insurance",
     "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077c" },
+    "fieldLineNumericId": 2109,
+    "name": "Group Term Insurance",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077c" },
+    "fieldLineNumericId": 2109,
+    "name": "Group Term Insurance",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077d" },
+    "fieldLineNumericId": 2110,
+    "name": "Expanse for House Rent",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077d" },
+    "fieldLineNumericId": 2110,
+    "name": "Expanse for House Rent",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077d" },
+    "fieldLineNumericId": 2110,
+    "name": "Expanse for House Rent",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077e" },
+    "fieldLineNumericId": 2111,
+    "name": "Expanse for Medical Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077e" },
+    "fieldLineNumericId": 2111,
+    "name": "Expanse for Medical Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077e" },
+    "fieldLineNumericId": 2111,
+    "name": "Expanse for Medical Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077f" },
+    "fieldLineNumericId": 2112,
+    "name": "Expanse for Medicine Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077f" },
+    "fieldLineNumericId": 2112,
+    "name": "Expanse for Medicine Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e077f" },
+    "fieldLineNumericId": 2112,
+    "name": "Expanse for Medicine Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0780" },
+    "fieldLineNumericId": 2113,
+    "name": "Expanse for Fuel",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0780" },
+    "fieldLineNumericId": 2113,
+    "name": "Expanse for Fuel",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0780" },
+    "fieldLineNumericId": 2113,
+    "name": "Expanse for Fuel",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0781" },
+    "fieldLineNumericId": 2114,
+    "name": "Expanse for Gratuity Deduction",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0781" },
+    "fieldLineNumericId": 2114,
+    "name": "Expanse for Gratuity Deduction",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0781" },
+    "fieldLineNumericId": 2114,
+    "name": "Expanse for Gratuity Deduction",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0782" },
+    "fieldLineNumericId": 2115,
+    "name": "Expanse for Provident Fund",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0782" },
+    "fieldLineNumericId": 2115,
+    "name": "Expanse for Provident Fund",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0782" },
+    "fieldLineNumericId": 2115,
+    "name": "Expanse for Provident Fund",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0783" },
+    "fieldLineNumericId": 2116,
+    "name": "Expanse for Utilities",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0783" },
+    "fieldLineNumericId": 2116,
+    "name": "Expanse for Utilities",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0783" },
+    "fieldLineNumericId": 2116,
+    "name": "Expanse for Utilities",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0784" },
+    "fieldLineNumericId": 2117,
+    "name": "Expanse for Hospitilization",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0784" },
+    "fieldLineNumericId": 2117,
+    "name": "Expanse for Hospitilization",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0784" },
+    "fieldLineNumericId": 2117,
+    "name": "Expanse for Hospitilization",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0785" },
+    "fieldLineNumericId": 2118,
+    "name": "Expanse for Special Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0785" },
+    "fieldLineNumericId": 2118,
+    "name": "Expanse for Special Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0785" },
+    "fieldLineNumericId": 2118,
+    "name": "Expanse for Special Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0786" },
+    "fieldLineNumericId": 2119,
+    "name": "Expanse for Training Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0786" },
+    "fieldLineNumericId": 2119,
+    "name": "Expanse for Training Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0786" },
+    "fieldLineNumericId": 2119,
+    "name": "Expanse for Training Allowence",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0787" },
+    "fieldLineNumericId": 2120,
+    "name": "Expanse for Cost of Funds",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0787" },
+    "fieldLineNumericId": 2120,
+    "name": "Expanse for Cost of Funds",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0787" },
+    "fieldLineNumericId": 2120,
+    "name": "Expanse for Cost of Funds",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0788" },
+    "fieldLineNumericId": 2121,
+    "name": "Expanse for Servant",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0788" },
+    "fieldLineNumericId": 2121,
+    "name": "Expanse for Servant",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0788" },
+    "fieldLineNumericId": 2121,
+    "name": "Expanse for Servant",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0789" },
+    "fieldLineNumericId": 2122,
+    "name": "Expanse for Telephone",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0789" },
+    "fieldLineNumericId": 2122,
+    "name": "Expanse for Telephone",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0789" },
+    "fieldLineNumericId": 2122,
+    "name": "Expanse for Telephone",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078a" },
+    "fieldLineNumericId": 2123,
+    "name": "Expanse for Car Maintenance",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078a" },
+    "fieldLineNumericId": 2123,
+    "name": "Expanse for Car Maintenance",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078a" },
+    "fieldLineNumericId": 2123,
+    "name": "Expanse for Car Maintenance",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078b" },
+    "fieldLineNumericId": 2124,
+    "name": "Other Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078b" },
+    "fieldLineNumericId": 2124,
+    "name": "Other Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078b" },
+    "fieldLineNumericId": 2124,
+    "name": "Other Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1200,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078c" },
+    "fieldLineNumericId": 2125,
+    "name": "Excess Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1700,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078c" },
+    "fieldLineNumericId": 2125,
+    "name": "Excess Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1600,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078c" },
+    "fieldLineNumericId": 2125,
+    "name": "Excess Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1100,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078d" },
+    "fieldLineNumericId": 1101,
+    "name": "Allowance for Bank Tax Website",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1500,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078d" },
+    "fieldLineNumericId": 1101,
+    "name": "Allowance for Bank Tax Website",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1100,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078e" },
+    "fieldLineNumericId": 1102,
+    "name": "Allowance for Marketing Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1500,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078e" },
+    "fieldLineNumericId": 1102,
+    "name": "Allowance for Marketing Expanses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1100,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078f" },
+    "fieldLineNumericId": 1103,
+    "name": "Allowance for Establishment Expenses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1500,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e078f" },
+    "fieldLineNumericId": 1103,
+    "name": "Allowance for Establishment Expenses",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1100,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0790" },
+    "fieldLineNumericId": 1104,
+    "name": "Allowance for Tax Website",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1500,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0790" },
+    "fieldLineNumericId": 1104,
+    "name": "Allowance for Tax Website",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1100,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0791" },
+    "fieldLineNumericId": 1105,
+    "name": "Allowance for Tax Sellers",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1500,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0791" },
+    "fieldLineNumericId": 1105,
+    "name": "Allowance for Tax Sellers",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1100,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e0792" },
+    "fieldLineNumericId": 1106,
+    "name": "Allowance for Management Expenses",
+    "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0793" },
+  "fieldLineNumericId": 1107,
+  "name": "Allowance for Expense Income Tax",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0793" },
+  "fieldLineNumericId": 1107,
+  "name": "Allowance for Expense Income Tax",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0794" },
+  "fieldLineNumericId": 1108,
+  "name": "Allowance for EOBI",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0794" },
+  "fieldLineNumericId": 1108,
+  "name": "Allowance for EOBI",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0795" },
+  "fieldLineNumericId": 1109,
+  "name": "Allowance for Group Term Insurance",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0795" },
+  "fieldLineNumericId": 1109,
+  "name": "Allowance for Group Term Insurance",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0796" },
+  "fieldLineNumericId": 1110,
+  "name": "Allowance for House Rent",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0796" },
+  "fieldLineNumericId": 1110,
+  "name": "Allowance for House Rent",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0797" },
+  "fieldLineNumericId": 1111,
+  "name": "Allowance for Medical Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0797" },
+  "fieldLineNumericId": 1111,
+  "name": "Allowance for Medical Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0798" },
+  "fieldLineNumericId": 1112,
+  "name": "Allowance for Medicine Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0798" },
+  "fieldLineNumericId": 1112,
+  "name": "Allowance for Medicine Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0799" },
+  "fieldLineNumericId": 1113,
+  "name": "Allowance for Fuel Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e0799" },
+  "fieldLineNumericId": 1113,
+  "name": "Allowance for Fuel Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079a" },
+  "fieldLineNumericId": 1114,
+  "name": "Allowance for Gratuity Deduction",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079a" },
+  "fieldLineNumericId": 1114,
+  "name": "Allowance for Gratuity Deduction",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079b" },
+  "fieldLineNumericId": 1115,
+  "name": "Allowance for Provident fund deduction",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079b" },
+  "fieldLineNumericId": 1115,
+  "name": "Allowance for Provident fund deduction",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079c" },
+  "fieldLineNumericId": 1116,
+  "name": "Allowance for Training Allowence Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079c" },
+  "fieldLineNumericId": 1116,
+  "name": "Allowance for Training Allowence Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079d" },
+  "fieldLineNumericId": 1117,
+  "name": "Allowance for Hospitilization",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079d" },
+  "fieldLineNumericId": 1117,
+  "name": "Allowance for Hospitilization",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079e" },
+  "fieldLineNumericId": 1118,
+  "name": "Allowance for Utility Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079e" },
+  "fieldLineNumericId": 1118,
+  "name": "Allowance for Utility Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079f" },
+  "fieldLineNumericId": 1119,
+  "name": "Allowance for Special Allowence",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e079f" },
+  "fieldLineNumericId": 1119,
+  "name": "Allowance for Special Allowence",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a0" },
+  "fieldLineNumericId": 1120,
+  "name": "Allowance for Cost of Funds",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a0" },
+  "fieldLineNumericId": 1120,
+  "name": "Allowance for Cost of Funds",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a1" },
+  "fieldLineNumericId": 1121,
+  "name": "Allowance for Servant",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a1" },
+  "fieldLineNumericId": 1121,
+  "name": "Allowance for Servant",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a2" },
+  "fieldLineNumericId": 1122,
+  "name": "Allowance for Telephone",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a2" },
+  "fieldLineNumericId": 1122,
+  "name": "Allowance for Telephone",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a3" },
+  "fieldLineNumericId": 1123,
+  "name": "Allowance for Car Maintainence",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a3" },
+  "fieldLineNumericId": 1123,
+  "name": "Allowance for Car Maintainence",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a4" },
+  "fieldLineNumericId": 1124,
+  "name": "Allowance for Other Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a4" },
+  "fieldLineNumericId": 1124,
+  "name": "Allowance for Other Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1100,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a5" },
+  "fieldLineNumericId": 1125,
+  "name": "Allowance for Excess Expenses",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07a5" },
+  "fieldLineNumericId": 1125,
+  "name": "Allowance for Excess Expenses",
+  "balance": 0
   }
 ]

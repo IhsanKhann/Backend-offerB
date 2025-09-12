@@ -1,6 +1,6 @@
 // controllers/FinanceControllers/RuleController.js
 import RuleModel from "../../models/FinanceModals/TablesModel.js";
-import SummaryFieldLineModel from "../../models/FinanceModals/SummaryFieldLinesModel.js";
+import SummaryFieldLineModel from "../../models/FinanceModals/FieldLineInstanceModel.js";
 import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
 import mongoose from "mongoose";
 
