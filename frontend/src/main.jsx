@@ -20,7 +20,7 @@ import SummaryTable from "./Pages/Finance/SummaryTable.jsx";
 import RuleTable from "./Pages/Finance/Table.jsx";
 import SalaryDashboard from "./Pages/Finance/SalaryDashboard.jsx";
 import BreakupSummary from "./Pages/Finance/BreakupSummary.jsx";
-import SalaryRulesTable from "./Pages/Finance/SalaryRules.jsx";
+import SalaryRulesTable from "./Pages/Finance/Summaries.jsx";
 
 import "./index.css";
 import store from "./store/store.jsx";
@@ -160,6 +160,14 @@ const router = createBrowserRouter([
   },
   {
    path: "/salary/rulesTable",
+   element: (
+     <ProtectedRoute>
+       <SalaryRulesTable />
+     </ProtectedRoute> 
+   ),
+  },
+    {
+   path: "/salary/summaries",
    element: (
      <ProtectedRoute>
        <SalaryRulesTable />

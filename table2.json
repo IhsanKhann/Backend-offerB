@@ -942,5 +942,127 @@
   "fieldLineNumericId": 1125,
   "name": "Allowance for Excess Expenses",
   "balance": 0
+  },
+  {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07c1" },
+  "fieldLineNumericId": 5301,
+  "name": "Cash",
+  "balance": 0
+  },
+   {
+  "summaryNumericId": 1500,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07c3" },
+  "fieldLineNumericId": 5302,
+  "name": "Cash from commission",
+  "balance": 0
+  },
+   {
+  "summaryNumericId": 1700,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07c0" },
+  "fieldLineNumericId": 5201,
+  "name": "Commission Income",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1600,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07bf" },
+  "fieldLineNumericId": 5101,
+  "name": "Capital",
+  "balance": 0
+  },
+  {
+  "summaryNumericId": 1400,
+  "summaryId": { "$oid": "68bbbb6d7d078c821a3c5997" },
+  "definitionId": { "$oid": "68c417f90c44d253dc1e07be" },
+  "fieldLineNumericId": 5302,
+  "name": "Employee Salaries",
+  "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07a6" },
+    "fieldLineNumericId": 3101,
+    "name": "Website Income Tax",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07a7" },
+    "fieldLineNumericId": 3102,
+    "name": "Tax Bank - Sellers",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07a8" },
+    "fieldLineNumericId": 3103,
+    "name": "Sales Tax",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07a9" },
+    "fieldLineNumericId": 3104,
+    "name": "Excise Tax",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07aa" },
+    "fieldLineNumericId": 3105,
+    "name": "Central Excise Duty",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07ab" },
+    "fieldLineNumericId": 3106,
+    "name": "Service Charges",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07ac" },
+    "fieldLineNumericId": 3107,
+    "name": "Custom Duty",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07ad" },
+    "fieldLineNumericId": 3108,
+    "name": "Website Service Tax",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07ae" },
+    "fieldLineNumericId": 3109,
+    "name": "Wholesales - Store Tax",
+    "balance": 0
+  },
+  {
+    "summaryNumericId": 1300,
+    "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" },
+    "definitionId": { "$oid": "68c417f90c44d253dc1e07af" },
+    "fieldLineNumericId": 3110,
+    "name": "Auction - Store Tax",
+    "balance": 0
   }
 ]
+
+

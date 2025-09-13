@@ -9,9 +9,9 @@ const TransactionSchema = new mongoose.Schema({
   // The actual debits & credits
   lines: [
     {
-      instanceId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineInstance", required: true },
-      summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary", required: true },
-      definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition", required: true },
+      instanceId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineInstance", },
+      summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary", },
+      definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition", },
       debitOrCredit: { type: String, enum: ["debit", "credit"], required: true },
       amount: { type: Number, required: true }
     }

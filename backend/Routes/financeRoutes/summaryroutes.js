@@ -7,6 +7,7 @@ import {
   summariesCreateDefinition,
   summariesReset,
   summariesInitCapitalCash,
+  getSummariesWithEntries,
 } from "../../contollers/FinanceControllers/SummaryController.js";
 
 import {
@@ -61,10 +62,10 @@ router.get("/salary/breakup/:employeeId", getBreakupFile);
 /**
  * Protected (admin only)
  */
-router.use(authenticate);
 
 router.post("/reset", summariesReset);
 router.post("/init-capital-cash", summariesInitCapitalCash);
+router.get("/with-entries", getSummariesWithEntries);
 
 router.post("/rules", createRule);
 router.put("/rules/:ruleId", updateRule);
@@ -113,4 +114,5 @@ router.put("/salarytable/:roleId", updateSalaryRules);
 router.post("/salarytable", createRoleWithSalaryRules);
 router.get("/salary/role/:roleName", getSingleSalaryRole);
 
+router.use(authenticate);
 export default router;

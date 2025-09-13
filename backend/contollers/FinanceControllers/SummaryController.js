@@ -127,12 +127,13 @@ export const summariesGetWithFieldLines = async (req, res) => {
     fieldLines.forEach(line => {
       const sid = line.summaryId.toString();
       if (!fieldLinesBySummary[sid]) fieldLinesBySummary[sid] = [];
+
       fieldLinesBySummary[sid].push({
         id: line._id,
-        fieldLineNumericId: line.fieldLineNumericId,
-        name: line.name,
-        definition: line.definitionId,
-        balance: line.balance,
+        fieldLineNumericId: line.definitionId?.fieldLineNumericId || line.fieldLineNumericId,
+        name: line.definitionId?.name || "Unnamed",
+        accountNumber: line.definitionId?.accountNumber || "-",
+        balance: line.balance || 0,
       });
     });
 
@@ -196,5 +197,55 @@ export const summariesCreateDefinition = async (req, res) => {
   } catch (error) {
     console.error("[summariesCreateDefinition] Error:", error.stack || error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const getSummariesWithEntries = async (req, res) => {
+  try {
+    const transactions = await TransactionModel.find({})
+      .populate("lines.summaryId", "name") // populate summary names
+      .populate("lines.fieldLineId", "name"); // populate line names
+
+    const summaries = {};
+
+    for (const tx of transactions) {
+      for (const line of tx.lines) {
+        const { summaryId, fieldLineId, debitOrCredit, amount } = line;
+        const summaryKey = summaryId._id.toString();
+
+        if (!summaries[summaryKey]) {
+          summaries[summaryKey] = {
+            summaryId: summaryId._id,
+            summaryName: summaryId.name,
+            lines: [],
+          };
+        }
+
+        // counterparty = all other lines in same transaction
+        const counterparties = tx.lines
+          .filter(l => l !== line)
+          .map(l => ({
+            summaryId: l.summaryId._id,
+            summaryName: l.summaryId.name,
+            debitOrCredit: l.debitOrCredit,
+            amount: l.amount,
+          }));
+
+        summaries[summaryKey].lines.push({
+          transactionId: tx._id,
+          description: tx.description,
+          date: tx.date,
+          fieldLineName: fieldLineId?.name || "",
+          debitOrCredit,
+          amount,
+          counterparties,
+        });
+      }
+    }
+
+    res.json(Object.values(summaries));
+  } catch (err) {
+    console.error("Error in getSummariesWithEntries:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };

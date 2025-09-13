@@ -12,11 +12,16 @@ const SummarySchema = new mongoose.Schema({
   startingBalance: { type: Number, default: 0 },
   endingBalance: { type: Number, default: 0 }
 });
-
 SummarySchema.virtual("fieldLines", {
-  ref: "SummaryFieldLine",
-  localField: "_id",         // Summary ObjectId
-  foreignField: "summaryId", // SummaryFieldLine.summaryId (ObjectId)
+  ref: "summaryfieldfinedefinition", // your definitions collection
+  localField: "_id",
+  foreignField: "summaryId",
+});
+
+SummarySchema.virtual("instances", {
+  ref: "summaryfieldlineinstance", // your instances collection
+  localField: "_id",
+  foreignField: "summaryId",
 });
 
 SummarySchema.set("toObject", { virtuals: true });
