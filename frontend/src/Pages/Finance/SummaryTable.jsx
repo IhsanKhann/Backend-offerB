@@ -207,28 +207,28 @@ const FinanceControls = ({ fetchAll, setMessage, balances }) => {
           </button>
         </div>
 
-        {/* Retained → Capital */}
-        <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col gap-2">
-          <div className="flex items-center gap-2 text-gray-700 font-semibold">
-            <FaDollarSign /> Retained → Capital
-          </div>
-          <button
-            onClick={() => handleTransaction("retainedToCapital")}
-            disabled={balances?.retained === 0}
-            className={`px-4 py-2 rounded font-semibold transition-all ${
-              balances?.retained !== 0
-                ? "bg-teal-500 hover:bg-teal-600 text-white"
-                : "bg-gray-300 text-gray-600 cursor-not-allowed"
-            }`}
-          >
-            Transfer
-          </button>
-          {balances?.retained !== 0 && (
-            <div className="text-xs text-gray-500 mt-1">
-              {`Available: ${formatCurrency(Math.abs(balances.retained))}`}
-            </div>
-          )}
-        </div>
+       {/* Retained → Capital */}
+<div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col gap-2">
+  <div className="flex items-center gap-2 text-gray-700 font-semibold">
+    <FaDollarSign /> Retained → Capital
+  </div>
+  <button
+    onClick={() => handleTransaction("retainedToCapital")}
+    disabled={balances?.retained === 0} // allow negative or positive
+    className={`px-4 py-2 rounded font-semibold transition-all ${
+      balances?.retained !== 0
+        ? "bg-teal-500 hover:bg-teal-600 text-white"
+        : "bg-gray-300 text-gray-600 cursor-not-allowed"
+    }`}
+  >
+    Transfer
+  </button>
+  {balances?.retained !== 0 && (
+    <div className="text-xs text-gray-500 mt-1">
+      {`Available: ${formatCurrency(Math.abs(balances.retained))}`}
+    </div>
+  )}
+</div>
       </div>
     </div>
   );
@@ -254,7 +254,7 @@ export default function SummaryManager() {
       const res = await api.get("/summaries/with-fieldlines");
       const data = Array.isArray(res.data) ? res.data : res.data?.data || [];
 
-      // normalize field lines
+      // normalize
       const normalized = data.map((s) => ({
         ...s,
         fieldLines: (s.fieldLines || []).map((fl) => ({
@@ -352,13 +352,13 @@ export default function SummaryManager() {
                         <tr>
                           <th className="p-2 text-left text-xs text-gray-500">Field Line</th>
                           <th className="p-2 text-left text-xs text-gray-500">Balance</th>
-                          <th className="p-2 text-left text-xs text-gray-500">Debit Entries</th>
-                          <th className="p-2 text-left text-xs text-gray-500">Credit Entries</th>
+                          <th className="p-2 text-left text-xs text-gray-500">Debit</th>
+                          <th className="p-2 text-left text-xs text-gray-500">Credit</th>
                         </tr>
                       </thead>
                       <tbody>
                         {summary.fieldLines.map((line, idx) => (
-                          <tr key={`${summary._id}-${line.fieldLineNumericId}-${idx}`} className="border-b last:border-b-0 align-top">
+                          <tr key={`${summary._id}-${line.fieldLineNumericId}-${idx}`} className="border-b last:border-b-0">
                             <td className="p-2 font-medium text-gray-700">
                               {line.name}
                               {counterMap[summary.name] && (
@@ -366,32 +366,8 @@ export default function SummaryManager() {
                               )}
                             </td>
                             <td className="p-2 font-semibold text-blue-700">{formatCurrency(line.balance)}</td>
-                            <td className="p-2 align-top">
-                              {line.debitEntries?.length ? (
-                                <ul className="list-disc list-inside space-y-1">
-                                  {line.debitEntries.map((d, i) => (
-                                    <li key={i}>
-                                      {d.description || "Transaction"} — {formatCurrency(d.amount)}
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                "—"
-                              )}
-                            </td>
-                            <td className="p-2 align-top">
-                              {line.creditEntries?.length ? (
-                                <ul className="list-disc list-inside space-y-1">
-                                  {line.creditEntries.map((c, i) => (
-                                    <li key={i}>
-                                      {c.description || "Transaction"} — {formatCurrency(c.amount)}
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                "—"
-                              )}
-                            </td>
+                            <td className="p-2 align-top">{line.balance > 0 ? formatCurrency(line.balance) : "—"}</td>
+                            <td className="p-2 align-top">{line.balance < 0 ? formatCurrency(Math.abs(line.balance)) : "—"}</td>
                           </tr>
                         ))}
                       </tbody>

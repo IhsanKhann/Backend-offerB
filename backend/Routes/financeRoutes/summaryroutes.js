@@ -1,9 +1,11 @@
 import express from "express";
+import mongoose from "mongoose";
+import RuleModel from "../../models/FinanceModals/TablesModel.js";
 import {
-  summariesGetAll,
+  getAllSummaries,
   summariesGetWithFieldLines,
   summariesGetAllFieldLines,
-  summariesGetById,
+  getSummaryById,
   summariesCreateDefinition,
   summariesReset,
   summariesInitCapitalCash,
@@ -11,8 +13,8 @@ import {
 } from "../../contollers/FinanceControllers/SummaryController.js";
 
 import {
-  getRules,
-  getRuleById,
+  fetchRulesForFrontend,
+getAllFieldLineDefinitions,
   createRule,
   updateRule,
   deleteRule,
@@ -32,55 +34,38 @@ import {
   createRoleWithSalaryRules,
 } from "../../contollers/FinanceControllers/TablesControllers.js";
 
-import RuleModel from "../../models/FinanceModals/TablesModel.js";
 import { authenticate } from "../../middlewares/authMiddlewares.js";
 
 const router = express.Router();
 
-/**
- * Summaries
- */
-router.get("/", summariesGetAll);                       
+router.get("/rulesInstances", fetchRulesForFrontend);
+/** ---------------------- Summaries -------------------- */
+router.get("/", getAllSummaries);
 router.get("/definitions", summariesCreateDefinition);
 router.get("/with-fieldlines", summariesGetWithFieldLines);
 router.get("/fieldlines", summariesGetAllFieldLines);
-// router.get("/:summaryId", summariesGetById); 
-
-/**
- * Rules
- */
-router.get("/rules", getRules);
-router.get("/rules/:ruleId", getRuleById);
-
-/**
- * Salary / Breakup
- */
-router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
-router.post("/salary/breakup/:employeeId", createBreakupFile);
-router.get("/salary/breakup/:employeeId", getBreakupFile);
-
-/**
- * Protected (admin only)
- */
+router.get("/fieldlines/definitions", getAllFieldLineDefinitions);
+router.get("/:summaryId", getSummaryById);
 
 router.post("/reset", summariesReset);
 router.post("/init-capital-cash", summariesInitCapitalCash);
 router.get("/with-entries", getSummariesWithEntries);
 
+/** ---------------------- Rules -------------------- */
+
 router.post("/rules", createRule);
 router.put("/rules/:ruleId", updateRule);
-router.delete("/rules/:ruleId/delete", deleteRule);
+router.delete("/rules/:ruleId", deleteRule);
 
-// Delete split
+/** Delete Split */
 router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
   const { ruleId, splitIdx } = req.params;
   try {
-    const rule = await RuleModel.findOne({ ruleId });
+    const rule = await RuleModel.findById(ruleId);
     if (!rule) return res.status(404).json({ message: "Rule not found" });
 
     rule.splits.splice(Number(splitIdx), 1);
     await rule.save();
-
     res.status(200).json({ message: "Split deleted successfully!" });
   } catch (err) {
     console.error(err);
@@ -88,16 +73,15 @@ router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
   }
 });
 
-// Delete mirror
+/** Delete Mirror */
 router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, res) => {
   const { ruleId, splitIdx, mirrorIdx } = req.params;
   try {
-    const rule = await RuleModel.findOne({ ruleId });
+    const rule = await RuleModel.findById(ruleId);
     if (!rule) return res.status(404).json({ message: "Rule not found" });
 
     rule.splits[Number(splitIdx)].mirrors.splice(Number(mirrorIdx), 1);
     await rule.save();
-
     res.status(200).json({ message: "Mirror deleted successfully!" });
   } catch (err) {
     console.error(err);
@@ -105,14 +89,62 @@ router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, 
   }
 });
 
-/**
- * Salary rules table
- */
+/** Add Split */
+router.post("/rules/:ruleId/splits", async (req, res) => {
+  const { ruleId } = req.params;
+  const splitData = req.body;
+
+  try {
+    const rule = await RuleModel.findById(ruleId);
+    if (!rule) return res.status(404).json({ message: "Rule not found" });
+
+    rule.splits.push({
+      ...splitData,
+      instanceId: new mongoose.Types.ObjectId(),
+      mirrors: [],
+    });
+    await rule.save();
+
+    res.status(201).json(rule);
+  } catch (err) {
+    console.error("[Add Split Error]", err);
+    res.status(500).json({ message: "Error adding split" });
+  }
+});
+
+/** Add Mirror */
+router.post("/rules/:ruleId/splits/:splitIdx/mirrors", async (req, res) => {
+  const { ruleId, splitIdx } = req.params;
+  const mirrorData = req.body;
+
+  try {
+    const rule = await RuleModel.findById(ruleId);
+    if (!rule) return res.status(404).json({ message: "Rule not found" });
+
+    rule.splits[Number(splitIdx)].mirrors.push({
+      ...mirrorData,
+      instanceId: new mongoose.Types.ObjectId(),
+    });
+    await rule.save();
+
+    res.status(201).json(rule);
+  } catch (err) {
+    console.error("[Add Mirror Error]", err);
+    res.status(500).json({ message: "Error adding mirror" });
+  }
+});
+
+/** ---------------------- Salary / Breakup -------------------- */
+router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
+router.get("/salary/role/:roleName", getSingleSalaryRole);
+router.post("/salary/breakup/:employeeId", createBreakupFile);
+router.get("/salary/breakup/:employeeId", getBreakupFile);
+
+/** Salary rules table */
 router.get("/salarytable/all", getAllSalaryRules);
 router.get("/salarytable/:roleId", getSalaryRulesByRole);
 router.put("/salarytable/:roleId", updateSalaryRules);
 router.post("/salarytable", createRoleWithSalaryRules);
-router.get("/salary/role/:roleName", getSingleSalaryRole);
 
 router.use(authenticate);
 export default router;

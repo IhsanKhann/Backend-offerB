@@ -78,14 +78,8 @@ export const createBreakupFile = async (req, res) => {
       return res.status(404).json({ success: false, message: "Role not found" });
     }
 
-    // 3️⃣ Extract rules
-    const { baseSalary = 0, allowances = [], deductions = [] } = salaryRules;
-
-    // 🔄 Normalize into a single `components` array
-    const components = [
-      ...allowances.map(a => ({ ...a, category: "allowance" })),
-      ...deductions.map(d => ({ ...d, category: "deduction" })),
-    ];
+    // 3️⃣ Extract rules - FIXED: Use components array instead of separate allowances/deductions
+    const { baseSalary = 0, components = [] } = salaryRules;
 
     // 4️⃣ Build Breakdown
     let breakdown = [
@@ -134,7 +128,7 @@ export const createBreakupFile = async (req, res) => {
     // 5️⃣ Calculate Net Salary
     const netSalary = baseSalary + totalAllowances - totalDeductions;
 
-    // 6️⃣ Create/Update BreakupFile
+    // 6️⃣ Create/Update BreakupFile - FIXED: Save components array
     const breakupFile = await BreakupFile.findOneAndUpdate(
       { employeeId },
       {
@@ -143,8 +137,7 @@ export const createBreakupFile = async (req, res) => {
         salaryRules: {
           baseSalary,
           salaryType: salaryRules.salaryType || "monthly",
-          allowances,
-          deductions,
+          components, // This now contains the original component definitions
         },
         calculatedBreakup: {
           breakdown,
@@ -153,7 +146,7 @@ export const createBreakupFile = async (req, res) => {
           netSalary,
         },
       },
-      { new: true, upsert: true } // ✅ update if exists, create if not
+      { new: true, upsert: true }
     );
 
     return res.status(201).json({

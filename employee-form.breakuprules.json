@@ -1,4 +1,4 @@
-{
+[{
   "_id": {
     "$oid": "68c6a57a0c44d253dc1e0a0b"
   },
@@ -8,7 +8,7 @@
     {
       "componentName": "Base Salary",
       "type": "base",
-      "instanceId": "68c4f1370c44d253dc1e098b",
+      "instanceId": "68c4f1370c44d253dc1e098c",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e078d",
       "debitOrCredit": "debit",
@@ -16,17 +16,10 @@
       "percentage": 100,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0946",
-          "summaryId": "68bbbb6d7d078c821a3c5995",
-          "definitionId": "68c417f90c44d253dc1e0774",
-          "debitOrCredit": "debit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0947",
-          "summaryId": "68bbbb6d7d078c821a3c599a",
-          "definitionId": "68c417f90c44d253dc1e0774",
-          "debitOrCredit": "debit",
+          "instanceId": "68c4f1370c44d253dc1e098d",
+          "summaryId": "68bbbb6d7d078c821a3c5994",
+          "definitionId": "68c417f90c44d253dc1e078d",
+          "debitOrCredit": "credit",
           "fallback": "capital"
         }
       ],
@@ -35,7 +28,7 @@
     {
       "componentName": "House Rent",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e099c",
+      "instanceId": "68c4f1370c44d253dc1e0996",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e0796",
       "debitOrCredit": "debit",
@@ -43,16 +36,16 @@
       "fixedAmount": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e095b",
+          "instanceId": "68c4f1370c44d253dc1e094d",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e077d",
           "debitOrCredit": "debit",
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e099d",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0796",
+          "instanceId": "68c4f1370c44d253dc1e0950",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e077d",
           "debitOrCredit": "debit",
           "fallback": "capital"
         }
@@ -62,7 +55,7 @@
     {
       "componentName": "Medical Allowance",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e099e",
+      "instanceId": "68c4f1370c44d253dc1e0997",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e0797",
       "debitOrCredit": "debit",
@@ -70,16 +63,16 @@
       "fixedAmount": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e095e",
+          "instanceId": "68c4f1370c44d253dc1e094e",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e077e",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e099f",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0797",
+          "instanceId": "68c4f1370c44d253dc1e0951",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e077e",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -89,7 +82,7 @@
     {
       "componentName": "Medicine Allowance",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09a0",
+      "instanceId": "68c4f1370c44d253dc1e0998",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e0798",
       "debitOrCredit": "debit",
@@ -97,16 +90,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0961",
+          "instanceId": "68c4f1370c44d253dc1e094f",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e077f",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09a1",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0798",
+          "instanceId": "68c4f1370c44d253dc1e0952",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e077f",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -116,7 +109,7 @@
     {
       "componentName": "Fuel Expenses",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09a2",
+      "instanceId": "68c4f1370c44d253dc1e0999",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e0799",
       "debitOrCredit": "debit",
@@ -124,16 +117,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0964",
+          "instanceId": "68c4f1370c44d253dc1e0953",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0780",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09a3",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0799",
+          "instanceId": "68c4f1370c44d253dc1e0954",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0780",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -143,7 +136,7 @@
     {
       "componentName": "Training Allowance Expenses",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09a8",
+      "instanceId": "68c4f1370c44d253dc1e099c",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e079c",
       "debitOrCredit": "debit",
@@ -151,16 +144,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0976",
+          "instanceId": "68c4f1370c44d253dc1e0956",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0786",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09a9",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079c",
+          "instanceId": "68c4f1370c44d253dc1e0957",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0786",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -170,7 +163,7 @@
     {
       "componentName": "Hospitalization",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09aa",
+      "instanceId": "68c4f1370c44d253dc1e099d",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e079d",
       "debitOrCredit": "debit",
@@ -178,16 +171,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0970",
+          "instanceId": "68c4f1370c44d253dc1e0958",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0784",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09ab",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079d",
+          "instanceId": "68c4f1370c44d253dc1e0959",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0784",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -197,7 +190,7 @@
     {
       "componentName": "Utility Expenses",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09ac",
+      "instanceId": "68c4f1370c44d253dc1e099e",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e079e",
       "debitOrCredit": "debit",
@@ -205,16 +198,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e096d",
+          "instanceId": "68c4f1370c44d253dc1e095a",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0783",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09ad",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079e",
+          "instanceId": "68c4f1370c44d253dc1e095b",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0783",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -224,7 +217,7 @@
     {
       "componentName": "Special Allowance",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09ae",
+      "instanceId": "68c4f1370c44d253dc1e099f",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e079f",
       "debitOrCredit": "debit",
@@ -232,16 +225,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0973",
+          "instanceId": "68c4f1370c44d253dc1e095c",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0785",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09af",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079f",
+          "instanceId": "68c4f1370c44d253dc1e095d",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0785",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -251,7 +244,7 @@
     {
       "componentName": "Servant",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09b2",
+      "instanceId": "68c4f1370c44d253dc1e09a1",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e07a1",
       "debitOrCredit": "debit",
@@ -259,16 +252,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e097c",
+          "instanceId": "68c4f1370c44d253dc1e095e",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0788",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09b3",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a1",
+          "instanceId": "68c4f1370c44d253dc1e095f",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0788",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -278,7 +271,7 @@
     {
       "componentName": "Telephone",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09b4",
+      "instanceId": "68c4f1370c44d253dc1e09a2",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e07a2",
       "debitOrCredit": "debit",
@@ -286,16 +279,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e097f",
+          "instanceId": "68c4f1370c44d253dc1e0960",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0789",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09b5",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a2",
+          "instanceId": "68c4f1370c44d253dc1e0961",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0789",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -305,7 +298,7 @@
     {
       "componentName": "Car Maintenance",
       "type": "allowance",
-      "instanceId": "68c4f1370c44d253dc1e09b6",
+      "instanceId": "68c4f1370c44d253dc1e09a3",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e07a3",
       "debitOrCredit": "debit",
@@ -313,16 +306,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0982",
+          "instanceId": "68c4f1370c44d253dc1e0962",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e078a",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09b7",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a3",
+          "instanceId": "68c4f1370c44d253dc1e0963",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e078a",
           "debitOrCredit": "debit",
           "fallback": "none"
         }
@@ -340,16 +333,16 @@
       "fixedAmount": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0967",
+          "instanceId": "68c4f1370c44d253dc1e0964",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0781",
           "debitOrCredit": "credit",
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09a5",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079a",
+          "instanceId": "68c4f1370c44d253dc1e0965",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0781",
           "debitOrCredit": "credit",
           "fallback": "capital"
         }
@@ -359,7 +352,7 @@
     {
       "componentName": "Provident Fund Deduction",
       "type": "deduction",
-      "instanceId": "68c4f1370c44d253dc1e09a6",
+      "instanceId": "68c4f1370c44d253dc1e09a5",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e079b",
       "debitOrCredit": "credit",
@@ -367,16 +360,16 @@
       "fixedAmount": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e096a",
+          "instanceId": "68c4f1370c44d253dc1e0966",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0782",
           "debitOrCredit": "credit",
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09a7",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079b",
+          "instanceId": "68c4f1370c44d253dc1e0967",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0782",
           "debitOrCredit": "credit",
           "fallback": "capital"
         }
@@ -386,7 +379,7 @@
     {
       "componentName": "Income Tax",
       "type": "deduction",
-      "instanceId": "68c4f1370c44d253dc1e09b0",
+      "instanceId": "68c4f1370c44d253dc1e09a0",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e07a0",
       "debitOrCredit": "credit",
@@ -394,16 +387,16 @@
       "fixedAmount": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0979",
+          "instanceId": "68c4f1370c44d253dc1e0968",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0787",
           "debitOrCredit": "credit",
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09b1",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a0",
+          "instanceId": "68c4f1370c44d253dc1e0969",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0787",
           "debitOrCredit": "credit",
           "fallback": "capital"
         }
@@ -413,7 +406,7 @@
     {
       "componentName": "EOBI",
       "type": "deduction",
-      "instanceId": "68c4f1370c44d253dc1e0998",
+      "instanceId": "68c4f1370c44d253dc1e0994",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e0794",
       "debitOrCredit": "credit",
@@ -421,16 +414,16 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0955",
+          "instanceId": "68c4f1370c44d253dc1e096a",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e077b",
           "debitOrCredit": "credit",
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e0999",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0794",
+          "instanceId": "68c4f1370c44d253dc1e096b",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e077b",
           "debitOrCredit": "credit",
           "fallback": "capital"
         }
@@ -440,7 +433,7 @@
     {
       "componentName": "Cost of Funds",
       "type": "deduction",
-      "instanceId": "68c4f1370c44d253dc1e09b0",
+      "instanceId": "68c4f1370c44d253dc1e09a6",
       "summaryId": "68bbbb6d7d078c821a3c5994",
       "definitionId": "68c417f90c44d253dc1e07a0",
       "debitOrCredit": "credit",
@@ -448,87 +441,21 @@
       "fixedAmount": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0979",
+          "instanceId": "68c4f1370c44d253dc1e096c",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0787",
           "debitOrCredit": "credit",
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e09b1",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a0",
+          "instanceId": "68c4f1370c44d253dc1e096d",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0787",
           "debitOrCredit": "credit",
           "fallback": "capital"
         }
       ],
-      "fallback": "none"
-    },
-     {
-      "componentName": "Gratuity Deduction",
-      "type": "deduction",
-      "instanceId": "68c4f1370c44d253dc1e09a4",
-      "summaryId": "68bbbb6d7d078c821a3c5994",
-      "definitionId": "68c417f90c44d253dc1e079a",
-      "debitOrCredit": "credit",
-      "percentage": 5,
-      "fixedAmount": 0,
-      "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e0967",
-          "summaryId": "68bbbb6d7d078c821a3c5995",
-          "definitionId": "68c417f90c44d253dc1e0781",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e09a5",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079a",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        }
-      ],
-      "fallback": "none"
-    },
-    {
-      "componentName": "Provident Fund Deduction",
-      "type": "deduction",
-      "instanceId": "68c4f1370c44d253dc1e09a6",
-      "summaryId": "68bbbb6d7d078c821a3c5994",
-      "definitionId": "68c417f90c44d253dc1e079b",
-      "debitOrCredit": "credit",
-      "percentage": 8,
-      "fixedAmount": 0,
-      "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e096a",
-          "summaryId": "68bbbb6d7d078c821a3c5995",
-          "definitionId": "68c417f90c44d253dc1e0782",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e09a7",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079b",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        }
-      ],
-      "fallback": "none"
-    },
-    {
-      "componentName": "Cash",
-      "type": "cash",
-      "instanceId": "68c4f1370c44d253dc1e09bc",
-      "summaryId": "68bbbb6d7d078c821a3c5998",
-      "definitionId": "68c417f90c44d253dc1e07c1",
-      "debitOrCredit": "credit",
-      "fixedAmount": 0,
-      "percentage": 0,
-      "mirrors": [],
       "fallback": "none"
     }
   ]
-}
+}]
