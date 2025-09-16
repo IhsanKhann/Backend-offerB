@@ -27,13 +27,6 @@
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e098c",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e078d",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
-        {
           "instanceId": "68c4f1370c44d253dc1e0947",
           "summaryId": "68bbbb6d7d078c821a3c599a",
           "definitionId": "68c417f90c44d253dc1e0774",
@@ -52,13 +45,6 @@
       "percentage": 40,
       "fixedAmount": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e099d",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0796",
-          "debitOrCredit": "debit",
-          "fallback": "capital"
-        },
         {
           "instanceId": "68c4f1370c44d253dc1e095b",
           "summaryId": "68bbbb6d7d078c821a3c5995",
@@ -93,13 +79,6 @@
       "fixedAmount": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e099f",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0797",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
-        {
           "instanceId": "68c4f1370c44d253dc1e095e",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e077e",
@@ -132,13 +111,6 @@
       "fixedAmount": 3000,
       "percentage": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e09a1",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0798",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
         {
           "instanceId": "68c4f1370c44d253dc1e0961",
           "summaryId": "68bbbb6d7d078c821a3c5995",
@@ -173,13 +145,6 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e09a3",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0799",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
-        {
           "instanceId": "68c4f1370c44d253dc1e0964",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0780",
@@ -212,13 +177,6 @@
       "fixedAmount": 2000,
       "percentage": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e09a9",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079c",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
         {
           "instanceId": "68c4f1370c44d253dc1e0976",
           "summaryId": "68bbbb6d7d078c821a3c5995",
@@ -253,13 +211,6 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e09ab",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079d",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
-        {
           "instanceId": "68c4f1370c44d253dc1e0970",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0784",
@@ -292,13 +243,6 @@
       "fixedAmount": 4000,
       "percentage": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e09ad",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079e",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
         {
           "instanceId": "68c4f1370c44d253dc1e096d",
           "summaryId": "68bbbb6d7d078c821a3c5995",
@@ -333,13 +277,6 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e09af",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079f",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
-        {
           "instanceId": "68c4f1370c44d253dc1e0973",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0785",
@@ -372,13 +309,6 @@
       "fixedAmount": 6000,
       "percentage": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e09b3",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a1",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
         {
           "instanceId": "68c4f1370c44d253dc1e097c",
           "summaryId": "68bbbb6d7d078c821a3c5995",
@@ -413,13 +343,6 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e09b5",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a2",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
-        {
           "instanceId": "68c4f1370c44d253dc1e097f",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0789",
@@ -453,13 +376,6 @@
       "percentage": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e09b7",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a3",
-          "debitOrCredit": "debit",
-          "fallback": "none"
-        },
-        {
           "instanceId": "68c4f1370c44d253dc1e0982",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e078a",
@@ -492,13 +408,6 @@
       "percentage": 10,
       "fixedAmount": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e0997",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0793",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        }
       ]
     },
     {
@@ -511,13 +420,6 @@
       "fixedAmount": 2000,
       "percentage": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e0999",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e0794",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        }
       ]
     },
     {
@@ -530,13 +432,6 @@
       "percentage": 2,
       "fixedAmount": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e09b1",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a0",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        }
       ]
     },
     {
@@ -549,13 +444,6 @@
       "percentage": 5,
       "fixedAmount": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e09a5",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079a",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        }
       ]
     },
     {
@@ -568,13 +456,6 @@
       "percentage": 8,
       "fixedAmount": 0,
       "mirrors": [
-        {
-          "instanceId": "68c4f1370c44d253dc1e09a7",
-          "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e079b",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        }
       ]
     },
     {
@@ -586,8 +467,17 @@
       "debitOrCredit": "credit",
       "fixedAmount": 0,
       "percentage": 0,
-      "mirrors": [],
-      "fallback": "none"
+      "mirrors": []
+    },
+    {
+      "componentName": "Net Salary",
+      "instanceId": "68c9350c9f6641a93acc79aa",
+      "summaryId": "68bbbb6d7d078c821a3c5998",
+      "definitionId": "68c934339f6641a93acc79a2",
+      "debitOrCredit": "credit",
+      "fixedAmount": 0,
+      "percentage": 0,
+      "mirrors": []
     }
   ]
 }

@@ -3,9 +3,11 @@ import mongoose from "mongoose";
 
 const BreakdownSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  category: { type: String, enum: ["base", "allowance", "deduction"], required: true },
+  category: { type: String, enum: ["base", "allowance", "deduction", "net"], required: true },
   value: { type: Number, required: true },
   calculation: { type: String, required: true },
+  // NEW: mark lines that should not be summed into totalAllowances/totalDeductions
+  excludeFromTotals: { type: Boolean, default: false },
 }, { _id: false });
 
 const CalculatedBreakupSchema = new mongoose.Schema({
@@ -15,7 +17,6 @@ const CalculatedBreakupSchema = new mongoose.Schema({
   netSalary: { type: Number, default: 0 },
 }, { _id: false });
 
-// 🔑 Reuse same structure as AllRoles
 const ComponentSchema = new mongoose.Schema({
   name: { type: String, required: true },
   category: { type: String, enum: ["allowance", "deduction"], required: true },
@@ -26,14 +27,14 @@ const ComponentSchema = new mongoose.Schema({
 const SalaryRulesSchema = new mongoose.Schema({
   baseSalary: { type: Number, required: true },
   salaryType: { type: String, enum: ["monthly", "hourly"], default: "monthly" },
-  components: { type: [ComponentSchema], default: [] }, // ✅ same as AllRoles
+  components: { type: [ComponentSchema], default: [] },
 }, { _id: false });
 
 const BreakupFileSchema = new mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee", required: true },
   roleId: { type: mongoose.Schema.Types.ObjectId, ref: "AllRoles", required: true },
-  salaryRules: SalaryRulesSchema, // ✅ identical to AllRoles
+  salaryRules: SalaryRulesSchema,
   calculatedBreakup: { type: CalculatedBreakupSchema, default: {} },
 }, { timestamps: true });
 
-export default mongoose.model("BreakupFile", BreakupFileSchema);
+export default mongoose.models.BreakupFile || mongoose.model("BreakupFile", BreakupFileSchema);

@@ -76,88 +76,102 @@ export const createBreakupFile = async (req, res) => {
     // 1️⃣ Validate Employee
     const employee = await FinalizedEmployeeModel.findById(employeeId);
     if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: "Employee not found",
-      });
+      return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
     // 2️⃣ Validate Role
     const role = await AllRolesModel.findById(roleId);
     if (!role) {
-      return res.status(404).json({
-        success: false,
-        message: "Role not found",
-      });
+      return res.status(404).json({ success: false, message: "Role not found" });
     }
 
     // 3️⃣ Extract salary rules
-    const { baseSalary = 0, components = [] } = salaryRules;
+    const { baseSalary = 0, components = [] } = salaryRules || {};
 
     // 4️⃣ Start breakdown with base salary
-    let breakdown = [
+    const breakdown = [
       {
         name: "Base Salary",
         category: "base",
-        value: baseSalary,
-        calculation: `Fixed base salary = ${baseSalary}`,
+        value: Number(baseSalary) || 0,
+        calculation: `Fixed base salary = ${Number(baseSalary) || 0}`,
+        excludeFromTotals: false,
       },
     ];
 
-    let totalAllowances = 0;
+    let totalAllowances = 0;   // EXCLUDE administrative transfer
     let totalDeductions = 0;
 
     // 5️⃣ Process components
     for (const component of components) {
+      const compType = component.type;
+      const compCategory = component.category; // "allowance" | "deduction"
+      const compName = component.name?.trim();
+
       let calculatedValue = 0;
 
-      if (component.type === "percentage") {
-        calculatedValue = (baseSalary * (component.value || 0)) / 100;
-
-        // Special case: Administrative Allowance = 100% of base salary
-        if (component.name === "Administrative Allowance") {
-          calculatedValue = baseSalary;
+      if (compType === "percentage") {
+        const pct = Number(component.value || 0);
+        calculatedValue = Math.round((Number(baseSalary || 0) * pct) / 100);
+        // Special rule: Administrative Allowance is a transfer of base
+        if (compName && compName.toLowerCase() === "administrative allowance") {
+          calculatedValue = Number(baseSalary || 0);
         }
       } else {
-        calculatedValue = component.value || 0;
+        calculatedValue = Number(component.value || 0);
       }
 
+      // Flag lines that should not be included in totals (administrative transfer)
+      const excludeFromTotals =
+        compName && compName.toLowerCase() === "administrative allowance";
+
       breakdown.push({
-        name: component.name,
-        category: component.category, // allowance | deduction
+        name: compName || "Component",
+        category: compCategory,
         value: calculatedValue,
         calculation:
-          component.type === "percentage"
+          compType === "percentage"
             ? `${component.value}% of base = ${calculatedValue}`
             : `Fixed = ${calculatedValue}`,
+        excludeFromTotals,
       });
 
-      if (component.category === "deduction") {
+      // Add to totals only if NOT excluded
+      if (compCategory === "deduction") {
         totalDeductions += calculatedValue;
-      } else if (component.category === "allowance") {
+      } else if (compCategory === "allowance" && !excludeFromTotals) {
         totalAllowances += calculatedValue;
       }
     }
 
-    // 6️⃣ Calculate Net Salary directly
-    const netSalary = baseSalary + totalAllowances - totalDeductions;
+    // 6️⃣ Calculate Net Salary (base + allowances_excl_admin - deductions)
+    const netSalary = Math.round((Number(baseSalary || 0) + totalAllowances - totalDeductions) * 100) / 100;
 
-    // 7️⃣ Save or update Breakup File
+    // Add Net Salary line (category 'net') if you want it in breakdown
+    breakdown.push({
+      name: "Net Salary",
+      category: "net",
+      value: netSalary,
+      calculation: `(${baseSalary} + ${totalAllowances}) - ${totalDeductions} = ${netSalary}`,
+      excludeFromTotals: false,
+    });
+
+    // 7️⃣ Save/Update Breakup File
     const breakupFile = await BreakupFile.findOneAndUpdate(
       { employeeId },
       {
         employeeId,
         roleId,
         salaryRules: {
-          baseSalary,
+          baseSalary: Number(baseSalary || 0),
           salaryType: salaryRules.salaryType || "monthly",
-          components,
+          components: components || [],
         },
         calculatedBreakup: {
           breakdown,
           totalAllowances,
           totalDeductions,
-          netSalary, // ✅ direct net salary
+          netSalary,
         },
       },
       { new: true, upsert: true }
@@ -178,27 +192,25 @@ export const createBreakupFile = async (req, res) => {
   }
 };
 
-
 // ------------------ Create Breakup Rule ------------------
 export const createBreakupRule = async (req, res) => {
   try {
     const { transactionType, incrementType, splits } = req.body;
 
     if (!transactionType || !splits || splits.length === 0) {
-      return res.status(400).json({ error: "transactionType and at least one split are required" });
+      return res.status(400).json({
+        error: "transactionType and at least one split are required",
+      });
     }
 
-    // Transform splits to ensure ObjectIds are properly cast
+    // 🔑 Rules are only mapping — no percentages or fixed values
     const formattedSplits = splits.map((split) => ({
-      componentName: split.componentName,
-      type: split.type,
+      componentName: split.componentName, // e.g. "Net Salary"
+      type: split.type, // allowance / deduction / net / base
       instanceId: safeToObjectId(split.instanceId),
       summaryId: safeToObjectId(split.summaryId),
       definitionId: safeToObjectId(split.definitionId),
-      debitOrCredit: split.debitOrCredit,
-      percentage: split.percentage || 0,
-      fixedAmount: split.fixedAmount || 0,
-      value: split.value || 0,
+      debitOrCredit: split.debitOrCredit, // explicit debit/credit
       fieldLineId: split.fieldLineId || null,
       mirrors: (split.mirrors || []).map((mirror) => ({
         instanceId: safeToObjectId(mirror.instanceId),
@@ -224,7 +236,9 @@ export const createBreakupRule = async (req, res) => {
     });
   } catch (err) {
     console.error("createBreakupRule Error:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res
+      .status(500)
+      .json({ error: err.message || "Internal server error" });
   }
 };
 

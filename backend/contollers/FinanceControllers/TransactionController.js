@@ -178,17 +178,14 @@ async function buildFundingLinesViaInstances(amountNeeded, session) {
   const commissionSummary = await SummaryModel.findOne({ summaryId: SID.COMMISSION }).session(session);
   const commissionBalance = commissionSummary ? Number(commissionSummary.endingBalance || 0) : 0;
 
-  // Prefer instances that represent cash/commission/capital if available
   const cashInstance = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5301 }).session(session);
   const commissionInstance = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5201 }).session(session);
-  const capitalInstance = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5101 }).session(session);
-
   const cashSummaryObj = await getSummaryObjectId(SID.CASH, session);
   const commissionSummaryObj = await getSummaryObjectId(SID.COMMISSION, session);
-  const capitalSummaryObj = await getSummaryObjectId(SID.CAPITAL, session);
 
   let remaining = amountNeeded;
 
+  // ✅ Use Commission first
   if (commissionBalance > 0) {
     const fromCommission = Math.min(commissionBalance, remaining);
     fundingLines.push({
@@ -212,28 +209,21 @@ async function buildFundingLinesViaInstances(amountNeeded, session) {
     remaining = Math.round((remaining - fromCommission) * 100) / 100;
   }
 
+  // ✅ If Commission exhausted, take remaining from Cash itself (direct)
   if (remaining > 0.00001) {
     fundingLines.push({
       instanceObjectId: cashInstance ? cashInstance._id : null,
       summaryObjectId: cashSummaryObj,
       summaryNumericId: SID.CASH,
       definitionObjectId: cashInstance ? cashInstance.definitionId : null,
-      debitOrCredit: "debit",
+      debitOrCredit: "credit", // Cash is reduced
       amount: remaining,
-      fieldName: "Fund from Capital -> Cash"
-    });
-    fundingLines.push({
-      instanceObjectId: capitalInstance ? capitalInstance._id : null,
-      summaryObjectId: capitalSummaryObj,
-      summaryNumericId: SID.CAPITAL,
-      definitionObjectId: capitalInstance ? capitalInstance.definitionId : null,
-      debitOrCredit: "credit",
-      amount: remaining,
-      fieldName: "Reduce Capital (fund cash)"
+      fieldName: "Net Salary Payment (Cash)"
     });
     remaining = 0;
   }
 
+  // ❌ Do NOT touch Capital automatically
   return fundingLines;
 }
 
@@ -592,141 +582,156 @@ export const transferRetainedIncomeToCapital = async (req, res) => {
   }
 };
 
+// ----------------- Salary Transaction (Updated) -----------------
 export const SalaryTransactionController = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const employeeId = req.params.employeeId || req.body.employeeId;
-    const description = req.body.description || `Salary Transaction - ${employeeId}`;
+    if (!employeeId) throw new Error("❌ Employee ID is required.");
 
-    if (!employeeId) {
-      throw new Error("❌ Employee ID is required for salary transaction.");
-    }
+    const description =
+      req.body.description || `Salary Transaction - ${employeeId}`;
 
-    // 1️⃣ Fetch Breakup Rules (used only for mapping to correct summaries/instances)
     const rules = await BreakupRuleModel.find({}).session(session).lean();
-    if (!rules?.length) {
-      throw new Error(`❌ No Breakup Rules found for employee ${employeeId}`);
-    }
+    if (!rules?.length) throw new Error(`❌ No Breakup Rules found.`);
 
-    // 2️⃣ Fetch Breakup File (contains already computed values)
-    const breakupFile = await BreakupFileModel.findOne({ employeeId }).session(session);
-    if (!breakupFile) {
+    const breakupFile = await BreakupFileModel.findOne({ employeeId })
+      .session(session)
+      .lean();
+    if (!breakupFile)
       throw new Error(`❌ No Breakup File found for employee ${employeeId}`);
-    }
 
-    const computedComponents = breakupFile?.calculatedBreakup?.breakdown || [];
+    const computedBreakdown = breakupFile?.calculatedBreakup?.breakdown || [];
+    let components = [];
 
-    // 3️⃣ Map rules to computed values
-    const components = rules.flatMap(rule =>
-      (rule.splits || []).map(split => {
-        const computed = computedComponents.find(
-          c => c.name?.toLowerCase() === split.componentName?.toLowerCase()
+    // Map rules → computed values
+    for (const rule of rules) {
+      for (const split of rule.splits || []) {
+        const computed = computedBreakdown.find(
+          (c) =>
+            (c.name || "").toLowerCase() ===
+            (split.componentName || "").toLowerCase()
         );
 
-        const value = computed?.value ?? 0; // ✅ Only use computed values
+        const value = computed?.value ?? Number(split.fixedAmount || 0);
 
-        return {
-          ...split,
+        let instanceId = split.instanceId
+          ? safeToObjectId(split.instanceId)
+          : null;
+
+        if (!instanceId && split.definitionId && split.summaryId) {
+          const instance = await SummaryFieldLineInstance.findOne({
+            definitionId: split.definitionId,
+            summaryId: split.summaryId,
+          })
+            .session(session)
+            .lean();
+          if (instance) instanceId = instance._id;
+        }
+
+        components.push({
+          componentName: split.componentName,
           value,
-          debitOrCredit: split.debitOrCredit ?? (split.type === "deduction" ? "credit" : "debit"),
-        };
-      })
-    );
-
-    if (!components.length) {
-      throw new Error(`❌ No components found after mapping rules for employee ${employeeId}`);
+          category: computed?.category || split.type,
+          debitOrCredit:
+            split.debitOrCredit ?? (split.type === "deduction" ? "credit" : "debit"),
+          summaryId: safeToObjectId(split.summaryId),
+          definitionId: safeToObjectId(split.definitionId),
+          instanceId,
+          mirrors: split.mirrors || [],
+        });
+      }
     }
 
-    let totalDebits = 0;
-    let totalCredits = 0;
+    // Build accounting lines
+    let totalAllowances = 0;
+    let totalDeductions = 0;
+    let totalBaseSalary = 0;
     const accountingLines = [];
 
-    // Helper to process a component or mirror
-    const processLine = async (comp, parentAmount) => {
-      const amount = Math.round((comp.value ?? parentAmount ?? 0) * 100) / 100;
-      if (!amount) {
-        console.warn(`⚠️ Skipping component "${comp.componentName}" - zero amount`);
-        return null;
+    for (const comp of components) {
+      const amount = Number(comp.value || 0);
+      if (!amount) continue;
+
+      if (
+        comp.componentName.toLowerCase() === "base salary" ||
+        comp.componentName.toLowerCase() === "administrative allowance"
+      ) {
+        totalBaseSalary += amount;
       }
 
-      const debitOrCredit = comp.debitOrCredit;
+      if (comp.category === "allowance") totalAllowances += amount;
+      if (comp.category === "deduction") totalDeductions += amount;
 
-      // Map to ObjectIds
-      const summaryObjId = comp.summaryId
-        ? safeToObjectId(comp.summaryId)
-        : null;
-
-      const instanceObjId = comp.instanceId
-        ? safeToObjectId(comp.instanceId)
-        : comp.fieldLineId
-          ? await resolveInstanceObjectId(
-              { numericFieldLineId: comp.fieldLineId, summaryId: comp.summaryId },
-              session
-            )
-          : null;
-
-      const definitionObjId = comp.definitionId
-        ? safeToObjectId(comp.definitionId)
-        : comp.fieldLineId
-          ? await getDefinitionByNumericId(comp.fieldLineId, session)
-          : null;
-
-      if (!instanceObjId && !summaryObjId) {
-        console.warn(`⚠️ Skipping component "${comp.componentName}" - no valid instance/summary`);
-        return null;
-      }
-
-      const line = {
+      accountingLines.push({
         employeeId,
-        instanceObjectId: instanceObjId,
-        summaryObjectId: summaryObjId,
-        summaryNumericId: typeof comp.summaryId === "number" ? comp.summaryId : null,
-        definitionObjectId: definitionObjId,
-        debitOrCredit,
+        instanceObjectId: comp.instanceId,
+        summaryObjectId: comp.summaryId,
+        definitionObjectId: comp.definitionId,
+        debitOrCredit: comp.debitOrCredit,
         amount,
-        fieldName: comp.componentName || comp.name || "Salary Component",
-      };
+        fieldName: comp.componentName,
+      });
 
-      // Add totals
-      debitOrCredit === "debit" ? (totalDebits += amount) : (totalCredits += amount);
-      accountingLines.push(line);
-
-      // Process mirrors recursively
-      if (Array.isArray(comp.mirrors) && comp.mirrors.length) {
-        await Promise.all(comp.mirrors.map(mirror => processLine(mirror, amount)));
+      for (const mirror of comp.mirrors) {
+        accountingLines.push({
+          employeeId,
+          instanceObjectId: mirror.instanceId ? safeToObjectId(mirror.instanceId) : null,
+          summaryObjectId: safeToObjectId(mirror.summaryId),
+          definitionObjectId: safeToObjectId(mirror.definitionId),
+          debitOrCredit: mirror.debitOrCredit,
+          amount,
+          fieldName: `${comp.componentName} (mirror)`,
+        });
       }
+    }
 
-      return line;
-    };
+    // Net salary = totalAllowances - totalDeductions (excluding base salary)
+    const netSalary = totalAllowances - totalDeductions;
 
-    // 4️⃣ Process all components
-    await Promise.all(components.map(comp => processLine(comp)));
+    if (netSalary > 0) {
+      // ✅ Build funding lines (commission → cash → capital)
+      const fundingLines = await buildFundingLinesViaInstances(netSalary, session);
 
-    // 5️⃣ Persist transaction
+      // Add funding lines to accounting lines
+      accountingLines.push(...fundingLines);
+
+      // Track net salary impact on cash
+      accountingLines.push({
+        employeeId,
+        fieldName: "Net Salary Payment",
+        amount: netSalary,
+        debitOrCredit: "credit", // reduce cash
+        summaryObjectId: null,
+        definitionObjectId: null,
+        instanceObjectId: null,
+      });
+    }
+
     const tx = await persistTransactionAndApply(accountingLines, description, session);
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(201).json({
-      message: "✅ Salary transaction posted successfully",
+      message: "✅ Salary transaction posted",
       employeeId,
       transactionId: tx.transactionId,
-      totalDebits,
-      totalCredits,
-      netToPay: Math.round((totalDebits - totalCredits) * 100) / 100,
+      totalAllowances,
+      totalDeductions,
+      netSalary,
       accountingLines,
     });
-
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    console.error(`SalaryTransactionController Error for employee ${req.body.employeeId || req.params.employeeId}:`, err);
+    console.error("SalaryTransactionController Error:", err);
     return res.status(500).json({ error: err.message || String(err) });
   }
 };
+
 
 // ----------------- Helper: get summaries with populated entries -----------------
 export const getSummariesWithEntries = async (req, res) => {
