@@ -236,7 +236,7 @@
   },
   "fieldLineNumericId": 2108,
   "name": "EOBI",
-  "balance": 0
+  "balance": -2000
 },
 {
   "_id": {
@@ -416,7 +416,7 @@
   },
   "fieldLineNumericId": 2112,
   "name": "Expanse for Medicine Allowence",
-  "balance": 0
+  "balance": 3000
 },
 {
   "_id": {
@@ -461,7 +461,7 @@
   },
   "fieldLineNumericId": 2113,
   "name": "Expanse for Fuel",
-  "balance": 0
+  "balance": 5000
 },
 {
   "_id": {
@@ -596,7 +596,7 @@
   },
   "fieldLineNumericId": 2116,
   "name": "Expanse for Utilities",
-  "balance": 0
+  "balance": 4000
 },
 {
   "_id": {
@@ -641,7 +641,7 @@
   },
   "fieldLineNumericId": 2117,
   "name": "Expanse for Hospitilization",
-  "balance": 0
+  "balance": 2500
 },
 {
   "_id": {
@@ -686,7 +686,7 @@
   },
   "fieldLineNumericId": 2118,
   "name": "Expanse for Special Allowence",
-  "balance": 0
+  "balance": 3000
 },
 {
   "_id": {
@@ -731,7 +731,7 @@
   },
   "fieldLineNumericId": 2119,
   "name": "Expanse for Training Allowence",
-  "balance": 0
+  "balance": 2000
 },
 {
   "_id": {
@@ -821,7 +821,7 @@
   },
   "fieldLineNumericId": 2121,
   "name": "Expanse for Servant",
-  "balance": 0
+  "balance": 6000
 },
 {
   "_id": {
@@ -866,7 +866,7 @@
   },
   "fieldLineNumericId": 2122,
   "name": "Expanse for Telephone",
-  "balance": 0
+  "balance": 1500
 },
 {
   "_id": {
@@ -911,7 +911,7 @@
   },
   "fieldLineNumericId": 2123,
   "name": "Expanse for Car Maintenance",
-  "balance": 0
+  "balance": 5000
 },
 {
   "_id": {
@@ -1045,7 +1045,7 @@
     "$oid": "68c417f90c44d253dc1e078d"
   },
   "fieldLineNumericId": 1101,
-  "name": "Allowance for Bank Tax Website",
+  "name": "Allowance for Administrative Expenses",
   "balance": 0
 },
 {
@@ -1060,7 +1060,7 @@
     "$oid": "68c417f90c44d253dc1e078d"
   },
   "fieldLineNumericId": 1101,
-  "name": "Allowance for Bank Tax Website",
+  "name": "Allowance for Administrative Expenses",
   "balance": 0
 },
 {
@@ -1241,7 +1241,7 @@
   },
   "fieldLineNumericId": 1108,
   "name": "Allowance for EOBI",
-  "balance": 0
+  "balance": -2000
 },
 {
   "_id": {
@@ -1256,7 +1256,7 @@
   },
   "fieldLineNumericId": 1108,
   "name": "Allowance for EOBI",
-  "balance": 0
+  "balance": -2000
 },
 {
   "_id": {
@@ -1361,7 +1361,7 @@
   },
   "fieldLineNumericId": 1112,
   "name": "Allowance for Medicine Expenses",
-  "balance": 0
+  "balance": 3000
 },
 {
   "_id": {
@@ -1376,7 +1376,7 @@
   },
   "fieldLineNumericId": 1112,
   "name": "Allowance for Medicine Expenses",
-  "balance": 0
+  "balance": 3000
 },
 {
   "_id": {
@@ -1391,7 +1391,7 @@
   },
   "fieldLineNumericId": 1113,
   "name": "Allowance for Fuel Expenses",
-  "balance": 0
+  "balance": 5000
 },
 {
   "_id": {
@@ -1406,7 +1406,7 @@
   },
   "fieldLineNumericId": 1113,
   "name": "Allowance for Fuel Expenses",
-  "balance": 0
+  "balance": 5000
 },
 {
   "_id": {
@@ -1481,7 +1481,7 @@
   },
   "fieldLineNumericId": 1116,
   "name": "Allowance for Training Allowence Expenses",
-  "balance": 0
+  "balance": 2000
 },
 {
   "_id": {
@@ -1496,7 +1496,7 @@
   },
   "fieldLineNumericId": 1116,
   "name": "Allowance for Training Allowence Expenses",
-  "balance": 0
+  "balance": 2000
 },
 {
   "_id": {
@@ -1511,7 +1511,7 @@
   },
   "fieldLineNumericId": 1117,
   "name": "Allowance for Hospitilization",
-  "balance": 0
+  "balance": 2500
 },
 {
   "_id": {
@@ -1526,7 +1526,7 @@
   },
   "fieldLineNumericId": 1117,
   "name": "Allowance for Hospitilization",
-  "balance": 0
+  "balance": 2500
 },
 {
   "_id": {
@@ -1541,7 +1541,7 @@
   },
   "fieldLineNumericId": 1118,
   "name": "Allowance for Utility Expenses",
-  "balance": 0
+  "balance": 4000
 },
 {
   "_id": {
@@ -1556,7 +1556,7 @@
   },
   "fieldLineNumericId": 1118,
   "name": "Allowance for Utility Expenses",
-  "balance": 0
+  "balance": 4000
 },
 {
   "_id": {
@@ -1571,7 +1571,7 @@
   },
   "fieldLineNumericId": 1119,
   "name": "Allowance for Special Allowence",
-  "balance": 0
+  "balance": 3000
 },
 {
   "_id": {
@@ -1586,7 +1586,7 @@
   },
   "fieldLineNumericId": 1119,
   "name": "Allowance for Special Allowence",
-  "balance": 0
+  "balance": 3000
 },
 {
   "_id": {
@@ -1631,7 +1631,7 @@
   },
   "fieldLineNumericId": 1121,
   "name": "Allowance for Servant",
-  "balance": 0
+  "balance": 6000
 },
 {
   "_id": {
@@ -1646,7 +1646,7 @@
   },
   "fieldLineNumericId": 1121,
   "name": "Allowance for Servant",
-  "balance": 0
+  "balance": 6000
 },
 {
   "_id": {
@@ -1661,7 +1661,7 @@
   },
   "fieldLineNumericId": 1122,
   "name": "Allowance for Telephone",
-  "balance": 0
+  "balance": 1500
 },
 {
   "_id": {
@@ -1676,7 +1676,7 @@
   },
   "fieldLineNumericId": 1122,
   "name": "Allowance for Telephone",
-  "balance": 0
+  "balance": 1500
 },
 {
   "_id": {
@@ -1691,7 +1691,7 @@
   },
   "fieldLineNumericId": 1123,
   "name": "Allowance for Car Maintainence",
-  "balance": 0
+  "balance": 5000
 },
 {
   "_id": {
@@ -1706,7 +1706,7 @@
   },
   "fieldLineNumericId": 1123,
   "name": "Allowance for Car Maintainence",
-  "balance": 0
+  "balance": 5000
 },
 {
   "_id": {

@@ -98,41 +98,48 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
   };
 
   const handleCreateBreakup = async () => {
-    if (!employee?._id) return alert("Missing employee info");
-    if (!selectedRoleId) return alert("Missing role info");
+  if (!employee?._id) return alert("Missing employee info");
+  if (!selectedRoleId) return alert("Missing role info");
 
-    try {
-      const salaryRulesPayload = {
+  try {
+    // Combine allowances and deductions with category info
+    const combinedComponents = [
+      ...(isEditing ? formData.allowances : originalRules.allowances).map(c => ({
+        ...c,
+        category: "allowance",
+      })),
+      ...(isEditing ? formData.deductions : originalRules.deductions).map(c => ({
+        ...c,
+        category: "deduction",
+      })),
+    ]
+      .filter(c => c.name)
+      .map(c => ({ ...c, value: Number(c.value) || 0 }));
+
+    const payload = {
+      employeeId: employee._id,
+      roleId: selectedRoleId,
+      salaryRules: {
         baseSalary: isEditing ? Number(formData.baseSalary) : originalRules.baseSalary,
         salaryType: isEditing ? formData.salaryType : originalRules.salaryType,
-        allowances: (isEditing ? formData.allowances : originalRules.allowances)
-          .filter((a) => a.name)
-          .map((a) => ({ ...a, value: Number(a.value) || 0 })),
-        deductions: (isEditing ? formData.deductions : originalRules.deductions)
-          .filter((d) => d.name)
-          .map((d) => ({ ...d, value: Number(d.value) || 0 })),
-      };
+        components: combinedComponents, // now includes category
+      },
+    };
 
-      const payload = {
-        employeeId: employee._id,
-        roleId: selectedRoleId,
-        salaryRules: salaryRulesPayload,
-      };
+    const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
 
-      const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
-
-      if (res?.status === 201 || res?.data?.success) {
-        alert("Breakup file created/updated successfully!");
-        onClose?.();
-        navigate(`/salary/breakup/${employee._id}`);
-      } else {
-        alert(res?.data?.message || "Failed to create breakup");
-      }
-    } catch (err) {
-      console.error("Error creating breakup:", err);
-      alert("Error creating breakup. Check console for details.");
+    if (res?.status === 201 || res?.data?.success) {
+      alert("Breakup file created/updated successfully!");
+      onClose?.();
+      navigate(`/salary/breakup/${employee._id}`);
+    } else {
+      alert(res?.data?.message || "Failed to create breakup");
     }
-  };
+  } catch (err) {
+    console.error("Error creating breakup:", err);
+    alert("Error creating breakup. Check console for details.");
+  }
+};
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">

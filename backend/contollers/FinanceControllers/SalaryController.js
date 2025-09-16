@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import AllRolesModel from "../../models/HRModals/AllRoles.model.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 import BreakupFile from "../../models/FinanceModals/SalaryBreakupModel.js";
+import BreakupRulesModel from "../../models/FinanceModals/BreakupRules.js";
 
 export const getSalaryRulesByRoleName = async (req, res) => {
   try {
@@ -60,6 +61,12 @@ export const getBreakupFile = async (req, res) => {
       .status(500)
       .json({ success: false, message: "Server error", error: err.message });
   }
+};
+
+const safeToObjectId = (id) => {
+  if (!id) return null;
+  const idStr = String(id);
+  return mongoose.Types.ObjectId.isValid(idStr) ? new mongoose.Types.ObjectId(idStr) : null;
 };
 
 export const createBreakupFile = async (req, res) => {
@@ -161,5 +168,65 @@ export const createBreakupFile = async (req, res) => {
       message: "Error creating breakup file",
       error: err.message,
     });
+  }
+};
+
+// ------------------ Create Breakup Rule ------------------
+export const createBreakupRule = async (req, res) => {
+  try {
+    const { transactionType, incrementType, splits } = req.body;
+
+    if (!transactionType || !splits || splits.length === 0) {
+      return res.status(400).json({ error: "transactionType and at least one split are required" });
+    }
+
+    // Transform splits to ensure ObjectIds are properly cast
+    const formattedSplits = splits.map((split) => ({
+      componentName: split.componentName,
+      type: split.type,
+      instanceId: safeToObjectId(split.instanceId),
+      summaryId: safeToObjectId(split.summaryId),
+      definitionId: safeToObjectId(split.definitionId),
+      debitOrCredit: split.debitOrCredit,
+      percentage: split.percentage || 0,
+      fixedAmount: split.fixedAmount || 0,
+      value: split.value || 0,
+      fieldLineId: split.fieldLineId || null,
+      mirrors: (split.mirrors || []).map((mirror) => ({
+        instanceId: safeToObjectId(mirror.instanceId),
+        summaryId: safeToObjectId(mirror.summaryId),
+        definitionId: safeToObjectId(mirror.definitionId),
+        debitOrCredit: mirror.debitOrCredit,
+        fallback: mirror.fallback || "none",
+        fieldLineId: mirror.fieldLineId || null,
+      })),
+    }));
+
+    const newRule = new BreakupRulesModel({
+      transactionType,
+      incrementType: incrementType || "both",
+      splits: formattedSplits,
+    });
+
+    await newRule.save();
+
+    return res.status(201).json({
+      message: "✅ Breakup rule created successfully",
+      rule: newRule,
+    });
+  } catch (err) {
+    console.error("createBreakupRule Error:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+};
+
+// ------------------ Get All Breakup Rules ------------------
+export const getBreakupRules = async (req, res) => {
+  try {
+    const rules = await BreakupRulesModel.find().lean();
+    return res.status(200).json(rules);
+  } catch (err) {
+    console.error("getBreakupRules Error:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
   }
 };

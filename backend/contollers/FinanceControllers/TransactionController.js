@@ -1,4 +1,3 @@
-
 // controllers/FinanceControllers/ExpenseAndCommissionControllers.js
 import mongoose from "mongoose";
 const { ObjectId } = mongoose.Types;
@@ -599,154 +598,119 @@ export const SalaryTransactionController = async (req, res) => {
 
   try {
     const employeeId = req.params.employeeId || req.body.employeeId;
-    const { salary, transactionDate, description, meta = {} } = req.body;
+    const description = req.body.description || `Salary Transaction - ${employeeId}`;
 
-    if (!employeeId) throw new Error("Employee ID is required for salary transaction.");
-    if (!salary || !Array.isArray(salary.splits) || salary.splits.length === 0) {
-      throw new Error("Salary transaction requires at least one split.");
+    if (!employeeId) {
+      throw new Error("❌ Employee ID is required for salary transaction.");
     }
 
-    const baseAmount = Number(salary.baseAmount || salary.gross || salary.base || 0);
+    // 1️⃣ Fetch Breakup Rules (consider adding employee-specific filters if needed)
+    const rules = await BreakupRuleModel.find({}).session(session).lean();
+    if (!rules?.length) {
+      throw new Error(`❌ No Breakup Rules found for employee ${employeeId}`);
+    }
 
-    const accountingLines = [];
+    // 2️⃣ Fetch Breakup File (computed components for this employee)
+    const breakupFile = await BreakupFileModel.findOne({ employeeId }).session(session);
+    const computedComponents = breakupFile?.components || [];
+
+    // 3️⃣ Map rules to computed values
+    const components = rules.flatMap(rule =>
+      (rule.splits || []).map(split => {
+        const computed = computedComponents.find(c => c.componentName === split.componentName);
+        return {
+          ...split,
+          value: computed?.value ?? split.fixedAmount ?? 0,
+          debitOrCredit: split.debitOrCredit ?? (split.type === "deduction" ? "credit" : "debit"),
+        };
+      })
+    );
+
+    if (!components.length) {
+      throw new Error(`❌ No components found after mapping rules for employee ${employeeId}`);
+    }
+
     let totalDebits = 0;
     let totalCredits = 0;
+    const accountingLines = [];
 
-    // ---------------- Process Splits (Salary Rules) ----------------
-    for (const split of salary.splits) {
-      // --- compute amount (ignore percentage for salary) ---
-      const amount = split.value !== undefined
-        ? Number(split.value)
-        : Number(split.fixedAmount || 0);
-      if (!amount || amount === 0) continue;
+    // Helper to process a component or mirror
+    const processLine = async (comp, parentAmount) => {
+      const amount = Math.round((comp.value ?? parentAmount ?? 0) * 100) / 100;
+      if (!amount) return null;
 
-      // --- debit or credit ---
-      let debitOrCredit = split.debitOrCredit;
-      if (!debitOrCredit) {
-        debitOrCredit = split.type === "deduction" ? "credit" : "debit";
-      }
+      const debitOrCredit = comp.debitOrCredit;
 
-      // --- resolve IDs ---
-      const summaryObjId = split.summaryId
-        ? (typeof split.summaryId === "number"
-            ? await getSummaryObjectId(split.summaryId, session)
-            : safeToObjectId(split.summaryId))
+      const summaryObjId = comp.summaryId
+        ? typeof comp.summaryId === "number"
+          ? await getSummaryObjectId(comp.summaryId, session)
+          : safeToObjectId(comp.summaryId)
         : null;
 
-      const definitionObjId = split.definitionId
-        ? safeToObjectId(split.definitionId)
-        : (split.fieldLineId ? await getDefinitionByNumericId(split.fieldLineId, session) : null);
+      const instanceObjId = comp.instanceId
+        ? safeToObjectId(comp.instanceId)
+        : comp.fieldLineId
+          ? await resolveInstanceObjectId({ numericFieldLineId: comp.fieldLineId, summaryId: comp.summaryId }, session)
+          : null;
 
-      const instanceObjId = split.instanceId
-        ? safeToObjectId(split.instanceId)
-        : await resolveInstanceObjectId({ numericFieldLineId: split.fieldLineId, summaryId: split.summaryId }, session);
+      const definitionObjId = comp.definitionId
+        ? safeToObjectId(comp.definitionId)
+        : comp.fieldLineId
+          ? await getDefinitionByNumericId(comp.fieldLineId, session)
+          : null;
 
-      accountingLines.push({
+      if (!instanceObjId && !summaryObjId) {
+        console.warn(`⚠️ Skipping component "${comp.componentName || comp.name}" - no valid instance/summary`);
+        return null;
+      }
+
+      const line = {
         employeeId,
         instanceObjectId: instanceObjId,
         summaryObjectId: summaryObjId,
-        summaryNumericId: typeof split.summaryId === "number" ? split.summaryId : null,
+        summaryNumericId: typeof comp.summaryId === "number" ? comp.summaryId : null,
         definitionObjectId: definitionObjId,
         debitOrCredit,
         amount,
-        fieldName: split.componentName || split.component || split.name || "Salary Component"
-      });
+        fieldName: comp.componentName || comp.name || "Salary Component",
+      };
 
-      if (debitOrCredit === "debit") totalDebits += amount;
-      else totalCredits += amount;
+      debitOrCredit === "debit" ? (totalDebits += amount) : (totalCredits += amount);
+      accountingLines.push(line);
 
-      // ---------------- Mirrors ----------------
-      if (Array.isArray(split.mirrors)) {
-        for (const mirror of split.mirrors) {
-          const mirrorSummaryObjId = mirror.summaryId
-            ? (typeof mirror.summaryId === "number"
-                ? await getSummaryObjectId(mirror.summaryId, session)
-                : safeToObjectId(mirror.summaryId))
-            : null;
-
-          const mirrorInstanceObjId = mirror.instanceId
-            ? safeToObjectId(mirror.instanceId)
-            : await resolveInstanceObjectId({ numericFieldLineId: mirror.fieldLineId, summaryId: mirror.summaryId }, session);
-
-          const mirrorDefinitionObjId = mirror.definitionId
-            ? safeToObjectId(mirror.definitionId)
-            : (mirror.fieldLineId ? await getDefinitionByNumericId(mirror.fieldLineId, session) : null);
-
-          const mirrorDebitOrCredit = mirror.debitOrCredit || (split.type === "deduction" ? "credit" : "debit");
-
-          accountingLines.push({
-            employeeId,
-            instanceObjectId: mirrorInstanceObjId,
-            summaryObjectId: mirrorSummaryObjId,
-            summaryNumericId: typeof mirror.summaryId === "number" ? mirror.summaryId : null,
-            definitionObjectId: mirrorDefinitionObjId,
-            debitOrCredit: mirrorDebitOrCredit,
-            amount,
-            fieldName: mirror.fieldName || `Mirror for ${split.componentName || split.name}`
-          });
-
-          if (mirrorDebitOrCredit === "debit") totalDebits += amount;
-          else totalCredits += amount;
-        }
+      // Process mirrors recursively
+      if (Array.isArray(comp.mirrors) && comp.mirrors.length) {
+        await Promise.all(
+          comp.mirrors.map(mirror => processLine(mirror, amount))
+        );
       }
-    }
 
-    // ---------------- Net Cash & Funding ----------------
-    const netToPay = Math.round((totalDebits - totalCredits) * 100) / 100;
+      return line;
+    };
 
-    if (netToPay > 0.00001) {
-      const fundingLines = await buildFundingLinesViaInstances(netToPay, session);
-      accountingLines.push(...fundingLines);
+    // 4️⃣ Process all components
+    await Promise.all(components.map(comp => processLine(comp)));
 
-      const cashInst = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5301 }).session(session);
-      const cashSummaryObj = await getSummaryObjectId(SID.CASH, session);
-
-      accountingLines.push({
-        employeeId,
-        instanceObjectId: cashInst ? cashInst._id : null,
-        summaryObjectId: cashSummaryObj,
-        summaryNumericId: SID.CASH,
-        definitionObjectId: cashInst ? cashInst.definitionId : null,
-        debitOrCredit: "credit",
-        amount: netToPay,
-        fieldName: "Cash paid to employee (salary)"
-      });
-    } else if (netToPay < -0.00001) {
-      const cashInst = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5301 }).session(session);
-      const cashSummaryObj = await getSummaryObjectId(SID.CASH, session);
-
-      accountingLines.push({
-        employeeId,
-        instanceObjectId: cashInst ? cashInst._id : null,
-        summaryObjectId: cashSummaryObj,
-        summaryNumericId: SID.CASH,
-        definitionObjectId: cashInst ? cashInst.definitionId : null,
-        debitOrCredit: "debit",
-        amount: Math.abs(netToPay),
-        fieldName: "Cash received (salary overpayment reversal)"
-      });
-    }
-
-    // ---------------- Persist Transaction ----------------
-    const tx = await persistTransactionAndApply(
-      accountingLines,
-      description || "Salary Transaction",
-      session
-    );
+    // 5️⃣ Persist transaction
+    const tx = await persistTransactionAndApply(accountingLines, description, session);
 
     await session.commitTransaction();
     session.endSession();
 
     return res.status(201).json({
-      message: "Salary transaction recorded successfully",
-      transactionId: tx.transactionId,
+      message: "✅ Salary transaction posted successfully",
       employeeId,
-      lines: accountingLines
+      transactionId: tx.transactionId,
+      totalDebits,
+      totalCredits,
+      netToPay: Math.round((totalDebits - totalCredits) * 100) / 100,
+      accountingLines,
     });
+
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    console.error("SalaryTransactionController Error:", err);
+    console.error(`SalaryTransactionController Error for employee ${req.body.employeeId || req.params.employeeId}:`, err);
     return res.status(500).json({ error: err.message || String(err) });
   }
 };
@@ -801,3 +765,4 @@ export const getSummariesWithEntries = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+

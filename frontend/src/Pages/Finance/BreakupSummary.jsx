@@ -30,16 +30,23 @@ const BreakupSummary = () => {
 const handleSalaryTransaction = async () => {
   if (!window.confirm("Are you sure you want to process this salary transaction?")) return;
 
+  if (!breakup?.calculatedBreakup?.breakdown?.length) {
+    alert("No breakup data available to process salary.");
+    return;
+  }
+
   setProcessing(true);
+
   try {
+    // Build payload and log it to verify frontend data
     const payload = {
       salary: {
         splits: breakup.calculatedBreakup.breakdown.map((item) => ({
           name: item.name,
           value: item.value,
-          type: item.category === "deduction" ? "credit" : "debit", // 👈 map debit/credit based on category
-          summaryId: item.summaryId || null, // if available
-          instanceId: item.instanceId || null, // if available
+          type: item.category === "deduction" ? "credit" : "debit",
+          summaryId: item.summaryId || null,
+          instanceId: item.instanceId || null,
           definitionId: item.definitionId || null,
         })),
       },
@@ -47,17 +54,25 @@ const handleSalaryTransaction = async () => {
       description: `Salary for ${employeeId}`,
     };
 
+    console.log("Payload being sent to API:", payload);
+
     const res = await api.post(`/transactions/salary/${employeeId}`, payload);
 
-    alert(res.data.message || "Salary transaction completed");
+    console.log("Response from API:", res.data);
+
+    alert(res.data?.message || "Salary transaction completed");
+
+    // Optional: keep breakup visible or reset after success
     setBreakup(null);
   } catch (err) {
     console.error("Error processing salary:", err);
     alert("Failed to initiate salary transaction");
   } finally {
+    console.log("Transaction processing finished, updating state");
     setProcessing(false);
   }
 };
+
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!breakup) return <div className="p-6">No breakup file found for this employee.</div>;

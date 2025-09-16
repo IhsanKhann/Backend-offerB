@@ -14,7 +14,7 @@ import {
 
 import {
   fetchRulesForFrontend,
-getAllFieldLineDefinitions,
+  getAllFieldLineDefinitions,
   createRule,
   updateRule,
   deleteRule,
@@ -25,6 +25,8 @@ import {
   getSingleSalaryRole,
   createBreakupFile,
   getBreakupFile,
+  createBreakupRule,
+  getBreakupRules,
 } from "../../contollers/FinanceControllers/SalaryController.js";
 
 import {
@@ -139,6 +141,8 @@ router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
 router.get("/salary/role/:roleName", getSingleSalaryRole);
 router.post("/salary/breakup/:employeeId", createBreakupFile);
 router.get("/salary/breakup/:employeeId", getBreakupFile);
+router.post("/salary/createBreakupRule", createBreakupRule);
+router.get("/salary/getBreakupRules", getBreakupRules);
 
 /** Salary rules table */
 router.get("/salarytable/all", getAllSalaryRules);
