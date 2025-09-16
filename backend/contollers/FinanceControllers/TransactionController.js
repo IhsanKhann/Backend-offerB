@@ -582,7 +582,7 @@ export const transferRetainedIncomeToCapital = async (req, res) => {
   }
 };
 
-// ----------------- Salary Transaction (Updated) -----------------
+// ----------------- Salary Transaction Controller -----------------
 export const SalaryTransactionController = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -591,17 +591,13 @@ export const SalaryTransactionController = async (req, res) => {
     const employeeId = req.params.employeeId || req.body.employeeId;
     if (!employeeId) throw new Error("❌ Employee ID is required.");
 
-    const description =
-      req.body.description || `Salary Transaction - ${employeeId}`;
+    const description = req.body.description || `Salary Transaction - ${employeeId}`;
 
     const rules = await BreakupRuleModel.find({}).session(session).lean();
-    if (!rules?.length) throw new Error(`❌ No Breakup Rules found.`);
+    if (!rules?.length) throw new Error("❌ No Breakup Rules found.");
 
-    const breakupFile = await BreakupFileModel.findOne({ employeeId })
-      .session(session)
-      .lean();
-    if (!breakupFile)
-      throw new Error(`❌ No Breakup File found for employee ${employeeId}`);
+    const breakupFile = await BreakupFileModel.findOne({ employeeId }).session(session).lean();
+    if (!breakupFile) throw new Error(`❌ No Breakup File found for employee ${employeeId}`);
 
     const computedBreakdown = breakupFile?.calculatedBreakup?.breakdown || [];
     let components = [];
@@ -610,25 +606,20 @@ export const SalaryTransactionController = async (req, res) => {
     for (const rule of rules) {
       for (const split of rule.splits || []) {
         const computed = computedBreakdown.find(
-          (c) =>
-            (c.name || "").toLowerCase() ===
-            (split.componentName || "").toLowerCase()
+          (c) => (c.name || "").toLowerCase() === (split.componentName || "").toLowerCase()
         );
-
         const value = computed?.value ?? Number(split.fixedAmount || 0);
 
-        let instanceId = split.instanceId
-          ? safeToObjectId(split.instanceId)
-          : null;
+        let instanceObjectId = split.instanceId ? safeToObjectId(split.instanceId) : null;
 
-        if (!instanceId && split.definitionId && split.summaryId) {
+        if (!instanceObjectId && split.definitionId && split.summaryId) {
           const instance = await SummaryFieldLineInstance.findOne({
             definitionId: split.definitionId,
             summaryId: split.summaryId,
           })
             .session(session)
             .lean();
-          if (instance) instanceId = instance._id;
+          if (instance) instanceObjectId = instance._id;
         }
 
         components.push({
@@ -637,9 +628,9 @@ export const SalaryTransactionController = async (req, res) => {
           category: computed?.category || split.type,
           debitOrCredit:
             split.debitOrCredit ?? (split.type === "deduction" ? "credit" : "debit"),
-          summaryId: safeToObjectId(split.summaryId),
-          definitionId: safeToObjectId(split.definitionId),
-          instanceId,
+          summaryObjectId: safeToObjectId(split.summaryId),
+          definitionObjectId: safeToObjectId(split.definitionId),
+          instanceObjectId,
           mirrors: split.mirrors || [],
         });
       }
@@ -658,23 +649,22 @@ export const SalaryTransactionController = async (req, res) => {
       if (
         comp.componentName.toLowerCase() === "base salary" ||
         comp.componentName.toLowerCase() === "administrative allowance"
-      ) {
-        totalBaseSalary += amount;
-      }
+      ) totalBaseSalary += amount;
 
       if (comp.category === "allowance") totalAllowances += amount;
       if (comp.category === "deduction") totalDeductions += amount;
 
       accountingLines.push({
         employeeId,
-        instanceObjectId: comp.instanceId,
-        summaryObjectId: comp.summaryId,
-        definitionObjectId: comp.definitionId,
+        instanceObjectId: comp.instanceObjectId,
+        summaryObjectId: comp.summaryObjectId,
+        definitionObjectId: comp.definitionObjectId,
         debitOrCredit: comp.debitOrCredit,
         amount,
         fieldName: comp.componentName,
       });
 
+      // Handle mirrors
       for (const mirror of comp.mirrors) {
         accountingLines.push({
           employeeId,
@@ -688,23 +678,19 @@ export const SalaryTransactionController = async (req, res) => {
       }
     }
 
-    // Net salary = totalAllowances - totalDeductions (excluding base salary)
+    // Net salary = totalAllowances - totalDeductions
     const netSalary = totalAllowances - totalDeductions;
 
     if (netSalary > 0) {
-      // ✅ Build funding lines (commission → cash → capital)
-      const fundingLines = await buildFundingLinesViaInstances(netSalary, session);
+      // Direct credit to Capital
+      const capitalSummaryId = await getSummaryObjectId(SID.CAPITAL, session);
 
-      // Add funding lines to accounting lines
-      accountingLines.push(...fundingLines);
-
-      // Track net salary impact on cash
       accountingLines.push({
         employeeId,
-        fieldName: "Net Salary Payment",
+        fieldName: "Net Salary Payment (Capital)",
         amount: netSalary,
-        debitOrCredit: "credit", // reduce cash
-        summaryObjectId: null,
+        debitOrCredit: "credit",
+        summaryObjectId: capitalSummaryId,
         definitionObjectId: null,
         instanceObjectId: null,
       });
@@ -716,7 +702,7 @@ export const SalaryTransactionController = async (req, res) => {
     session.endSession();
 
     return res.status(201).json({
-      message: "✅ Salary transaction posted",
+      message: "✅ Salary transaction posted directly to Capital",
       employeeId,
       transactionId: tx.transactionId,
       totalAllowances,
@@ -732,13 +718,12 @@ export const SalaryTransactionController = async (req, res) => {
   }
 };
 
-
-// ----------------- Helper: get summaries with populated entries -----------------
+// ----------------- Helper: Get Summaries with Populated Entries -----------------
 export const getSummariesWithEntries = async (req, res) => {
   try {
     const transactions = await TransactionModel.find({})
-      .populate("lines.summaryId", "name") // populate summary names
-      .populate("lines.instanceId", "name"); // populate instance names (adjusted)
+      .populate("lines.summaryId", "name")
+      .populate("lines.instanceId", "name");
 
     const summaries = {};
 
@@ -746,8 +731,8 @@ export const getSummariesWithEntries = async (req, res) => {
       for (const line of tx.lines) {
         const { summaryId, instanceId, debitOrCredit, amount } = line;
         if (!summaryId) continue;
-        const summaryKey = summaryId._id.toString();
 
+        const summaryKey = summaryId._id.toString();
         if (!summaries[summaryKey]) {
           summaries[summaryKey] = {
             summaryId: summaryId._id,
@@ -757,10 +742,10 @@ export const getSummariesWithEntries = async (req, res) => {
         }
 
         const counterparties = tx.lines
-          .filter(l => l !== line)
-          .map(l => ({
-            summaryId: l.summaryId ? l.summaryId._id : null,
-            summaryName: l.summaryId ? l.summaryId.name : null,
+          .filter((l) => l !== line)
+          .map((l) => ({
+            summaryId: l.summaryId?._id || null,
+            summaryName: l.summaryId?.name || null,
             debitOrCredit: l.debitOrCredit,
             amount: l.amount,
           }));
@@ -777,10 +762,9 @@ export const getSummariesWithEntries = async (req, res) => {
       }
     }
 
-    res.json(Object.values(summaries));
+    return res.json(Object.values(summaries));
   } catch (err) {
     console.error("Error in getSummariesWithEntries:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
-
