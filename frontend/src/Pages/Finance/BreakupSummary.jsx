@@ -27,52 +27,47 @@ const BreakupSummary = () => {
     fetchBreakup();
   }, [employeeId]);
 
-const handleSalaryTransaction = async () => {
-  if (!window.confirm("Are you sure you want to process this salary transaction?")) return;
+  const handleSalaryTransaction = async () => {
+    if (!window.confirm("Are you sure you want to process this salary transaction?")) return;
 
-  if (!breakup?.calculatedBreakup?.breakdown?.length) {
-    alert("No breakup data available to process salary.");
-    return;
-  }
+    if (!breakup?.calculatedBreakup?.breakdown?.length) {
+      alert("No breakup data available to process salary.");
+      return;
+    }
 
-  setProcessing(true);
+    setProcessing(true);
 
-  try {
-    // Build payload and log it to verify frontend data
-    const payload = {
-      salary: {
-        splits: breakup.calculatedBreakup.breakdown.map((item) => ({
-          name: item.name,
-          value: item.value,
-          type: item.category === "deduction" ? "credit" : "debit",
-          summaryId: item.summaryId || null,
-          instanceId: item.instanceId || null,
-          definitionId: item.definitionId || null,
-        })),
-      },
-      transactionDate: new Date(),
-      description: `Salary for ${employeeId}`,
-    };
+    try {
+      const payload = {
+        salary: {
+          splits: breakup.calculatedBreakup.breakdown.map((item) => ({
+            name: item.name,
+            value: item.value,
+            type: item.category === "deduction" ? "credit" : "debit",
+            summaryId: item.summaryId || null,
+            instanceId: item.instanceId || null,
+            definitionId: item.definitionId || null,
+          })),
+        },
+        transactionDate: new Date(),
+        description: `Salary for ${employeeId}`,
+      };
 
-    console.log("Payload being sent to API:", payload);
+      console.log("Payload being sent to API:", payload);
 
-    const res = await api.post(`/transactions/salary/${employeeId}`, payload);
+      const res = await api.post(`/transactions/salary/${employeeId}`, payload);
 
-    console.log("Response from API:", res.data);
+      console.log("Response from API:", res.data);
+      alert(res.data?.message || "Salary transaction completed");
 
-    alert(res.data?.message || "Salary transaction completed");
-
-    // Optional: keep breakup visible or reset after success
-    setBreakup(null);
-  } catch (err) {
-    console.error("Error processing salary:", err);
-    alert("Failed to initiate salary transaction");
-  } finally {
-    console.log("Transaction processing finished, updating state");
-    setProcessing(false);
-  }
-};
-
+      setBreakup(null);
+    } catch (err) {
+      console.error("Error processing salary:", err);
+      alert("Failed to initiate salary transaction");
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!breakup) return <div className="p-6">No breakup file found for this employee.</div>;
@@ -80,9 +75,8 @@ const handleSalaryTransaction = async () => {
   const { salaryRules, calculatedBreakup } = breakup;
   const formatRupees = (amt) => `PKR ${Number(amt || 0).toLocaleString()}`;
 
-  // Group components by category
-  const allowances = calculatedBreakup.breakdown.filter(b => b.category === "allowance");
-  const deductions = calculatedBreakup.breakdown.filter(b => b.category === "deduction");
+  const allowances = calculatedBreakup.breakdown.filter((b) => b.category === "allowance");
+  const deductions = calculatedBreakup.breakdown.filter((b) => b.category === "deduction");
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen flex justify-center">
@@ -137,9 +131,9 @@ const handleSalaryTransaction = async () => {
           </div>
         </div>
 
-        {/* Net Salary */}
-        <div className="py-4 flex justify-between items-center font-bold text-lg">
-          <span>Net Salary:</span>
+        {/* Net Salary (Final Salary) */}
+        <div className="py-4 flex justify-between items-center font-bold text-xl">
+          <span>Net Salary (Final):</span>
           <span>{formatRupees(calculatedBreakup.netSalary)}</span>
         </div>
 

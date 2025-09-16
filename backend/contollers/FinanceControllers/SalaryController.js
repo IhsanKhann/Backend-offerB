@@ -76,19 +76,25 @@ export const createBreakupFile = async (req, res) => {
     // 1️⃣ Validate Employee
     const employee = await FinalizedEmployeeModel.findById(employeeId);
     if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
     }
 
     // 2️⃣ Validate Role
     const role = await AllRolesModel.findById(roleId);
     if (!role) {
-      return res.status(404).json({ success: false, message: "Role not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Role not found",
+      });
     }
 
-    // 3️⃣ Extract rules - FIXED: Use components array instead of separate allowances/deductions
+    // 3️⃣ Extract salary rules
     const { baseSalary = 0, components = [] } = salaryRules;
 
-    // 4️⃣ Build Breakdown
+    // 4️⃣ Start breakdown with base salary
     let breakdown = [
       {
         name: "Base Salary",
@@ -101,23 +107,24 @@ export const createBreakupFile = async (req, res) => {
     let totalAllowances = 0;
     let totalDeductions = 0;
 
+    // 5️⃣ Process components
     for (const component of components) {
       let calculatedValue = 0;
 
       if (component.type === "percentage") {
-        calculatedValue = (baseSalary * component.value) / 100;
+        calculatedValue = (baseSalary * (component.value || 0)) / 100;
 
-        // Special case
+        // Special case: Administrative Allowance = 100% of base salary
         if (component.name === "Administrative Allowance") {
           calculatedValue = baseSalary;
         }
       } else {
-        calculatedValue = component.value;
+        calculatedValue = component.value || 0;
       }
 
       breakdown.push({
         name: component.name,
-        category: component.category,
+        category: component.category, // allowance | deduction
         value: calculatedValue,
         calculation:
           component.type === "percentage"
@@ -127,15 +134,15 @@ export const createBreakupFile = async (req, res) => {
 
       if (component.category === "deduction") {
         totalDeductions += calculatedValue;
-      } else {
+      } else if (component.category === "allowance") {
         totalAllowances += calculatedValue;
       }
     }
 
-    // 5️⃣ Calculate Net Salary
+    // 6️⃣ Calculate Net Salary directly
     const netSalary = baseSalary + totalAllowances - totalDeductions;
 
-    // 6️⃣ Create/Update BreakupFile - FIXED: Save components array
+    // 7️⃣ Save or update Breakup File
     const breakupFile = await BreakupFile.findOneAndUpdate(
       { employeeId },
       {
@@ -144,13 +151,13 @@ export const createBreakupFile = async (req, res) => {
         salaryRules: {
           baseSalary,
           salaryType: salaryRules.salaryType || "monthly",
-          components, // This now contains the original component definitions
+          components,
         },
         calculatedBreakup: {
           breakdown,
           totalAllowances,
           totalDeductions,
-          netSalary,
+          netSalary, // ✅ direct net salary
         },
       },
       { new: true, upsert: true }
@@ -158,11 +165,11 @@ export const createBreakupFile = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Breakup file created/updated successfully",
+      message: "✅ Breakup file created/updated successfully",
       data: breakupFile,
     });
   } catch (err) {
-    console.error("Error creating breakup file:", err);
+    console.error("❌ Error creating breakup file:", err);
     return res.status(500).json({
       success: false,
       message: "Error creating breakup file",
@@ -170,6 +177,7 @@ export const createBreakupFile = async (req, res) => {
     });
   }
 };
+
 
 // ------------------ Create Breakup Rule ------------------
 export const createBreakupRule = async (req, res) => {

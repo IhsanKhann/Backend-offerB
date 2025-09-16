@@ -5,38 +5,38 @@
     {
       "componentName": "Base Salary",
       "type": "base",
-      "instanceId": "68c4f1370c44d253dc1e098b",
-      "summaryId": "68bbbb6d7d078c821a3c5994",
-      "definitionId": "68c417f90c44d253dc1e078d",
+      "instanceId": "68c4f1370c44d253dc1e0946",
+      "summaryId": "68bbbb6d7d078c821a3c5995",
+      "definitionId": "68c417f90c44d253dc1e0774",
       "debitOrCredit": "debit",
       "fixedAmount": 0,
       "percentage": 100,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e0946",
+          "instanceId": "68c4f2550c44d253dc1e09c4",
           "summaryId": "68bbbb6d7d078c821a3c5995",
           "definitionId": "68c417f90c44d253dc1e0774",
           "debitOrCredit": "debit",
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e0947",
-          "summaryId": "68bbbb6d7d078c821a3c599a",
-          "definitionId": "68c417f90c44d253dc1e0774",
+          "instanceId": "68c4f1370c44d253dc1e098b",
+          "summaryId": "68bbbb6d7d078c821a3c5994",
+          "definitionId": "68c417f90c44d253dc1e078d",
           "debitOrCredit": "debit",
           "fallback": "capital"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e0948",
-          "summaryId": "68bbbb6d7d078c821a3c599c",
-          "definitionId": "68c417f90c44d253dc1e0775",
+          "instanceId": "68c4f1370c44d253dc1e098c",
+          "summaryId": "68bbbb6d7d078c821a3c5998",
+          "definitionId": "68c417f90c44d253dc1e078d",
           "debitOrCredit": "debit",
           "fallback": "none"
         },
         {
-          "instanceId": "68c4f1370c44d253dc1e0949",
-          "summaryId": "68bbbb6d7d078c821a3c599d",
-          "definitionId": "68c417f90c44d253dc1e0776",
+          "instanceId": "68c4f1370c44d253dc1e0947",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0774",
           "debitOrCredit": "debit",
           "fallback": "capital"
         }
@@ -485,38 +485,17 @@
     {
       "componentName": "Income Tax",
       "type": "deduction",
-      "instanceId": "68c4f1370c44d253dc1e09b0",
+      "instanceId": "68c4f1370c44d253dc1e0996",
       "summaryId": "68bbbb6d7d078c821a3c5994",
-      "definitionId": "68c417f90c44d253dc1e07a0",
+      "definitionId": "68c417f90c44d253dc1e0793",
       "debitOrCredit": "credit",
       "percentage": 10,
       "fixedAmount": 0,
       "mirrors": [
         {
-          "instanceId": "68c4f1370c44d253dc1e09b1",
+          "instanceId": "68c4f1370c44d253dc1e0997",
           "summaryId": "68bbbb6d7d078c821a3c5998",
-          "definitionId": "68c417f90c44d253dc1e07a0",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0979",
-          "summaryId": "68bbbb6d7d078c821a3c5995",
-          "definitionId": "68c417f90c44d253dc1e0787",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e097a",
-          "summaryId": "68bbbb6d7d078c821a3c5996",
-          "definitionId": "68c417f90c44d253dc1e078c",
-          "debitOrCredit": "credit",
-          "fallback": "none"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e097b",
-          "summaryId": "68bbbb6d7d078c821a3c599d",
-          "definitionId": "68c417f90c44d253dc1e0776",
+          "definitionId": "68c417f90c44d253dc1e0793",
           "debitOrCredit": "credit",
           "fallback": "capital"
         }
@@ -538,27 +517,6 @@
           "definitionId": "68c417f90c44d253dc1e0794",
           "debitOrCredit": "credit",
           "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0955",
-          "summaryId": "68bbbb6d7d078c821a3c5995",
-          "definitionId": "68c417f90c44d253dc1e077b",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0956",
-          "summaryId": "68bbbb6d7d078c821a3c5996",
-          "definitionId": "68c417f90c44d253dc1e078c",
-          "debitOrCredit": "credit",
-          "fallback": "none"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0957",
-          "summaryId": "68bbbb6d7d078c821a3c599d",
-          "definitionId": "68c417f90c44d253dc1e0776",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
         }
       ]
     },
@@ -576,27 +534,6 @@
           "instanceId": "68c4f1370c44d253dc1e09b1",
           "summaryId": "68bbbb6d7d078c821a3c5998",
           "definitionId": "68c417f90c44d253dc1e07a0",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0979",
-          "summaryId": "68bbbb6d7d078c821a3c5995",
-          "definitionId": "68c417f90c44d253dc1e0787",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e097a",
-          "summaryId": "68bbbb6d7d078c821a3c5996",
-          "definitionId": "68c417f90c44d253dc1e078c",
-          "debitOrCredit": "credit",
-          "fallback": "none"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e097b",
-          "summaryId": "68bbbb6d7d078c821a3c599d",
-          "definitionId": "68c417f90c44d253dc1e0776",
           "debitOrCredit": "credit",
           "fallback": "capital"
         }
@@ -618,27 +555,6 @@
           "definitionId": "68c417f90c44d253dc1e079a",
           "debitOrCredit": "credit",
           "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0967",
-          "summaryId": "68bbbb6d7d078c821a3c5995",
-          "definitionId": "68c417f90c44d253dc1e0781",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0968",
-          "summaryId": "68bbbb6d7d078c821a3c5996",
-          "definitionId": "68c417f90c44d253dc1e078c",
-          "debitOrCredit": "credit",
-          "fallback": "none"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e0969",
-          "summaryId": "68bbbb6d7d078c821a3c599d",
-          "definitionId": "68c417f90c44d253dc1e0776",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
         }
       ]
     },
@@ -656,27 +572,6 @@
           "instanceId": "68c4f1370c44d253dc1e09a7",
           "summaryId": "68bbbb6d7d078c821a3c5998",
           "definitionId": "68c417f90c44d253dc1e079b",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e096a",
-          "summaryId": "68bbbb6d7d078c821a3c5995",
-          "definitionId": "68c417f90c44d253dc1e0782",
-          "debitOrCredit": "credit",
-          "fallback": "capital"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e096b",
-          "summaryId": "68bbbb6d7d078c821a3c5996",
-          "definitionId": "68c417f90c44d253dc1e078c",
-          "debitOrCredit": "credit",
-          "fallback": "none"
-        },
-        {
-          "instanceId": "68c4f1370c44d253dc1e096c",
-          "summaryId": "68bbbb6d7d078c821a3c599d",
-          "definitionId": "68c417f90c44d253dc1e0776",
           "debitOrCredit": "credit",
           "fallback": "capital"
         }

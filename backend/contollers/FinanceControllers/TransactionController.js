@@ -604,23 +604,32 @@ export const SalaryTransactionController = async (req, res) => {
       throw new Error("❌ Employee ID is required for salary transaction.");
     }
 
-    // 1️⃣ Fetch Breakup Rules (consider adding employee-specific filters if needed)
+    // 1️⃣ Fetch Breakup Rules (used only for mapping to correct summaries/instances)
     const rules = await BreakupRuleModel.find({}).session(session).lean();
     if (!rules?.length) {
       throw new Error(`❌ No Breakup Rules found for employee ${employeeId}`);
     }
 
-    // 2️⃣ Fetch Breakup File (computed components for this employee)
+    // 2️⃣ Fetch Breakup File (contains already computed values)
     const breakupFile = await BreakupFileModel.findOne({ employeeId }).session(session);
-    const computedComponents = breakupFile?.components || [];
+    if (!breakupFile) {
+      throw new Error(`❌ No Breakup File found for employee ${employeeId}`);
+    }
+
+    const computedComponents = breakupFile?.calculatedBreakup?.breakdown || [];
 
     // 3️⃣ Map rules to computed values
     const components = rules.flatMap(rule =>
       (rule.splits || []).map(split => {
-        const computed = computedComponents.find(c => c.componentName === split.componentName);
+        const computed = computedComponents.find(
+          c => c.name?.toLowerCase() === split.componentName?.toLowerCase()
+        );
+
+        const value = computed?.value ?? 0; // ✅ Only use computed values
+
         return {
           ...split,
-          value: computed?.value ?? split.fixedAmount ?? 0,
+          value,
           debitOrCredit: split.debitOrCredit ?? (split.type === "deduction" ? "credit" : "debit"),
         };
       })
@@ -637,20 +646,25 @@ export const SalaryTransactionController = async (req, res) => {
     // Helper to process a component or mirror
     const processLine = async (comp, parentAmount) => {
       const amount = Math.round((comp.value ?? parentAmount ?? 0) * 100) / 100;
-      if (!amount) return null;
+      if (!amount) {
+        console.warn(`⚠️ Skipping component "${comp.componentName}" - zero amount`);
+        return null;
+      }
 
       const debitOrCredit = comp.debitOrCredit;
 
+      // Map to ObjectIds
       const summaryObjId = comp.summaryId
-        ? typeof comp.summaryId === "number"
-          ? await getSummaryObjectId(comp.summaryId, session)
-          : safeToObjectId(comp.summaryId)
+        ? safeToObjectId(comp.summaryId)
         : null;
 
       const instanceObjId = comp.instanceId
         ? safeToObjectId(comp.instanceId)
         : comp.fieldLineId
-          ? await resolveInstanceObjectId({ numericFieldLineId: comp.fieldLineId, summaryId: comp.summaryId }, session)
+          ? await resolveInstanceObjectId(
+              { numericFieldLineId: comp.fieldLineId, summaryId: comp.summaryId },
+              session
+            )
           : null;
 
       const definitionObjId = comp.definitionId
@@ -660,7 +674,7 @@ export const SalaryTransactionController = async (req, res) => {
           : null;
 
       if (!instanceObjId && !summaryObjId) {
-        console.warn(`⚠️ Skipping component "${comp.componentName || comp.name}" - no valid instance/summary`);
+        console.warn(`⚠️ Skipping component "${comp.componentName}" - no valid instance/summary`);
         return null;
       }
 
@@ -675,14 +689,13 @@ export const SalaryTransactionController = async (req, res) => {
         fieldName: comp.componentName || comp.name || "Salary Component",
       };
 
+      // Add totals
       debitOrCredit === "debit" ? (totalDebits += amount) : (totalCredits += amount);
       accountingLines.push(line);
 
       // Process mirrors recursively
       if (Array.isArray(comp.mirrors) && comp.mirrors.length) {
-        await Promise.all(
-          comp.mirrors.map(mirror => processLine(mirror, amount))
-        );
+        await Promise.all(comp.mirrors.map(mirror => processLine(mirror, amount)));
       }
 
       return line;
