@@ -41,6 +41,7 @@ import { authenticate } from "../../middlewares/authMiddlewares.js";
 const router = express.Router();
 
 router.get("/rulesInstances", fetchRulesForFrontend);
+router.get("/with-entries", getSummariesWithEntries);
 /** ---------------------- Summaries -------------------- */
 router.get("/", getAllSummaries);
 router.get("/definitions", summariesCreateDefinition);
@@ -51,7 +52,6 @@ router.get("/:summaryId", getSummaryById);
 
 router.post("/reset", summariesReset);
 router.post("/init-capital-cash", summariesInitCapitalCash);
-router.get("/with-entries", getSummariesWithEntries);
 
 /** ---------------------- Rules -------------------- */
 

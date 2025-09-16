@@ -227,9 +227,6 @@ async function buildFundingLinesViaInstances(amountNeeded, session) {
   return fundingLines;
 }
 
-/**
- * Persist transaction and apply balances.
- */
 async function persistTransactionAndApply(accountingLines, description = "Transaction", session) {
   // Resolve numeric summary IDs to ObjectIds for tx lines BEFORE creating the transaction doc
   const resolvedTxLines = [];
@@ -718,26 +715,30 @@ export const SalaryTransactionController = async (req, res) => {
   }
 };
 
-// ----------------- Helper: Get Summaries with Populated Entries -----------------
 export const getSummariesWithEntries = async (req, res) => {
   try {
     const transactions = await TransactionModel.find({})
       .populate("lines.summaryId", "name")
-      .populate("lines.instanceId", "name");
+      .populate("lines.instanceId", "name")
+      .populate("lines.definitionId", "name")
+      .setOptions({ strictPopulate: false }); // Add this line
 
-    const summaries = {};
+    const summariesMap = {};
 
-    for (const tx of transactions) {
-      for (const line of tx.lines) {
+    transactions.forEach((tx) => {
+      tx.lines.forEach((line) => {
         const { summaryId, instanceId, debitOrCredit, amount } = line;
-        if (!summaryId) continue;
+        if (!summaryId) return;
 
         const summaryKey = summaryId._id.toString();
-        if (!summaries[summaryKey]) {
-          summaries[summaryKey] = {
+
+        if (!summariesMap[summaryKey]) {
+          summariesMap[summaryKey] = {
             summaryId: summaryId._id,
             summaryName: summaryId.name,
             lines: [],
+            totalDebit: 0,
+            totalCredit: 0,
           };
         }
 
@@ -745,26 +746,29 @@ export const getSummariesWithEntries = async (req, res) => {
           .filter((l) => l !== line)
           .map((l) => ({
             summaryId: l.summaryId?._id || null,
-            summaryName: l.summaryId?.name || null,
+            summaryName: l.summaryId?.name || l.instanceId?.name || "Unknown",
             debitOrCredit: l.debitOrCredit,
             amount: l.amount,
           }));
 
-        summaries[summaryKey].lines.push({
+        summariesMap[summaryKey].lines.push({
           transactionId: tx._id,
-          description: tx.description,
           date: tx.date,
+          description: tx.description,
           fieldLineName: instanceId?.name || "",
           debitOrCredit,
           amount,
           counterparties,
         });
-      }
-    }
 
-    return res.json(Object.values(summaries));
+        if (debitOrCredit === "debit") summariesMap[summaryKey].totalDebit += amount;
+        else summariesMap[summaryKey].totalCredit += amount;
+      });
+    });
+
+    return res.json(Object.values(summariesMap));
   } catch (err) {
-    console.error("Error in getSummariesWithEntries:", err);
+    console.error("[getSummariesWithEntries] Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
