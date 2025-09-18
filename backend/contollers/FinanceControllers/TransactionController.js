@@ -715,60 +715,124 @@ export const SalaryTransactionController = async (req, res) => {
   }
 };
 
-export const getSummariesWithEntries = async (req, res) => {
+export const createOrderBreakup = async (req, res, next) => {
   try {
-    const transactions = await TransactionModel.find({})
-      .populate("lines.summaryId", "name")
-      .populate("lines.instanceId", "name")
-      .populate("lines.definitionId", "name")
-      .setOptions({ strictPopulate: false }); // Add this line
+    const { orderAmount, orderType, buyerId, sellerId, orderId } = req.body;
 
-    const summariesMap = {};
+    const rules = await BreakupRules.findOne({ transactionType: orderType });
+    if (!rules) throw new Error(`No breakup rules found for ${orderType}`);
 
-    transactions.forEach((tx) => {
-      tx.lines.forEach((line) => {
-        const { summaryId, instanceId, debitOrCredit, amount } = line;
-        if (!summaryId) return;
+    // Apply rules
+    const breakdown = rules.splits.map(split => {
+      let value = 0;
+      if (split.percentage > 0) value += (orderAmount * split.percentage) / 100;
+      if (split.fixedAmount > 0) value += split.fixedAmount;
 
-        const summaryKey = summaryId._id.toString();
-
-        if (!summariesMap[summaryKey]) {
-          summariesMap[summaryKey] = {
-            summaryId: summaryId._id,
-            summaryName: summaryId.name,
-            lines: [],
-            totalDebit: 0,
-            totalCredit: 0,
-          };
-        }
-
-        const counterparties = tx.lines
-          .filter((l) => l !== line)
-          .map((l) => ({
-            summaryId: l.summaryId?._id || null,
-            summaryName: l.summaryId?.name || l.instanceId?.name || "Unknown",
-            debitOrCredit: l.debitOrCredit,
-            amount: l.amount,
-          }));
-
-        summariesMap[summaryKey].lines.push({
-          transactionId: tx._id,
-          date: tx.date,
-          description: tx.description,
-          fieldLineName: instanceId?.name || "",
-          debitOrCredit,
-          amount,
-          counterparties,
-        });
-
-        if (debitOrCredit === "debit") summariesMap[summaryKey].totalDebit += amount;
-        else summariesMap[summaryKey].totalCredit += amount;
-      });
+      return {
+        name: split.componentName,
+        category: split.type,
+        value,
+        calculation: split.percentage > 0
+          ? `${split.percentage}% of ${orderAmount}`
+          : `fixed ${split.fixedAmount}`
+      };
     });
 
-    return res.json(Object.values(summariesMap));
+    const totals = {
+      allowances: breakdown.filter(b => b.category === "allowance").reduce((a, b) => a + b.value, 0),
+      deductions: breakdown.filter(b => b.category === "deduction").reduce((a, b) => a + b.value, 0),
+      net: orderAmount
+    };
+
+    const breakupFile = new BreakupFile({
+      breakupType: "order",
+      breakupCategory: "master",
+      orderId,
+      buyerId,
+      sellerId,
+      transactionType: orderType,
+      breakdown,
+      totals
+    });
+
+    await breakupFile.save();
+    req.breakupFile = breakupFile; // pass to next middleware
+    next();
   } catch (err) {
-    console.error("[getSummariesWithEntries] Error:", err);
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const createChildrenBreakup = async (req, res, next) => {
+  try {
+    const masterBreakup = req.breakupFile;
+    if (!masterBreakup) throw new Error("Master breakup not found");
+
+    const children = [];
+
+    // Seller breakup
+    const sellerShare = masterBreakup.breakdown.find(b => b.name === "sellerShare");
+    if (sellerShare) {
+      children.push(new BreakupFile({
+        ...masterBreakup.toObject(),
+        _id: undefined,
+        breakupCategory: "seller",
+        breakdown: [sellerShare],
+      }));
+    }
+
+    // Buyer breakup (refunds, adjustments)
+    const buyerPart = masterBreakup.breakdown.filter(b => ["refund", "buyerShare"].includes(b.name));
+    if (buyerPart.length) {
+      children.push(new BreakupFile({
+        ...masterBreakup.toObject(),
+        _id: undefined,
+        breakupCategory: "buyer",
+        breakdown: buyerPart,
+      }));
+    }
+
+    // Auction deposit (special case)
+    if (masterBreakup.transactionType === "auction") {
+      const deposit = masterBreakup.breakdown.find(b => b.name === "auctionDeposit");
+      if (deposit) {
+        children.push(new BreakupFile({
+          ...masterBreakup.toObject(),
+          _id: undefined,
+          breakupCategory: "auction",
+          breakdown: [deposit],
+        }));
+      }
+    }
+
+    await BreakupFile.insertMany(children);
+    req.childrenBreakups = children;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+import { updateSummary } from "../utils/updateSummary.js";
+
+export const orderTransaction = async (req, res) => {
+  try {
+    const masterBreakup = req.breakupFile;
+    const rules = await BreakupRules.findOne({ transactionType: masterBreakup.transactionType });
+
+    for (const split of rules.splits) {
+      const amount = masterBreakup.breakdown.find(b => b.name === split.componentName)?.value || 0;
+      if (amount > 0) {
+        await updateSummary(split.summaryId, masterBreakup._id, { [split.componentName]: amount });
+      }
+    }
+
+    res.status(200).json({
+      message: "Order transaction posted successfully",
+      masterBreakup,
+      children: req.childrenBreakups
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

@@ -37,4 +37,4 @@ const BreakupFileSchema = new mongoose.Schema({
   calculatedBreakup: { type: CalculatedBreakupSchema, default: {} },
 }, { timestamps: true });
 
-export default mongoose.models.BreakupFile || mongoose.model("BreakupFile", BreakupFileSchema);
+export default mongoose.models.BreakupFile || mongoose.model("SalaryBreakupfiles", BreakupFileSchema);

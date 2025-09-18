@@ -9,7 +9,6 @@ import {
   summariesCreateDefinition,
   summariesReset,
   summariesInitCapitalCash,
-  getSummariesWithEntries,
 } from "../../contollers/FinanceControllers/SummaryController.js";
 
 import {
@@ -41,7 +40,6 @@ import { authenticate } from "../../middlewares/authMiddlewares.js";
 const router = express.Router();
 
 router.get("/rulesInstances", fetchRulesForFrontend);
-router.get("/with-entries", getSummariesWithEntries);
 /** ---------------------- Summaries -------------------- */
 router.get("/", getAllSummaries);
 router.get("/definitions", summariesCreateDefinition);
