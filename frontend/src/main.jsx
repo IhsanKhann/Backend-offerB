@@ -167,6 +167,15 @@ const router = createBrowserRouter([
      </ProtectedRoute> 
    ),
   },
+  {
+   path: "/paymentDashboard",
+   element: (
+     <ProtectedRoute>
+       <TransactionTestPage />
+     </ProtectedRoute> 
+   ),
+  },
+  
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(

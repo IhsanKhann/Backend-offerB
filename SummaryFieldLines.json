@@ -1,65 +1,750 @@
-[
-  { "fieldLineId": 2101, "name": "Administrative Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2101", "balance": 0 },
-  { "fieldLineId": 2102, "name": "Marketing Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2102", "balance": 0 },
-  { "fieldLineId": 2103, "name": "Establishment Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2103", "balance": 0 },
-  { "fieldLineId": 2104, "name": "Tax Website", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2104", "balance": 0 },
-  { "fieldLineId": 2105, "name": "Tax Sellers", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2105", "balance": 0 },
-  { "fieldLineId": 2106, "name": "Management Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2106", "balance": 0 },
-  { "fieldLineId": 2107, "name": "Expense Income Tax", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2107", "balance": 0 },
-  { "fieldLineId": 2108, "name": "EOBI", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2109", "balance": 0 },
-  { "fieldLineId": 2109, "name": "Group Term Insurance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "2110", "balance": 0 },
-  { "fieldLineId": 2110, "name": "Expense for House Rent", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1111", "balance": 0 },
-  { "fieldLineId": 2111, "name": "Expense for Medical Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1112", "balance": 0 },
-  { "fieldLineId": 2112, "name": "Expense for Medicine Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1113", "balance": 0 },
-  { "fieldLineId": 2113, "name": "Expense for Fuel Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1114", "balance": 0 },
-  { "fieldLineId": 2114, "name": "Expense for Gratuity Deduction", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1115", "balance": 0 },
-  { "fieldLineId": 2115, "name": "Expense for Provident Fund Deduction", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1116", "balance": 0 },
-  { "fieldLineId": 2116, "name": "Expense for Training Allowance Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1117", "balance": 0 },
-  { "fieldLineId": 2117, "name": "Expense for Hospitalization", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1118", "balance": 0 },
-  { "fieldLineId": 2118, "name": "Expense for Utility Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1119", "balance": 0 },
-  { "fieldLineId": 2119, "name": "Expense for Special Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1120", "balance": 0 },
-  { "fieldLineId": 2120, "name": "Expense for Cost of Funds", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1121", "balance": 0 },
-  { "fieldLineId": 2121, "name": "Expense for Servant", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1122", "balance": 0 },
-  { "fieldLineId": 2122, "name": "Expense for Telephone", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1123", "balance": 0 },
-  { "fieldLineId": 2123, "name": "Expense for Car Maintenance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" }, "accountNumber": "1124", "balance": 0 },
-
-  { "fieldLineId": 1101, "name": "Allowance for Administrative Expense", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1101", "balance": 0 },
-  { "fieldLineId": 1102, "name": "Allowance for Market", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1102", "balance": 0 },
-  { "fieldLineId": 1103, "name": "Allowance for Establishment", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1103", "balance": 0 },
-  { "fieldLineId": 1104, "name": "Allowance for Tax Website", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1104", "balance": 0 },
-  { "fieldLineId": 1105, "name": "Allowance for Store Seller Taxes", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1105", "balance": 0 },
-  { "fieldLineId": 1106, "name": "Allowance for Management Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1106", "balance": 0 },
-  { "fieldLineId": 1107, "name": "Allowance for Income Tax Employee Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1107", "balance": 0 },
-  { "fieldLineId": 1108, "name": "Allowance for EOBI", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1108", "balance": 0 },
-  { "fieldLineId": 1109, "name": "Allowance for Group Term Insurance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1109", "balance": 0 },
-  { "fieldLineId": 1110, "name": "Allowance for House Rent", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1110", "balance": 0 },
-  { "fieldLineId": 1111, "name": "Allowance for Medical Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1111", "balance": 0 },
-  { "fieldLineId": 1112, "name": "Allowance for Medicine Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1112", "balance": 0 },
-  { "fieldLineId": 1113, "name": "Allowance for Fuel Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1113", "balance": 0 },
-  { "fieldLineId": 1114, "name": "Allowance for Gratuity Deduction", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1114", "balance": 0 },
-  { "fieldLineId": 1115, "name": "Allowance for Provident Fund Deduction", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1115", "balance": 0 },
-  { "fieldLineId": 1116, "name": "Allowance for Training Allowance Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1116", "balance": 0 },
-  { "fieldLineId": 1117, "name": "Allowance for Hospitalization", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1117", "balance": 0 },
-  { "fieldLineId": 1118, "name": "Allowance for Utility Expenses", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1118", "balance": 0 },
-  { "fieldLineId": 1119, "name": "Allowance for Special Allowance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1119", "balance": 0 },
-  { "fieldLineId": 1120, "name": "Allowance for Cost of Funds", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1120", "balance": 0 },
-  { "fieldLineId": 1121, "name": "Allowance for Servant", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1121", "balance": 0 },
-  { "fieldLineId": 1122, "name": "Allowance for Telephone", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1122", "balance": 0 },
-  { "fieldLineId": 1123, "name": "Allowance for Car Maintenance", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "accountNumber": "1123", "balance": 0 },
-  
-  { "fieldLineId": 3101, "name": "Tax Bank - Website", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "accountNumber": "3101", "balance": 0 },
-  { "fieldLineId": 3102, "name": "Tax Bank - Sellers", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "accountNumber": "3102", "balance": 0 },
-
-  { "fieldLineId": 4101, "name": "Employee Salaries", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5997" }, "accountNumber": "4101", "balance": 0 },
-
-  { "fieldLineId": 5101, "name": "Capital", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5999" }, "accountNumber": "5101", "balance": 0 },
-
-  { "fieldLineId": 5201, "name": "Commission Income", "summaryId": { "$oid": "68bbbb6d7d078c821a3c599a" }, "accountNumber": "5201", "balance": 0 },
-
-  { "fieldLineId": 5301, "name": "Cash", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5301", "balance": 0 },
-
-  { "fieldLineId": 5401, "name": "Retained Income", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5401", "balance": 0 },
-
-  { "fieldLineId": 5302, "name": "Cash from Commission", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5998" }, "accountNumber": "5302", "balance": 0 },
-  { "fieldLineId": 4101, "name": "Salaries Payable", "summaryId": { "$oid": "68bbbb6d7d078c821a3c5997" }, "accountNumber": "4101", "balance": 0 }
+{
+"transactionType": "retails",
+"incrementType": "both",
+"splits": [
+{
+"componentName": "Bank Charges",
+"type": "deduction",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4b"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ed"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 1128,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4b"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c5994"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ed"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1128
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a53"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ed"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1128
+}
 ]
+},
+{
+"componentName": "Gate Way Charges",
+"type": "deduction",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4c"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ee"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 1129,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4c"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c5994"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ee"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1129
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a54"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ee"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1129
+}
+]
+},
+{
+"componentName": "Postage Charges",
+"type": "deduction",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4a"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ec"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 1127,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4a"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c5994"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ec"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1127
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a52"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ec"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1127
+}
+]
+},
+{
+"componentName": "Delivery Charges",
+"type": "deduction",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4d"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ef"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 1130,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4d"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c5994"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ef"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1130
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a55"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79ef"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1130
+}
+]
+},
+{
+"componentName": "Cheque Handling Charges",
+"type": "deduction",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4e"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f0"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 1131,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4e"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c5994"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f0"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1131
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a56"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f0"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1131
+}
+]
+},
+{
+"componentName": "Other Instrument Charges",
+"type": "deduction",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4f"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f1"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 1132,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a4f"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c5994"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f1"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1132
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a57"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f1"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1132
+}
+]
+},
+{
+"componentName": "Transfer fees",
+"type": "deduction",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a50"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f2"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 1133,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a50"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c5994"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f2"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1133
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a58"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79f2"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1133
+}
+]
+},
+{
+"componentName": "Shipping Charges in Advance for Return",
+"type": "deduction",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a49"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79eb"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 1126,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a49"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c5994"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79eb"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1126
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a51"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79eb"
+},
+"debitOrCredit": "credit",
+"fallback": "none",
+"fieldLineId": 1126
+}
+]
+},
+{
+"componentName": "Out of Stock Option Commission",
+"type": "commission",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a41"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79de"
+},
+"debitOrCredit": "credit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 5202,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a41"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c599a"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79de"
+},
+"debitOrCredit": "debit",
+"fallback": "none",
+"fieldLineId": 5202
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a41"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79de"
+},
+"debitOrCredit": "debit",
+"fallback": "none",
+"fieldLineId": 5202
+}
+]
+},
+{
+"componentName": "Inventory Update Commission",
+"type": "commission",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a42"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79df"
+},
+"debitOrCredit": "credit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 5203,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a42"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c599a"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79df"
+},
+"debitOrCredit": "debit",
+"fallback": "none",
+"fieldLineId": 5203
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a42"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79df"
+},
+"debitOrCredit": "debit",
+"fallback": "none",
+"fieldLineId": 5203
+}
+]
+},
+{
+"componentName": "Website Commission Income (retail)",
+"type": "commission",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a44"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc373b9f6641a93acc7a2a"
+},
+"debitOrCredit": "credit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 5301,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": [
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a44"
+},
+"summaryId": {
+"$oid": "68bbbb6d7d078c821a3c599a"
+},
+"definitionId": {
+"$oid": "68cc373b9f6641a93acc7a2a"
+},
+"debitOrCredit": "debit",
+"fallback": "none",
+"fieldLineId": 5301
+},
+{
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a44"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e0701"
+},
+"definitionId": {
+"$oid": "68cc373b9f6641a93acc7a2a"
+},
+"debitOrCredit": "debit",
+"fallback": "none",
+"fieldLineId": 5301
+}
+]
+}
+]
+}
+
+
+
+{
+"transactionType": "retailsTax",
+"incrementType": "both",
+"splits": [
+{
+"componentName": "sales tax",
+"type": "tax",
+"instanceId": {
+"$oid": "68c4f4350c44d253dc1e09cb"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68c417f90c44d253dc1e07a8"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 3103,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": 0,
+"slabEnd": 1000,
+"fixedTax": 5,
+"additionalTaxPercentage": 10,
+"mirrors": []
+},
+{
+"componentName": "excise tax",
+"type": "tax",
+"instanceId": {
+"$oid": "68c4f4350c44d253dc1e09cc"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68c417f90c44d253dc1e07a9"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 3104,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": []
+},
+{
+"componentName": "central excise duty",
+"type": "tax",
+"instanceId": {
+"$oid": "68c4f4350c44d253dc1e09cd"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68c417f90c44d253dc1e07aa"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 3105,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": []
+},
+{
+"componentName": "custom duty",
+"type": "tax",
+"instanceId": {
+"$oid": "68cc3c0f9f6641a93acc7a9a"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68cc24189f6641a93acc79e9"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 5000,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": []
+},
+{
+"componentName": "service charges",
+"type": "tax",
+"instanceId": {
+"$oid": "68c4f4350c44d253dc1e09d0"
+},
+"summaryId": {
+"$oid": "68c295aa0c44d253dc1e06ff"
+},
+"definitionId": {
+"$oid": "68c417f90c44d253dc1e07ad"
+},
+"debitOrCredit": "debit",
+"percentage": 0,
+"fixedAmount": 0,
+"value": 0,
+"fieldLineId": 3106,
+"isActual": true,
+"perTransaction": true,
+"periodicity": "none",
+"slabStart": null,
+"slabEnd": null,
+"fixedTax": null,
+"additionalTaxPercentage": null,
+"mirrors": []
+}
+]
+}

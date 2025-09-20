@@ -11,6 +11,11 @@ import BreakupFileModel from "../../models/FinanceModals/SalaryBreakupModel.js";
 import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 
+import Seller from "../../models/FinanceModals/SellersModel.js";
+import Buyer from "../../models/FinanceModals/BuyersModel.js";
+import Order from "../../models/FinanceModals/OrdersModel.js";
+import Payment from "../../models/FinanceModals/PaymentModel.js";
+
 // Helper function for safe ObjectId conversion
 const safeToObjectId = (id) => {
   if (!id) return null;
@@ -590,7 +595,7 @@ export const SalaryTransactionController = async (req, res) => {
 
     const description = req.body.description || `Salary Transaction - ${employeeId}`;
 
-    const rules = await BreakupRuleModel.find({}).session(session).lean();
+    const rules = await BreakupRuleModel.find({transactionType: "Salary"}).session(session).lean();
     if (!rules?.length) throw new Error("❌ No Breakup Rules found.");
 
     const breakupFile = await BreakupFileModel.findOne({ employeeId }).session(session).lean();
@@ -715,124 +720,15 @@ export const SalaryTransactionController = async (req, res) => {
   }
 };
 
-export const createOrderBreakup = async (req, res, next) => {
+export const testCreateCollections = async (req, res) => {
   try {
-    const { orderAmount, orderType, buyerId, sellerId, orderId } = req.body;
-
-    const rules = await BreakupRules.findOne({ transactionType: orderType });
-    if (!rules) throw new Error(`No breakup rules found for ${orderType}`);
-
-    // Apply rules
-    const breakdown = rules.splits.map(split => {
-      let value = 0;
-      if (split.percentage > 0) value += (orderAmount * split.percentage) / 100;
-      if (split.fixedAmount > 0) value += split.fixedAmount;
-
-      return {
-        name: split.componentName,
-        category: split.type,
-        value,
-        calculation: split.percentage > 0
-          ? `${split.percentage}% of ${orderAmount}`
-          : `fixed ${split.fixedAmount}`
-      };
-    });
-
-    const totals = {
-      allowances: breakdown.filter(b => b.category === "allowance").reduce((a, b) => a + b.value, 0),
-      deductions: breakdown.filter(b => b.category === "deduction").reduce((a, b) => a + b.value, 0),
-      net: orderAmount
-    };
-
-    const breakupFile = new BreakupFile({
-      breakupType: "order",
-      breakupCategory: "master",
-      orderId,
-      buyerId,
-      sellerId,
-      transactionType: orderType,
-      breakdown,
-      totals
-    });
-
-    await breakupFile.save();
-    req.breakupFile = breakupFile; // pass to next middleware
-    next();
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-export const createChildrenBreakup = async (req, res, next) => {
-  try {
-    const masterBreakup = req.breakupFile;
-    if (!masterBreakup) throw new Error("Master breakup not found");
-
-    const children = [];
-
-    // Seller breakup
-    const sellerShare = masterBreakup.breakdown.find(b => b.name === "sellerShare");
-    if (sellerShare) {
-      children.push(new BreakupFile({
-        ...masterBreakup.toObject(),
-        _id: undefined,
-        breakupCategory: "seller",
-        breakdown: [sellerShare],
-      }));
-    }
-
-    // Buyer breakup (refunds, adjustments)
-    const buyerPart = masterBreakup.breakdown.filter(b => ["refund", "buyerShare"].includes(b.name));
-    if (buyerPart.length) {
-      children.push(new BreakupFile({
-        ...masterBreakup.toObject(),
-        _id: undefined,
-        breakupCategory: "buyer",
-        breakdown: buyerPart,
-      }));
-    }
-
-    // Auction deposit (special case)
-    if (masterBreakup.transactionType === "auction") {
-      const deposit = masterBreakup.breakdown.find(b => b.name === "auctionDeposit");
-      if (deposit) {
-        children.push(new BreakupFile({
-          ...masterBreakup.toObject(),
-          _id: undefined,
-          breakupCategory: "auction",
-          breakdown: [deposit],
-        }));
-      }
-    }
-
-    await BreakupFile.insertMany(children);
-    req.childrenBreakups = children;
-    next();
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-export const orderTransaction = async (req, res) => {
-  try {
-    const masterBreakup = req.breakupFile;
-    const rules = await BreakupRules.findOne({ transactionType: masterBreakup.transactionType });
-
-    for (const split of rules.splits) {
-      const amount = masterBreakup.breakdown.find(b => b.name === split.componentName)?.value || 0;
-      if (amount > 0) {
-        await updateSummary(split.summaryId, masterBreakup._id, { [split.componentName]: amount });
-      }
-    }
-
-    res.status(200).json({
-      message: "Order transaction posted successfully",
-      masterBreakup,
-      children: req.childrenBreakups
+    // Just send back a message; you could also trigger something that ensures
+    // your collections exist via mongoose models if needed.
+    return res.status(200).json({
+      message: "Test route hit: collections should be created or checked."
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Error in testCreateCollections:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
-
-// add the updateSummary to the code as well..
