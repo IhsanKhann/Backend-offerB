@@ -11,7 +11,7 @@
   },
   "fieldLineNumericId": 2101,
   "name": "Administrative Expenses",
-  "balance": 140000
+  "balance": 150000
 },
 {
   "_id": {
@@ -26,7 +26,7 @@
   },
   "fieldLineNumericId": 2101,
   "name": "Administrative Expenses",
-  "balance": 140000
+  "balance": 150000
 },
 {
   "_id": {
@@ -326,7 +326,7 @@
   },
   "fieldLineNumericId": 2110,
   "name": "Expanse for House Rent",
-  "balance": 56000
+  "balance": 60000
 },
 {
   "_id": {
@@ -341,7 +341,7 @@
   },
   "fieldLineNumericId": 2110,
   "name": "Expanse for House Rent",
-  "balance": 56000
+  "balance": 60000
 },
 {
   "_id": {
@@ -356,7 +356,7 @@
   },
   "fieldLineNumericId": 2110,
   "name": "Expanse for House Rent",
-  "balance": 56000
+  "balance": 60000
 },
 {
   "_id": {
@@ -371,7 +371,7 @@
   },
   "fieldLineNumericId": 2111,
   "name": "Expanse for Medical Allowence",
-  "balance": 14000
+  "balance": 15000
 },
 {
   "_id": {
@@ -386,7 +386,7 @@
   },
   "fieldLineNumericId": 2111,
   "name": "Expanse for Medical Allowence",
-  "balance": 14000
+  "balance": 15000
 },
 {
   "_id": {
@@ -401,7 +401,7 @@
   },
   "fieldLineNumericId": 2111,
   "name": "Expanse for Medical Allowence",
-  "balance": 14000
+  "balance": 15000
 },
 {
   "_id": {
@@ -1046,7 +1046,7 @@
   },
   "fieldLineNumericId": 1101,
   "name": "Allowance for Administrative Expenses",
-  "balance": 140000
+  "balance": 150000
 },
 {
   "_id": {
@@ -1061,7 +1061,7 @@
   },
   "fieldLineNumericId": 1101,
   "name": "Allowance for Administrative Expenses",
-  "balance": 140000
+  "balance": 0
 },
 {
   "_id": {
@@ -1211,22 +1211,7 @@
   },
   "fieldLineNumericId": 1107,
   "name": "Allowance for Expense Income Tax",
-  "balance": -14000
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e0997"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e0793"
-  },
-  "fieldLineNumericId": 1107,
-  "name": "Allowance for Expense Income Tax",
-  "balance": 0
+  "balance": -15000
 },
 {
   "_id": {
@@ -1245,41 +1230,11 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e0999"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e0794"
-  },
-  "fieldLineNumericId": 1108,
-  "name": "Allowance for EOBI",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e099a"
   },
   "summaryNumericId": 1100,
   "summaryId": {
     "$oid": "68bbbb6d7d078c821a3c5994"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e0795"
-  },
-  "fieldLineNumericId": 1109,
-  "name": "Allowance for Group Term Insurance",
-  "balance": 0
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e099b"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
   },
   "definitionId": {
     "$oid": "68c417f90c44d253dc1e0795"
@@ -1301,22 +1256,7 @@
   },
   "fieldLineNumericId": 1110,
   "name": "Allowance for House Rent",
-  "balance": 56000
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e099d"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e0796"
-  },
-  "fieldLineNumericId": 1110,
-  "name": "Allowance for House Rent",
-  "balance": 0
+  "balance": 60000
 },
 {
   "_id": {
@@ -1331,22 +1271,7 @@
   },
   "fieldLineNumericId": 1111,
   "name": "Allowance for Medical Expenses",
-  "balance": 14000
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e099f"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e0797"
-  },
-  "fieldLineNumericId": 1111,
-  "name": "Allowance for Medical Expenses",
-  "balance": 0
+  "balance": 15000
 },
 {
   "_id": {
@@ -1365,21 +1290,6 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e09a1"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e0798"
-  },
-  "fieldLineNumericId": 1112,
-  "name": "Allowance for Medicine Expenses",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e09a2"
   },
   "summaryNumericId": 1100,
@@ -1395,21 +1305,6 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e09a3"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e0799"
-  },
-  "fieldLineNumericId": 1113,
-  "name": "Allowance for Fuel Expenses",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e09a4"
   },
   "summaryNumericId": 1100,
@@ -1421,22 +1316,7 @@
   },
   "fieldLineNumericId": 1114,
   "name": "Allowance for Gratuity Deduction",
-  "balance": -7000
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e09a5"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e079a"
-  },
-  "fieldLineNumericId": 1114,
-  "name": "Allowance for Gratuity Deduction",
-  "balance": 0
+  "balance": -7500
 },
 {
   "_id": {
@@ -1451,22 +1331,7 @@
   },
   "fieldLineNumericId": 1115,
   "name": "Allowance for Provident fund deduction",
-  "balance": -11200
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e09a7"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e079b"
-  },
-  "fieldLineNumericId": 1115,
-  "name": "Allowance for Provident fund deduction",
-  "balance": 0
+  "balance": -12000
 },
 {
   "_id": {
@@ -1485,21 +1350,6 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e09a9"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e079c"
-  },
-  "fieldLineNumericId": 1116,
-  "name": "Allowance for Training Allowence Expenses",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e09aa"
   },
   "summaryNumericId": 1100,
@@ -1512,21 +1362,6 @@
   "fieldLineNumericId": 1117,
   "name": "Allowance for Hospitilization",
   "balance": 5000
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e09ab"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e079d"
-  },
-  "fieldLineNumericId": 1117,
-  "name": "Allowance for Hospitilization",
-  "balance": 0
 },
 {
   "_id": {
@@ -1545,21 +1380,6 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e09ad"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e079e"
-  },
-  "fieldLineNumericId": 1118,
-  "name": "Allowance for Utility Expenses",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e09ae"
   },
   "summaryNumericId": 1100,
@@ -1575,21 +1395,6 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e09af"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e079f"
-  },
-  "fieldLineNumericId": 1119,
-  "name": "Allowance for Special Allowence",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e09b0"
   },
   "summaryNumericId": 1100,
@@ -1601,22 +1406,7 @@
   },
   "fieldLineNumericId": 1120,
   "name": "Allowance for Cost of Funds",
-  "balance": -2800
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e09b1"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e07a0"
-  },
-  "fieldLineNumericId": 1120,
-  "name": "Allowance for Cost of Funds",
-  "balance": 0
+  "balance": -3000
 },
 {
   "_id": {
@@ -1635,21 +1425,6 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e09b3"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e07a1"
-  },
-  "fieldLineNumericId": 1121,
-  "name": "Allowance for Servant",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e09b4"
   },
   "summaryNumericId": 1100,
@@ -1662,21 +1437,6 @@
   "fieldLineNumericId": 1122,
   "name": "Allowance for Telephone",
   "balance": 3000
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e09b5"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e07a2"
-  },
-  "fieldLineNumericId": 1122,
-  "name": "Allowance for Telephone",
-  "balance": 0
 },
 {
   "_id": {
@@ -1695,41 +1455,11 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e09b7"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e07a3"
-  },
-  "fieldLineNumericId": 1123,
-  "name": "Allowance for Car Maintainence",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e09b8"
   },
   "summaryNumericId": 1100,
   "summaryId": {
     "$oid": "68bbbb6d7d078c821a3c5994"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e07a4"
-  },
-  "fieldLineNumericId": 1124,
-  "name": "Allowance for Other Expenses",
-  "balance": 0
-},
-{
-  "_id": {
-    "$oid": "68c4f1370c44d253dc1e09b9"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
   },
   "definitionId": {
     "$oid": "68c417f90c44d253dc1e07a4"
@@ -1755,21 +1485,6 @@
 },
 {
   "_id": {
-    "$oid": "68c4f1370c44d253dc1e09bb"
-  },
-  "summaryNumericId": 1500,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5998"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e07a5"
-  },
-  "fieldLineNumericId": 1125,
-  "name": "Allowance for Excess Expenses",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f1370c44d253dc1e09bc"
   },
   "summaryNumericId": 1500,
@@ -1781,7 +1496,7 @@
   },
   "fieldLineNumericId": 5301,
   "name": "Cash",
-  "balance": 547500
+  "balance": 0
 },
 {
   "_id": {
@@ -1811,7 +1526,7 @@
   },
   "fieldLineNumericId": 5201,
   "name": "Commission Income",
-  "balance": -500000
+  "balance": 0
 },
 {
   "_id": {
@@ -1826,7 +1541,7 @@
   },
   "fieldLineNumericId": 5101,
   "name": "Capital",
-  "balance": -410500
+  "balance": 0
 },
 {
   "_id": {
@@ -1841,7 +1556,7 @@
   },
   "fieldLineNumericId": 5302,
   "name": "Employee Salaries",
-  "balance": 140000
+  "balance": 150000
 },
 {
   "_id": {
@@ -1920,36 +1635,6 @@
 },
 {
   "_id": {
-    "$oid": "68c4f4350c44d253dc1e09ce"
-  },
-  "summaryNumericId": 1300,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5996"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e07ab"
-  },
-  "fieldLineNumericId": 3106,
-  "name": "Service Charges",
-  "balance": 0
-},
-{
-  "_id": {
-    "$oid": "68c4f4350c44d253dc1e09cf"
-  },
-  "summaryNumericId": 1300,
-  "summaryId": {
-    "$oid": "68bbbb6d7d078c821a3c5996"
-  },
-  "definitionId": {
-    "$oid": "68c417f90c44d253dc1e07ac"
-  },
-  "fieldLineNumericId": 3107,
-  "name": "Custom Duty",
-  "balance": 0
-},
-{
-  "_id": {
     "$oid": "68c4f4350c44d253dc1e09d0"
   },
   "summaryNumericId": 1300,
@@ -1959,7 +1644,7 @@
   "definitionId": {
     "$oid": "68c417f90c44d253dc1e07ad"
   },
-  "fieldLineNumericId": 3108,
+  "fieldLineNumericId": 3106,
   "name": "Website Service Tax",
   "balance": 0
 },
@@ -1974,7 +1659,7 @@
   "definitionId": {
     "$oid": "68c417f90c44d253dc1e07ae"
   },
-  "fieldLineNumericId": 3109,
+  "fieldLineNumericId": 3107,
   "name": "Wholesales - Store Tax",
   "balance": 0
 },
@@ -1989,7 +1674,7 @@
   "definitionId": {
     "$oid": "68c417f90c44d253dc1e07af"
   },
-  "fieldLineNumericId": 3110,
+  "fieldLineNumericId": 3108,
   "name": "Auction - Store Tax",
   "balance": 0
 },
@@ -2020,5 +1705,1166 @@
     "$oid": "68c934339f6641a93acc79a2"
   },
   "fieldLineNumericId": 5303,
-  "balance": -235000
-}]
+  "balance": -247500
+},
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a36"
+    },
+    "name": "Total Income",
+    "summaryId": "68cc02709f6641a93acc79cf",
+    "definitionId": "68cc24189f6641a93acc79d9",
+    "fieldLineNumericId": 4000,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a37"
+    },
+    "name": "Cash from Commission Income (Retail)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79da",
+    "fieldLineNumericId": 5304,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a38"
+    },
+    "name": "Cash from Commission Income (Wholesale)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79db",
+    "fieldLineNumericId": 5305,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a39"
+    },
+    "name": "Cash from Commission Income (Auction)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79dc",
+    "fieldLineNumericId": 5306,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a3a"
+    },
+    "name": "Cash from Commission Income (Service Provider)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79dd",
+    "fieldLineNumericId": 5307,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a3b"
+    },
+    "name": "Cash from Commission Income (Advertistment)",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc26429f6641a93acc79f7",
+    "fieldLineNumericId": 4105,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a3c"
+    },
+    "name": "Cash from Commission Income (Retail)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc24189f6641a93acc79da",
+    "fieldLineNumericId": 5304,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a3d"
+    },
+    "name": "Cash from Commission Income (Wholesale)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc24189f6641a93acc79db",
+    "fieldLineNumericId": 5305,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a3e"
+    },
+    "name": "Cash from Commission Income (Auction)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc24189f6641a93acc79dc",
+    "fieldLineNumericId": 5306,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a3f"
+    },
+    "name": "Cash from Commission Income (Service Provider)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc24189f6641a93acc79dd",
+    "fieldLineNumericId": 5307,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a40"
+    },
+    "name": "Cash from Commission Income (Advertistment)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc26429f6641a93acc79f7",
+    "fieldLineNumericId": 4105,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a41"
+    },
+    "name": "Out of Stock Option Commission",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc24189f6641a93acc79de",
+    "fieldLineNumericId": 5202,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a42"
+    },
+    "name": "Inventory Update Commission",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc24189f6641a93acc79df",
+    "fieldLineNumericId": 5203,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a43"
+    },
+    "name": "Buyers Premium",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc24189f6641a93acc79e0",
+    "fieldLineNumericId": 5205,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a44"
+    },
+    "name": "Website Commission Income (retail)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc373b9f6641a93acc7a2a",
+    "fieldLineNumericId": 5301,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a45"
+    },
+    "name": "Website Commission Income (wholesale)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc373b9f6641a93acc7a2b",
+    "fieldLineNumericId": 5302,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a46"
+    },
+    "name": "Website Commission Income (auction)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc373b9f6641a93acc7a2c",
+    "fieldLineNumericId": 5303,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a47"
+    },
+    "name": "Website Commission Income (serviceProvider)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc373b9f6641a93acc7a2d",
+    "fieldLineNumericId": 5304,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a48"
+    },
+    "name": "Website Commission Income (advertisment)",
+    "summaryId": "68bbbb6d7d078c821a3c599a",
+    "definitionId": "68cc373b9f6641a93acc7a2e",
+    "fieldLineNumericId": 5305,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a49"
+    },
+    "name": "allowences for shipping charges",
+    "summaryId": "68bbbb6d7d078c821a3c5994",
+    "definitionId": "68cc24189f6641a93acc79eb",
+    "fieldLineNumericId": 1126,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a4a"
+    },
+    "name": "allowences for postage charges",
+    "summaryId": "68bbbb6d7d078c821a3c5994",
+    "definitionId": "68cc24189f6641a93acc79ec",
+    "fieldLineNumericId": 1127,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a4b"
+    },
+    "name": "allowences for bank charges",
+    "summaryId": "68bbbb6d7d078c821a3c5994",
+    "definitionId": "68cc24189f6641a93acc79ed",
+    "fieldLineNumericId": 1128,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a4c"
+    },
+    "name": "allowences for bank gateway charges",
+    "summaryId": "68bbbb6d7d078c821a3c5994",
+    "definitionId": "68cc24189f6641a93acc79ee",
+    "fieldLineNumericId": 1129,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a4d"
+    },
+    "name": "allowences for Delivery Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5994",
+    "definitionId": "68cc24189f6641a93acc79ef",
+    "fieldLineNumericId": 1130,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a4e"
+    },
+    "name": "allowences for Cheque Handling Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5994",
+    "definitionId": "68cc24189f6641a93acc79f0",
+    "fieldLineNumericId": 1131,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a4f"
+    },
+    "name": "allowences for Other Instrument Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5994",
+    "definitionId": "68cc24189f6641a93acc79f1",
+    "fieldLineNumericId": 1132,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a50"
+    },
+    "name": "allowences for Transfer fees",
+    "summaryId": "68bbbb6d7d078c821a3c5994",
+    "definitionId": "68cc24189f6641a93acc79f2",
+    "fieldLineNumericId": 1133,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a51"
+    },
+    "name": "allowences for shipping charges",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79eb",
+    "fieldLineNumericId": 1126,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a52"
+    },
+    "name": "allowences for postage charges",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79ec",
+    "fieldLineNumericId": 1127,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a53"
+    },
+    "name": "allowences for bank charges",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79ed",
+    "fieldLineNumericId": 1128,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a54"
+    },
+    "name": "allowences for bank gateway charges",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79ee",
+    "fieldLineNumericId": 1129,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a55"
+    },
+    "name": "allowences for Delivery Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79ef",
+    "fieldLineNumericId": 1130,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a56"
+    },
+    "name": "allowences for Cheque Handling Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79f0",
+    "fieldLineNumericId": 1131,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a57"
+    },
+    "name": "allowences for Other Instrument Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79f1",
+    "fieldLineNumericId": 1132,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a58"
+    },
+    "name": "allowences for Transfer fees",
+    "summaryId": "68bbbb6d7d078c821a3c5998",
+    "definitionId": "68cc24189f6641a93acc79f2",
+    "fieldLineNumericId": 1133,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a59"
+    },
+    "name": "Secruity Deposit Principal Received (Private)",
+    "summaryId": "68cc31509f6641a93acc7a01",
+    "definitionId": "68cc24189f6641a93acc79f3",
+    "fieldLineNumericId": 1000,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a5a"
+    },
+    "name": "Secruity Deposit Principal Received (Government)",
+    "summaryId": "68cc31509f6641a93acc7a01",
+    "definitionId": "68cc24189f6641a93acc79f4",
+    "fieldLineNumericId": 1001,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a5b"
+    },
+    "name": "Bank Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5995",
+    "definitionId": "68cc24189f6641a93acc79e1",
+    "fieldLineNumericId": 1226,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a5c"
+    },
+    "name": "Gate Way Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5995",
+    "definitionId": "68cc24189f6641a93acc79e2",
+    "fieldLineNumericId": 1227,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a5d"
+    },
+    "name": "Postage Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5995",
+    "definitionId": "68cc24189f6641a93acc79e3",
+    "fieldLineNumericId": 1228,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a5e"
+    },
+    "name": "Delivery Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5995",
+    "definitionId": "68cc24189f6641a93acc79e4",
+    "fieldLineNumericId": 1229,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a5f"
+    },
+    "name": "Cheque Handling Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5995",
+    "definitionId": "68cc24189f6641a93acc79e5",
+    "fieldLineNumericId": 1230,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a60"
+    },
+    "name": "Other Instrument Charges",
+    "summaryId": "68bbbb6d7d078c821a3c5995",
+    "definitionId": "68cc24189f6641a93acc79e6",
+    "fieldLineNumericId": 1231,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a61"
+    },
+    "name": "Transfer fees",
+    "summaryId": "68bbbb6d7d078c821a3c5995",
+    "definitionId": "68cc24189f6641a93acc79e7",
+    "fieldLineNumericId": 1232,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a62"
+    },
+    "name": "Shipping Charges in Advance for Return",
+    "summaryId": "68bbbb6d7d078c821a3c5995",
+    "definitionId": "68cc24189f6641a93acc79ea",
+    "fieldLineNumericId": 6009,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a63"
+    },
+    "name": "Bank Charges",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e1",
+    "fieldLineNumericId": 1226,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a64"
+    },
+    "name": "Gate Way Charges",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e2",
+    "fieldLineNumericId": 1227,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a65"
+    },
+    "name": "Postage Charges",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e3",
+    "fieldLineNumericId": 1228,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a66"
+    },
+    "name": "Delivery Charges",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e4",
+    "fieldLineNumericId": 1229,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a67"
+    },
+    "name": "Cheque Handling Charges",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e5",
+    "fieldLineNumericId": 1230,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a68"
+    },
+    "name": "Other Instrument Charges",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e6",
+    "fieldLineNumericId": 1231,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a69"
+    },
+    "name": "Transfer fees",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e7",
+    "fieldLineNumericId": 1232,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a6a"
+    },
+    "name": "Shipping Charges in Advance for Return",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79ea",
+    "fieldLineNumericId": 6009,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a6b"
+    },
+    "name": "Bank Charges",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79e1",
+    "fieldLineNumericId": 1226,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a6c"
+    },
+    "name": "Gate Way Charges",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79e2",
+    "fieldLineNumericId": 1227,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a6d"
+    },
+    "name": "Postage Charges",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79e3",
+    "fieldLineNumericId": 1228,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a6e"
+    },
+    "name": "Delivery Charges",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79e4",
+    "fieldLineNumericId": 1229,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a6f"
+    },
+    "name": "Cheque Handling Charges",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79e5",
+    "fieldLineNumericId": 1230,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a70"
+    },
+    "name": "Other Instrument Charges",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79e6",
+    "fieldLineNumericId": 1231,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a71"
+    },
+    "name": "Transfer fees",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79e7",
+    "fieldLineNumericId": 1232,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a72"
+    },
+    "name": "Shipping Charges in Advance for Return",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79ea",
+    "fieldLineNumericId": 6009,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a73"
+    },
+    "name": "Out of Stock Option Commission",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79de",
+    "fieldLineNumericId": 5202,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a74"
+    },
+    "name": "Inventory Update Commission",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79df",
+    "fieldLineNumericId": 5203,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a75"
+    },
+    "name": "Cash from Commission Income (Retail)",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc24189f6641a93acc79da",
+    "fieldLineNumericId": 5304,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a76"
+    },
+    "name": "Website Commission Income (retail)",
+    "summaryId": "68c295aa0c44d253dc1e06ff",
+    "definitionId": "68cc373b9f6641a93acc7a2a",
+    "fieldLineNumericId": 5301,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a77"
+    },
+    "name": "Bank Charges",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79e1",
+    "fieldLineNumericId": 1226,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a78"
+    },
+    "name": "Gate Way Charges",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79e2",
+    "fieldLineNumericId": 1227,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a79"
+    },
+    "name": "Postage Charges",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79e3",
+    "fieldLineNumericId": 1228,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a7a"
+    },
+    "name": "Delivery Charges",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79e4",
+    "fieldLineNumericId": 1229,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a7b"
+    },
+    "name": "Cheque Handling Charges",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79e5",
+    "fieldLineNumericId": 1230,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a7c"
+    },
+    "name": "Other Instrument Charges",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79e6",
+    "fieldLineNumericId": 1231,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a7d"
+    },
+    "name": "Transfer fees",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79e7",
+    "fieldLineNumericId": 1232,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a7e"
+    },
+    "name": "Shipping Charges in Advance for Return",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79ea",
+    "fieldLineNumericId": 6009,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a7f"
+    },
+    "name": "Out of Stock Option Commission",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79de",
+    "fieldLineNumericId": 5202,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a80"
+    },
+    "name": "Inventory Update Commission",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79df",
+    "fieldLineNumericId": 5203,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a81"
+    },
+    "name": "Cash from Commission Income (Service Provider)",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc24189f6641a93acc79dd",
+    "fieldLineNumericId": 5307,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a82"
+    },
+    "name": "Website Commission Income (serviceProvider)",
+    "summaryId": "68c295aa0c44d253dc1e0700",
+    "definitionId": "68cc373b9f6641a93acc7a2d",
+    "fieldLineNumericId": 5304,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a83"
+    },
+    "name": "Bank Charges",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79e1",
+    "fieldLineNumericId": 1226,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a84"
+    },
+    "name": "Gate Way Charges",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79e2",
+    "fieldLineNumericId": 1227,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a85"
+    },
+    "name": "Postage Charges",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79e3",
+    "fieldLineNumericId": 1228,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a86"
+    },
+    "name": "Delivery Charges",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79e4",
+    "fieldLineNumericId": 1229,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a87"
+    },
+    "name": "Cheque Handling Charges",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79e5",
+    "fieldLineNumericId": 1230,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a88"
+    },
+    "name": "Other Instrument Charges",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79e6",
+    "fieldLineNumericId": 1231,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a89"
+    },
+    "name": "Transfer fees",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79e7",
+    "fieldLineNumericId": 1232,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a8a"
+    },
+    "name": "Shipping Charges in Advance for Return",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79ea",
+    "fieldLineNumericId": 6009,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a8b"
+    },
+    "name": "Out of Stock Option Commission",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79de",
+    "fieldLineNumericId": 5202,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a8c"
+    },
+    "name": "Inventory Update Commission",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79df",
+    "fieldLineNumericId": 5203,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a8d"
+    },
+    "name": "Cash from Commission Income (Wholesale)",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc24189f6641a93acc79db",
+    "fieldLineNumericId": 5305,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a8e"
+    },
+    "name": "Website Commission Income (wholesale)",
+    "summaryId": "68c295aa0c44d253dc1e06fe",
+    "definitionId": "68cc373b9f6641a93acc7a2b",
+    "fieldLineNumericId": 5302,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a8f"
+    },
+    "name": "Bank Charges",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79e1",
+    "fieldLineNumericId": 1226,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a90"
+    },
+    "name": "Gate Way Charges",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79e2",
+    "fieldLineNumericId": 1227,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a91"
+    },
+    "name": "Postage Charges",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79e3",
+    "fieldLineNumericId": 1228,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a92"
+    },
+    "name": "Delivery Charges",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79e4",
+    "fieldLineNumericId": 1229,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a93"
+    },
+    "name": "Cheque Handling Charges",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79e5",
+    "fieldLineNumericId": 1230,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a94"
+    },
+    "name": "Other Instrument Charges",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79e6",
+    "fieldLineNumericId": 1231,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a95"
+    },
+    "name": "Transfer fees",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79e7",
+    "fieldLineNumericId": 1232,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a96"
+    },
+    "name": "Shipping Charges in Advance for Return",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79ea",
+    "fieldLineNumericId": 6009,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a97"
+    },
+    "name": "Cash from Commission Income (Auction)",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc24189f6641a93acc79dc",
+    "fieldLineNumericId": 5306,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a98"
+    },
+    "name": "Website Commission Income (auction)",
+    "summaryId": "68cc31509f6641a93acc7a00",
+    "definitionId": "68cc373b9f6641a93acc7a2c",
+    "fieldLineNumericId": 5303,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a99"
+    },
+    "name": "Excise duty",
+    "summaryId": "68cc2a0c9f6641a93acc79fa",
+    "definitionId": "68cc24189f6641a93acc79e8",
+    "fieldLineNumericId": 6007,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a9a"
+    },
+    "name": "custom duty",
+    "summaryId": "68cc2a0c9f6641a93acc79fa",
+    "definitionId": "68cc24189f6641a93acc79e9",
+    "fieldLineNumericId": 5000,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a9b"
+    },
+    "name": "Excise duty",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e8",
+    "fieldLineNumericId": 6007,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a9c"
+    },
+    "name": "custom duty",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e9",
+    "fieldLineNumericId": 5000,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a9d"
+    },
+    "name": "Cash from Commission Income (Retail)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79da",
+    "fieldLineNumericId": 5304,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a9e"
+    },
+    "name": "Cash from Commission Income (Wholesale)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79db",
+    "fieldLineNumericId": 5305,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7a9f"
+    },
+    "name": "Cash from Commission Income (Auction)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79dc",
+    "fieldLineNumericId": 5306,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa0"
+    },
+    "name": "Cash from Commission Income (Service Provider)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79dd",
+    "fieldLineNumericId": 5307,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa1"
+    },
+    "name": "Cash from Commission Income (Advertistment)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc26429f6641a93acc79f7",
+    "fieldLineNumericId": 4105,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa2"
+    },
+    "name": "Out of Stock Option Commission",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79de",
+    "fieldLineNumericId": 5202,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa3"
+    },
+    "name": "Inventory Update Commission",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79df",
+    "fieldLineNumericId": 5203,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa4"
+    },
+    "name": "Buyers Premium",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc24189f6641a93acc79e0",
+    "fieldLineNumericId": 5205,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa5"
+    },
+    "name": "Website Commission Income (retail)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc373b9f6641a93acc7a2a",
+    "fieldLineNumericId": 5301,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa6"
+    },
+    "name": "Website Commission Income (wholesale)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc373b9f6641a93acc7a2b",
+    "fieldLineNumericId": 5302,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa7"
+    },
+    "name": "Website Commission Income (auction)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc373b9f6641a93acc7a2c",
+    "fieldLineNumericId": 5303,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa8"
+    },
+    "name": "Website Commission Income (serviceProvider)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc373b9f6641a93acc7a2d",
+    "fieldLineNumericId": 5304,
+    "balance": 0
+  },
+  {
+    "_id": {
+      "$oid": "68cc3c0f9f6641a93acc7aa9"
+    },
+    "name": "Website Commission Income (advertisment)",
+    "summaryId": "68c295aa0c44d253dc1e0701",
+    "definitionId": "68cc373b9f6641a93acc7a2e",
+    "fieldLineNumericId": 5305,
+    "balance": 0
+  }
+]

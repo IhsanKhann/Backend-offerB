@@ -336,22 +336,6 @@
 },
 {
   "_id": {
-    "$oid": "68c417f90c44d253dc1e07ba"
-  },
-  "fieldLineNumericId": 1511,
-  "name": "Cash from Commission Income (Wholesale)",
-  "accountNumber": "1511"
-},
-{
-  "_id": {
-    "$oid": "68c417f90c44d253dc1e07bc"
-  },
-  "fieldLineNumericId": 1513,
-  "name": "Cash from Commission Income (Auction)",
-  "accountNumber": "1513"
-},
-{
-  "_id": {
     "$oid": "68c417f90c44d253dc1e07c2"
   },
   "fieldLineNumericId": 5401,
@@ -448,22 +432,6 @@
 },
 {
   "_id": {
-    "$oid": "68c417f90c44d253dc1e07ab"
-  },
-  "fieldLineNumericId": 3106,
-  "name": "Service Charges",
-  "accountNumber": "3106"
-},
-{
-  "_id": {
-    "$oid": "68c417f90c44d253dc1e07ac"
-  },
-  "fieldLineNumericId": 3107,
-  "name": "Custom Duty",
-  "accountNumber": "3107"
-},
-{
-  "_id": {
     "$oid": "68c417f90c44d253dc1e07b0"
   },
   "fieldLineNumericId": 1501,
@@ -485,22 +453,6 @@
   "fieldLineNumericId": 1506,
   "name": "Security Deposit Released to Bidder",
   "accountNumber": "1506"
-},
-{
-  "_id": {
-    "$oid": "68c417f90c44d253dc1e07b9"
-  },
-  "fieldLineNumericId": 1510,
-  "name": "Cash from Commission Income (Retail)",
-  "accountNumber": "1510"
-},
-{
-  "_id": {
-    "$oid": "68c417f90c44d253dc1e07bd"
-  },
-  "fieldLineNumericId": 1514,
-  "name": "Cash from Commission Income (Advertisement)",
-  "accountNumber": "1514"
 },
 {
   "_id": {
@@ -632,9 +584,305 @@
 },
 {
   "_id": {
-    "$oid": "68c417f90c44d253dc1e07c0",
+    "$oid": "68c417f90c44d253dc1e07c0"
   },
   "fieldLineNumericId": 5201,
   "name": "Commission Income",
   "accountNumber": "5201"
+},
+{
+  "_id": {
+    "$oid": "68c934339f6641a93acc79a2"
+  },
+  "fieldLineNumericId": 5303,
+  "name": "Net Salary",
+  "accountNumber": "Net salary"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79d9"
+  },
+  "fieldLineNumericId": 4000,
+  "name": "Total Income",
+  "accountNumber": "4000"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79da"
+  },
+  "fieldLineNumericId": 5304,
+  "name": "Cash from Commission Income (Retail)",
+  "accountNumber": "4101"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79db"
+  },
+  "fieldLineNumericId": 5305,
+  "name": "Cash from Commission Income (Wholesale)",
+  "accountNumber": "4102"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79dc"
+  },
+  "fieldLineNumericId": 5306,
+  "name": "Cash from Commission Income (Auction)",
+  "accountNumber": "4103"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79dd"
+  },
+  "fieldLineNumericId": 5307,
+  "name": "Cash from Commission Income (Service Provider)",
+  "accountNumber": "4104"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79de"
+  },
+  "fieldLineNumericId": 5202,
+  "name": "Out of Stock Option Commission",
+  "accountNumber": "5202"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79df"
+  },
+  "fieldLineNumericId": 5203,
+  "name": "Inventory Update Commission",
+  "accountNumber": "5203"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e0"
+  },
+  "fieldLineNumericId": 5205,
+  "name": "Buyers Premium",
+  "accountNumber": "5205"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e1"
+  },
+  "fieldLineNumericId": 1226,
+  "name": "Bank Charges",
+  "accountNumber": "6001"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e2"
+  },
+  "fieldLineNumericId": 1227,
+  "name": "Gate Way Charges",
+  "accountNumber": "6002"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e3"
+  },
+  "fieldLineNumericId": 1228,
+  "name": "Postage Charges",
+  "accountNumber": "6003"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e4"
+  },
+  "fieldLineNumericId": 1229,
+  "name": "Delivery Charges",
+  "accountNumber": "6004"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e5"
+  },
+  "fieldLineNumericId": 1230,
+  "name": "Cheque Handling Charges",
+  "accountNumber": "6005"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e6"
+  },
+  "fieldLineNumericId": 1231,
+  "name": "Other Instrument Charges",
+  "accountNumber": "6006"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e7"
+  },
+  "fieldLineNumericId": 1232,
+  "name": "Transfer fees",
+  "accountNumber": "6007"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e8"
+  },
+  "fieldLineNumericId": 6007,
+  "name": "Excise duty",
+  "accountNumber": "6008"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79e9"
+  },
+  "fieldLineNumericId": 5000,
+  "name": "custom duty",
+  "accountNumber": "5001"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79ea"
+  },
+  "fieldLineNumericId": 6009,
+  "name": "Shipping Charges in Advance for Return",
+  "accountNumber": "6010"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79eb"
+  },
+  "fieldLineNumericId": 1126,
+  "name": "allowences for shipping charges",
+  "accountNumber": "1126"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79ec"
+  },
+  "fieldLineNumericId": 1127,
+  "name": "allowences for postage charges",
+  "accountNumber": "1127"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79ed"
+  },
+  "fieldLineNumericId": 1128,
+  "name": "allowences for bank charges",
+  "accountNumber": "1128"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79ee"
+  },
+  "fieldLineNumericId": 1129,
+  "name": "allowences for bank gateway charges",
+  "accountNumber": "1129"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79ef"
+  },
+  "fieldLineNumericId": 1130,
+  "name": "allowences for Delivery Charges",
+  "accountNumber": "1130"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79f0"
+  },
+  "fieldLineNumericId": 1131,
+  "name": "allowences for Cheque Handling Charges",
+  "accountNumber": "1131"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79f1"
+  },
+  "fieldLineNumericId": 1132,
+  "name": "allowences for Other Instrument Charges",
+  "accountNumber": "1132"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79f2"
+  },
+  "fieldLineNumericId": 1133,
+  "name": "allowences for Transfer fees",
+  "accountNumber": "1133"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79f3"
+  },
+  "fieldLineNumericId": 1000,
+  "name": "Secruity Deposit Principal Received (Private)",
+  "accountNumber": "1134"
+},
+{
+  "_id": {
+    "$oid": "68cc24189f6641a93acc79f4"
+  },
+  "fieldLineNumericId": 1001,
+  "name": "Secruity Deposit Principal Received (Government)",
+  "accountNumber": "1135"
+},
+{
+  "_id": {
+    "$oid": "68cc26429f6641a93acc79f7"
+  },
+  "fieldLineNumericId": 4105,
+  "name": "Cash from Commission Income (Advertistment)",
+  "accountNumber": "4105"
+},
+{
+  "_id": {
+    "$oid": "68cc373b9f6641a93acc7a2a"
+  },
+  "fieldLineNumericId": 5301,
+  "name": "Website Commission Income (retail)",
+  "accountNumber": 5301
+},
+{
+  "_id": {
+    "$oid": "68cc373b9f6641a93acc7a2b"
+  },
+  "fieldLineNumericId": 5302,
+  "name": "Website Commission Income (wholesale)",
+  "accountNumber": 5302
+},
+{
+  "_id": {
+    "$oid": "68cc373b9f6641a93acc7a2c"
+  },
+  "fieldLineNumericId": 5303,
+  "name": "Website Commission Income (auction)",
+  "accountNumber": 5303
+},
+{
+  "_id": {
+    "$oid": "68cc373b9f6641a93acc7a2d"
+  },
+  "fieldLineNumericId": 5304,
+  "name": "Website Commission Income (serviceProvider)",
+  "accountNumber": 5304
+},
+{
+  "_id": {
+    "$oid": "68cc373b9f6641a93acc7a2e"
+  },
+  "fieldLineNumericId": 5305,
+  "name": "Website Commission Income (advertisment)",
+  "accountNumber": 5305
+},
+{
+  "_id": {
+    "$oid": "68ccd3f19f6641a93acc7ab7"
+  },
+  "fieldLineNumericId": 1234,
+  "name": "Buyer Payable",
+  "accountNumber": "1234"
+},
+{
+  "_id": {
+    "$oid": "68ccd3f19f6641a93acc7ab8"
+  },
+  "fieldLineNumericId": 5303,
+  "name": "Seller Net Recievable",
+  "accountNumber": "1234"
 }]
