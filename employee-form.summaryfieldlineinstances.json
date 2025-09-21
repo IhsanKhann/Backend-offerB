@@ -2866,5 +2866,24 @@
   "definitionId": "68cc373b9f6641a93acc7a2e",
   "fieldLineNumericId": 5305,
   "balance": 0
-}
-]
+},
+{
+  "_id": {
+    "$oid": "68cfc63f9f6641a93acc7b67"
+  },
+  "name": "Seller Net Recievable",
+  "summaryId": "68c295aa0c44d253dc1e0701",
+  "definitionId": "68ccd3f19f6641a93acc7ab8",
+  "fieldLineNumericId": 5303,
+  "balance": 0,
+  "accountNumber": "1234"
+},
+{
+  "_id": "68ccd3f19f6641a93acc7ab8",
+  "summaryId": "68c295aa0c44d253dc1e06ff",
+  "definitionId": "68ccd3f19f6641a93acc7ab8",
+  "fieldLineNumericId": 5303,
+  "name": "Seller Net Recievable",
+  "accountNumber": "1234",
+  "balance": 0
+}]

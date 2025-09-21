@@ -4,42 +4,45 @@ const MirrorSchema = new mongoose.Schema({
   instanceId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineInstance" },
   summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary" },
   definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition" },
-  debitOrCredit: { type: String, enum: ["debit", "credit"] },
+  debitOrCredit: { type: String, enum: ["debit", "credit"], required: true },
   fallback: { type: String, enum: ["capital", "none"], default: "none" },
-  fieldLineId: { type: Number } // optional, for your resolveInstanceObjectId
-});
+}, { _id: false });
 
 const SplitSchema = new mongoose.Schema({
   componentName: { type: String, required: true },
-  type: { type: String, enum: ["allowance", "deduction", "base", "tax", "commission", "receivable", "income"] },
+  type: { type: String, enum: ["allowance", "deduction", "base", "tax", "commission", "receivable", "income"], required: true },
 
-  // new
+  // Core wiring
+  definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition", required: true },
+  summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary", required: true },
   instanceId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineInstance" },
-  summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary" },
-  definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition" },
+
+  // Accounting
   debitOrCredit: { type: String, enum: ["debit", "credit"], required: true },
   percentage: { type: Number, default: 0 },
   fixedAmount: { type: Number, default: 0 },
-  fieldLineId: { type: Number },
 
-  // order specific attributes
-  isActual: { type: Boolean, default: false }, // "Actual" checkbox
-  perTransaction: { type: Boolean, default: false }, // per transaction charge
+  // Flags
+  isActual: { type: Boolean, default: false },
+  perTransaction: { type: Boolean, default: false },
   periodicity: { type: String, enum: ["none", "yearly", "biannual", "quarterly"], default: "none" },
 
-  // tax specific attributes
-  slabStart: { type: Number, default: null },
-  slabEnd: { type: Number, default: null },
-  fixedTax: { type: Number, default: null },
-  additionalTaxPercentage: { type: Number, default: null },
+  // Tax
+  slabStart: { type: Number },
+  slabEnd: { type: Number },
+  fixedTax: { type: Number },
+  additionalTaxPercentage: { type: Number },
 
-  mirrors: [MirrorSchema]
-});
+  mirrors: [MirrorSchema],
+}, { _id: false });
+
+// 🔒 prevent duplicate splits in one rule
+SplitSchema.index({ componentName: 1, summaryId: 1, definitionId: 1 }, { unique: true, sparse: true });
 
 const BreakupRuleSchema = new mongoose.Schema({
   transactionType: { type: String, required: true },
   incrementType: { type: String, enum: ["fixed", "percentage", "both"], default: "both" },
-  splits: [SplitSchema]
+  splits: [SplitSchema],
 }, { timestamps: true });
 
 export default mongoose.model("BreakupRules", BreakupRuleSchema);

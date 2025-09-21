@@ -885,4 +885,20 @@
   "fieldLineNumericId": 5303,
   "name": "Seller Net Recievable",
   "accountNumber": "1234"
+},
+{
+  "_id": {
+    "$oid": "68cebed89f6641a93acc7ad6"
+  },
+  "fieldLineNumericId": 4001,
+  "name": "Sales Tax",
+  "accountNumber": "ST-001"
+},
+{
+  "_id": {
+    "$oid": "68cebed89f6641a93acc7ad7"
+  },
+  "fieldLineNumericId": 4002,
+  "name": "Excise Tax",
+  "accountNumber": "EX-001"
 }]

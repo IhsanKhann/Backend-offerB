@@ -9,7 +9,7 @@ import {
 }
 from "../../contollers/FinanceControllers/TransactionController.js";
 
-import { orderSummaryMiddleware, childrenSummariesMiddleware, transactionController } from "../../contollers/FinanceControllers/OrderControllers.js";
+import {createOrderWithTransaction } from "../../contollers/FinanceControllers/OrderControllers.js";
 
 const router = express.Router();
 
@@ -19,12 +19,15 @@ router.post('/commission/close-to-retained', transferCommissionToRetained);
 router.post('/transfer-retained-to-capital', transferRetainedIncomeToCapital);
 router.post("/salary/:employeeId", SalaryTransactionController);
 
-router.post("/order-process",
-  orderSummaryMiddleware,
-  childrenSummariesMiddleware,
-  transactionController
-);
+// router.post("/order-process",
+//   orderSummaryMiddleware,
+//   childrenSummariesMiddleware,
+//   transactionController
+// );
 
+router.post("/order-process",
+ createOrderWithTransaction,
+);
 
 router.use(authenticate);
 

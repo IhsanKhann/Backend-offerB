@@ -1,16 +1,15 @@
-// controllers/finance/breakupControllers.js
+// controllers/FinanceControllers/OrderControllers.js
 import mongoose from "mongoose";
 const { ObjectId } = mongoose.Types;
 
-import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
-import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
+import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 import SummaryFieldLineInstance from "../../models/FinanceModals/FieldLineInstanceModel.js";
 import BreakupFileModel from "../../models/FinanceModals/BreakupFiles.js";
-import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
+import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 
-/* -------------------------------
-   Helpers
--------------------------------- */
+// -------------------------------
+// Helpers
+// -------------------------------
 const safeNumber = (val) => {
   const num = Number(val);
   return isNaN(num) ? 0 : num;
@@ -19,387 +18,279 @@ const safeNumber = (val) => {
 const safeToObjectId = (id) => {
   if (!id) return null;
   const idStr = String(id);
-  return mongoose.Types.ObjectId.isValid(idStr)
-    ? new mongoose.Types.ObjectId(idStr)
-    : null;
+  return mongoose.Types.ObjectId.isValid(idStr) ? new ObjectId(idStr) : null;
 };
 
-/**
- * Get or create SummaryFieldLineInstance
- */
-async function getOrCreateInstance(split) {
-  try {
-    if (!split.summaryId || !split.definitionId) {
-      console.warn("⚠️ Split missing summaryId or definitionId", split);
-      return null;
-    }
-
-    const filter = {
-      summaryId: safeToObjectId(split.summaryId),
-      definitionId: safeToObjectId(split.definitionId),
-      fieldLineNumericId: split.fieldLineNumericId ?? null,
-    };
-
-    let instance = await SummaryFieldLineInstance.findOne(filter);
-    if (!instance) {
-      instance = new SummaryFieldLineInstance({
-        ...filter,
-        name: split.componentName,
-        balance: 0,
-      });
-      await instance.save();
-      console.log("🆕 Created new instance:", {
-        id: instance._id,
-        name: instance.name,
-        summaryId: instance.summaryId,
-      });
-    } else {
-      console.log("♻️ Reusing existing instance:", {
-        id: instance._id,
-        name: instance.name,
-        summaryId: instance.summaryId,
-      });
-    }
-
-    return instance;
-  } catch (err) {
-    console.error("❌ getOrCreateInstance error:", err);
-    return null;
+const adjustForPeriodicity = (value, periodicity) => {
+  switch (periodicity) {
+    case "yearly": return value / 12;
+    case "biannual": return value / 6;
+    case "quarterly": return value / 3;
+    default: return value;
   }
-}
+};
 
-/**
- * Compute value dynamically for a split
- */
-function computeSplitValue(orderAmount, split, actualAmount) {
+const computeSplitValue = (orderAmount, split) => {
   let value = 0;
+  const contributions = [];
 
-  value += safeNumber(split.fixedAmount);
+  if (split.fixedAmount) {
+    value += safeNumber(split.fixedAmount);
+    contributions.push(`fixedAmount=${split.fixedAmount}`);
+  }
+
   if (split.percentage) {
-    value += (split.percentage / 100) * orderAmount;
+    const percValue = (split.percentage / 100) * orderAmount;
+    value += percValue;
+    contributions.push(`percentage=${split.percentage}% of ${orderAmount}=${percValue}`);
   }
 
   if (split.perTransaction) {
-    value +=
-      safeNumber(split.fixedAmount) +
-      ((split.percentage ?? 0) / 100) * orderAmount;
+    const perTransValue = safeNumber(split.fixedAmount) + ((split.percentage ?? 0) / 100) * orderAmount;
+    value += perTransValue;
+    contributions.push(`perTransaction adjustment=${perTransValue}`);
   }
 
   if (split.periodicity && split.periodicity !== "none") {
-    switch (split.periodicity) {
-      case "yearly":
-        value = value / 12;
-        break;
-      case "biannual":
-        value = value / 6;
-        break;
-      case "quarterly":
-        value = value / 3;
-        break;
-    }
+    const oldValue = value;
+    value = adjustForPeriodicity(value, split.periodicity);
+    contributions.push(`periodicity=${split.periodicity} adjusted ${oldValue} => ${value}`);
   }
 
-  if (
-    split.type === "tax" &&
-    split.slabStart != null &&
-    split.slabEnd != null
-  ) {
+  if (split.type === "tax" && split.slabStart != null && split.slabEnd != null) {
     if (orderAmount >= split.slabStart && orderAmount <= split.slabEnd) {
+      const oldValue = value;
       value = safeNumber(split.fixedTax ?? value);
+      contributions.push(`tax slab applied: fixedTax=${split.fixedTax ?? oldValue}`);
       if (split.additionalTaxPercentage) {
-        value += (split.additionalTaxPercentage / 100) * orderAmount;
+        const addTax = (split.additionalTaxPercentage / 100) * orderAmount;
+        value += addTax;
+        contributions.push(`additionalTaxPercentage=${split.additionalTaxPercentage}% of ${orderAmount}=${addTax}`);
       }
+    } else {
+      contributions.push(`tax slab skipped: orderAmount=${orderAmount} not in [${split.slabStart}, ${split.slabEnd}]`);
     }
   }
 
-  return Math.round(value * 100) / 100;
-}
+  value = Math.round(value * 100) / 100;
+  console.debug(`[DEBUG] computeSplitValue for ${split.componentName}: ${value} (${contributions.join(", ")})`);
 
-/* -------------------------------
-   Step 1: Parent breakup
--------------------------------- */
-export const orderSummaryMiddleware = async (req, res, next) => {
-  try {
-    const { orderAmount, orderType, buyerId, sellerId, orderId, actualAmount } =
-      req.body;
-
-    if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-
-    const rules = await BreakupRuleModel.find({
-      transactionType: { $in: [orderType, `${orderType}Tax`] },
-    }).lean();
-
-    if (!rules || rules.length === 0) {
-      return res
-        .status(404)
-        .json({ error: `No BreakupRules found for type ${orderType}` });
-    }
-
-    let allLines = [];
-    const appliedRules = [];
-
-    for (const r of rules) {
-      for (const split of r.splits) {
-        const amount = safeNumber(
-          computeSplitValue(orderAmount, split, actualAmount)
-        );
-
-        // ✅ Ensure instance exists (auto-create if missing)
-        const instance = await getOrCreateInstance(split);
-
-        const line = {
-          componentName: split.componentName,
-          category: split.type,
-          amount,
-          debitOrCredit: split.debitOrCredit,
-          summaryId: split.summaryId,
-          instanceId: instance?._id,
-          definitionId: split.definitionId,
-          ruleType: r.transactionType,
-        };
-
-        allLines.push(line);
-        appliedRules.push({
-          rule: r.transactionType,
-          component: split.componentName,
-          amount,
-          summaryId: split.summaryId,
-          instanceId: instance?._id,
-        });
-      }
-    }
-
-    const totals = allLines.reduce(
-      (acc, l) => {
-        if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
-        if (l.debitOrCredit === "credit") acc.credit += safeNumber(l.amount);
-        return acc;
-      },
-      { debit: 0, credit: 0 }
-    );
-
-    const parentBreakup = new BreakupFileModel({
-      orderId,
-      orderType,
-      orderAmount,
-      actualAmount,
-      buyerId,
-      sellerId,
-      parentBreakupId: null,
-      lines: allLines,
-      totalDebit: safeNumber(totals.debit),
-      totalCredit: safeNumber(totals.credit),
-    });
-
-    await parentBreakup.save();
-    req.parentBreakup = parentBreakup;
-
-    console.log("✅ Parent breakup created:", {
-      orderId,
-      totalDebit: totals.debit,
-      totalCredit: totals.credit,
-      appliedRules,
-    });
-
-    next();
-  } catch (err) {
-    console.error("❌ orderSummaryMiddleware error:", err);
-    return res.status(500).json({ error: err.message });
-  }
+  return value;
 };
 
-/* -------------------------------
-   Step 2: Children breakups
--------------------------------- */
-export const childrenSummariesMiddleware = async (req, res, next) => {
+const resolveOrCreateInstance = async (split, session = null) => {
   try {
-    const parent = req.parentBreakup;
-    if (!parent)
-      return res.status(500).json({ error: "Parent breakup not found" });
+    let summaryObjId = safeToObjectId(split.summaryId);
+    let defObjId = safeToObjectId(split.definitionId);
 
-    const childDocs = [];
-    const debugChildren = [];
+    if (!summaryObjId) summaryObjId = new ObjectId();
+    if (!defObjId) defObjId = new ObjectId();
 
-    const createChild = async (lines, type) => {
-      const totals = lines.reduce(
-        (acc, l) => {
-          if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
-          else acc.credit += safeNumber(l.amount);
-          return acc;
-        },
-        { debit: 0, credit: 0 }
-      );
+    if (split.instanceId) {
+      const inst = await SummaryFieldLineInstance.findById(safeToObjectId(split.instanceId)).session(session);
+      if (inst) return inst;
+    }
 
-      const child = new BreakupFileModel({
-        orderId: parent.orderId,
-        orderType: parent.orderType,
-        orderAmount: parent.orderAmount,
-        buyerId: parent.buyerId,
-        sellerId: parent.sellerId,
-        parentBreakupId: parent._id,
-        lines,
-        totalDebit: safeNumber(totals.debit),
-        totalCredit: safeNumber(totals.credit),
-      });
+    const filter = { summaryId: summaryObjId, definitionId: defObjId };
+    if (split.fieldLineId || split.fieldLineNumericId) {
+      filter.fieldLineNumericId = split.fieldLineId ?? split.fieldLineNumericId;
+    }
 
-      await child.save();
-      debugChildren.push({
-        type,
-        childId: child._id,
-        totalDebit: totals.debit,
-        totalCredit: totals.credit,
-        linesCount: lines.length,
-        components: lines.map((l) => l.componentName),
-      });
+    let instance = await SummaryFieldLineInstance.findOne(filter).session(session);
+    if (instance) return instance;
 
-      return child;
+    // Create new instance
+    const docToCreate = {
+      name: split.componentName ?? "Auto Instance",
+      summaryId: summaryObjId,
+      definitionId: defObjId,
+      fieldLineNumericId: filter.fieldLineNumericId ?? null,
+      balance: 0,
+      startingBalance: 0,
+      endingBalance: 0,
     };
 
-    const sellerLines = parent.lines.filter(
-      (l) =>
-        ["commission", "charge"].includes(l.category) ||
-        l.componentName.toLowerCase().includes("seller")
-    );
-    if (sellerLines.length > 0)
-      childDocs.push(await createChild(sellerLines, "seller"));
+    if (split.instanceId) docToCreate._id = safeToObjectId(split.instanceId);
 
-    const buyerLines = parent.lines.filter(
-      (l) =>
-        ["tax", "duty", "allowance", "deduction"].includes(l.category) ||
-        l.componentName.toLowerCase().includes("buyer")
-    );
-    if (buyerLines.length > 0)
-      childDocs.push(await createChild(buyerLines, "buyer"));
-
-    req.childBreakups = childDocs;
-    console.log("✅ Child breakups created:", debugChildren);
-
-    next();
+    instance = await SummaryFieldLineInstance.create([docToCreate], { session });
+    return instance[0];
   } catch (err) {
-    console.error("❌ childrenSummariesMiddleware error:", err);
-    return res.status(500).json({ error: err.message });
+    console.error("[ERROR] resolveOrCreateInstance:", err, "split:", split);
+    return null;
   }
 };
 
-/* -------------------------------
-   Step 3: Transaction
--------------------------------- */
-export const transactionController = async (req, res) => {
+// Update balance of SummaryFieldLineInstance
+const updateInstanceBalance = async (instance, value, debitOrCredit, session) => {
+  if (!instance) return;
+
+  if (instance.startingBalance === undefined || instance.startingBalance === null) {
+    instance.startingBalance = instance.balance ?? 0;
+  }
+
+  if (debitOrCredit === "debit") instance.balance = (instance.balance ?? 0) + value;
+  else if (debitOrCredit === "credit") instance.balance = (instance.balance ?? 0) - value;
+
+  instance.endingBalance = instance.balance;
+
+  await instance.save({ session });
+};
+
+// -------------------------------
+// Main Controller
+// -------------------------------
+export const createOrderWithTransaction = async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const parent = req.parentBreakup;
-    if (!parent || !parent.lines?.length) {
-      throw new Error("❌ Parent breakup not found or has no lines");
-    }
-
-    const appliedLines = [];
-    const skippedLines = [];
-    const accountingLines = [];
-
-    for (const line of parent.lines) {
-      const summaryId = safeToObjectId(line.summaryId);
-      if (!summaryId) {
-        skippedLines.push({ reason: "Invalid summaryId", line });
-        continue;
+    await session.withTransaction(async () => {
+      const { orderAmount, orderType, buyerId, sellerId, orderId } = req.body;
+      if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId) {
+        throw new Error("Missing required fields");
       }
 
-      const amount = safeNumber(line.amount ?? line.value);
-      if (!amount) {
-        skippedLines.push({ reason: "Amount is 0", line });
-        continue;
-      }
+      const rules = await BreakupRuleModel.find({
+        transactionType: { $in: [orderType, `${orderType}Tax`] }
+      }).session(session).lean();
 
-      accountingLines.push({
-        summaryObjectId: summaryId,
-        debitOrCredit: line.debitOrCredit,
-        amount,
-        lineDetail: line,
-      });
-      appliedLines.push({ line, amount, appliedTo: summaryId });
+      if (!rules?.length) throw new Error(`No BreakupRules found for type ${orderType}`);
 
-      if (Array.isArray(line.mirrors)) {
-        for (const mirror of line.mirrors) {
-          const mirrorSummaryId = safeToObjectId(mirror.summaryId);
-          if (!mirrorSummaryId) {
-            skippedLines.push({
-              reason: "Invalid mirror summaryId",
-              line: mirror,
+      const allLines = [];
+
+      for (const r of rules) {
+        for (const split of r.splits || []) {
+          const value = computeSplitValue(orderAmount, split);
+
+          // Resolve or create instance
+          const inst = await resolveOrCreateInstance(split, session);
+          await updateInstanceBalance(inst, value, split.debitOrCredit, session);
+
+          const mirrorsResolved = [];
+          for (const m of split.mirrors || []) {
+            const mirrorInst = await resolveOrCreateInstance({
+              ...m,
+              summaryId: m.summaryId ?? split.summaryId,
+              definitionId: m.definitionId ?? split.definitionId,
+              fieldLineId: m.fieldLineId ?? m.fieldLineNumericId ?? split.fieldLineId ?? split.fieldLineNumericId,
+            }, session);
+
+            await updateInstanceBalance(mirrorInst, value, m.debitOrCredit, session);
+
+            mirrorsResolved.push({
+              ...m,
+              value,
+              amount: value,
+              instanceId: mirrorInst?._id ?? null,
+              summaryId: m.summaryId ?? split.summaryId,
+              definitionId: m.definitionId ?? split.definitionId,
+              debitOrCredit: m.debitOrCredit,
+              fieldLineId: m.fieldLineId ?? m.fieldLineNumericId ?? split.fieldLineId ?? split.fieldLineNumericId,
+              _isMirror: true,
             });
-            continue;
           }
-          accountingLines.push({
-            summaryObjectId: mirrorSummaryId,
-            debitOrCredit: mirror.debitOrCredit,
-            amount,
-            lineDetail: mirror,
-          });
-          appliedLines.push({
-            line: mirror,
-            amount,
-            appliedTo: mirrorSummaryId,
-            mirror: true,
+
+          allLines.push({
+            componentName: split.componentName,
+            category: split.type,
+            value,
+            amount: value,
+            debitOrCredit: split.debitOrCredit,
+            summaryId: split.summaryId,
+            instanceId: inst?._id ?? null,
+            definitionId: split.definitionId,
+            fieldLineId: split.fieldLineId ?? split.fieldLineNumericId ?? null,
+            mirrors: mirrorsResolved,
+            ruleType: r.transactionType,
           });
         }
       }
-    }
 
-    // ✅ Update balances (instances already exist from middleware)
-    for (const l of accountingLines) {
-      await SummaryModel.findByIdAndUpdate(
-        l.summaryObjectId,
-        {
-          $inc: {
-            balance: l.debitOrCredit === "debit" ? l.amount : -l.amount,
-          },
-        },
-        { session }
-      );
-    }
+      // Parent breakup totals
+      const totals = allLines.reduce((acc, l) => {
+        if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.value);
+        else if (l.debitOrCredit === "credit") acc.credit += safeNumber(l.value);
+        return acc;
+      }, { debit: 0, credit: 0 });
 
-    const totalAmount = accountingLines.reduce(
-      (sum, l) => sum + safeNumber(l.amount),
-      0
-    );
-    const tx = new TransactionModel({
-      narration: `Transaction for Order ID: ${parent.orderId}`,
-      lines: accountingLines.map((l) => ({
-        summaryObjectId: l.summaryObjectId,
-        debitOrCredit: l.debitOrCredit,
-        amount: l.amount,
-      })),
-      amount: totalAmount,
-      createdAt: new Date(),
-    });
-    await tx.save({ session });
+      const parentBreakup = new BreakupFileModel({
+        orderId,
+        orderType,
+        orderAmount,
+        actualAmount: orderAmount,
+        buyerId,
+        sellerId,
+        parentBreakupId: null,
+        lines: allLines,
+        totalDebit: safeNumber(totals.debit),
+        totalCredit: safeNumber(totals.credit),
+      });
+      await parentBreakup.save({ session });
 
-    await BreakupFileModel.findByIdAndUpdate(
-      parent._id,
-      { transactionId: tx._id, processedAt: new Date() },
-      { session }
-    );
+      // Child breakups
+      const createChildBreakup = async (lines, type) => {
+        const totals = lines.reduce((acc, l) => {
+          if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.value);
+          else acc.credit += safeNumber(l.value);
+          return acc;
+        }, { debit: 0, credit: 0 });
 
-    await session.commitTransaction();
-    session.endSession();
+        const child = new BreakupFileModel({
+          orderId,
+          orderType,
+          orderAmount,
+          buyerId,
+          sellerId,
+          parentBreakupId: parentBreakup._id,
+          lines,
+          type,
+          totalDebit: totals.debit,
+          totalCredit: totals.credit,
+        });
+        await child.save({ session });
+        return child;
+      };
 
-    return res.status(200).json({
-      message: "✅ Transaction posted successfully",
-      orderId: parent.orderId,
-      transactionId: tx._id,
-      totals: {
-        debit: parent.totalDebit,
-        credit: parent.totalCredit,
-      },
-      appliedLines,
-      skippedLines,
+      const sellerChild = await createChildBreakup(allLines.filter(l => l.debitOrCredit === "debit"), "seller");
+      const buyerChild = await createChildBreakup(allLines.filter(l => l.debitOrCredit === "credit"), "buyer");
+
+      // Transaction lines
+      const transactionLines = [];
+      allLines.forEach(l => {
+        transactionLines.push({
+          instanceId: l.instanceId,
+          summaryId: l.summaryId,
+          definitionId: l.definitionId,
+          debitOrCredit: l.debitOrCredit,
+          amount: safeNumber(l.value),
+        });
+        l.mirrors?.forEach(m => transactionLines.push({
+          instanceId: m.instanceId,
+          summaryId: m.summaryId,
+          definitionId: m.definitionId,
+          debitOrCredit: m.debitOrCredit,
+          amount: safeNumber(m.value),
+        }));
+      });
+
+      const totalAmount = transactionLines.reduce((acc, l) => acc + l.amount, 0);
+      const transaction = new TransactionModel({
+        description: `Transaction for Order ID: ${orderId}`,
+        amount: totalAmount,
+        lines: transactionLines,
+      });
+      await transaction.save({ session });
+
+      res.json({
+        success: true,
+        parent: parentBreakup,
+        children: [sellerChild, buyerChild],
+        transaction,
+      });
     });
   } catch (err) {
     await session.abortTransaction();
-    session.endSession();
-    console.error("❌ transactionController error:", err);
-    return res.status(500).json({ error: err.message || String(err) });
+    console.error("Order creation error:", err);
+    return res.status(500).json({ error: err.message });
+  } finally {
+    await session.endSession();
   }
 };
