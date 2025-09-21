@@ -11,7 +11,7 @@ const MirrorSchema = new mongoose.Schema({
 
 const SplitSchema = new mongoose.Schema({
   componentName: { type: String, required: true },
-  type: { type: String, enum: ["allowance", "deduction", "base", "tax", "commission"] },
+  type: { type: String, enum: ["allowance", "deduction", "base", "tax", "commission", "receivable", "income"] },
 
   // new
   instanceId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineInstance" },
@@ -20,7 +20,6 @@ const SplitSchema = new mongoose.Schema({
   debitOrCredit: { type: String, enum: ["debit", "credit"], required: true },
   percentage: { type: Number, default: 0 },
   fixedAmount: { type: Number, default: 0 },
-  value: { type: Number, default: 0 },
   fieldLineId: { type: Number },
 
   // order specific attributes

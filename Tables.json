@@ -1,80 +1,237 @@
-[
-  {
-    "ruleId": 1,
-    "transactionType": "Expense Allocation",
-    "incrementType": "percentage",
-    "splits": [
-      {
-        "fieldLineId": 2102,
-        "fieldName": "Marketing Expenses",
-        "percentage": 35,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 1102, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      },
-      {
-        "fieldLineId": 2103,
-        "fieldName": "Establishment Expenses",
-        "percentage": 30,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 1103, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      },
-      {
-        "fieldLineId": 2106,
-        "fieldName": "Management Expenses",
-        "percentage": 35,
-        "summaryId": 1200,
-        "debitOrCredit": "debit",
-        "mirrors": [
-          { "fieldLineId": 1106, "summaryId": 1100, "debitOrCredit": "credit" }
-        ]
-      }
-    ]
-  },
-  {
-    "ruleId": 2,
-    "transactionType": "Commission Income",
-    "incrementType": "both",
-    "splits": [
-      {
-        "fieldLineId": 5201,
-        "fieldName": "Commission Income",
-        "percentage": 100,
-        "summaryId": 1700,
-        "debitOrCredit": "credit",
-        "mirrors": [
-          { "fieldLineId": 5301, "summaryId": 1500, "debitOrCredit": "debit" }
-        ]
-      },
-      {
-        "fieldLineId": 5302,
-        "fieldName": "Cash from Commission",
-        "percentage": 100,
-        "summaryId": 1700,
-        "debitOrCredit": "debit"
-      }
-    ]
-  },
-  {
-    "ruleId": 3,
-    "transactionType": "Surplus Handling",
-    "incrementType": "both",
-    "splits": [
-      {
-        "fieldLineId": 5401,
-        "fieldName": "Retained Income",
-        "percentage": 100,
-        "summaryId": 1600,
-        "debitOrCredit": "credit",
-        "mirrors": [
-          { "fieldLineId": 5101, "summaryId": 1600, "debitOrCredit": "credit" }
-        ]
-      }
-    ]
-  }
-]
+{
+  "_id": { "$oid": "68cee6da9f6641a93acc7af8" },
+  "transactionType": "retail",
+  "incrementType": "both",
+  "splits": [
+    {
+      "componentName": "Cash",
+      "type": "base",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7b10" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79ea" },
+      "debitOrCredit": "debit",
+      "percentage": 100,
+      "fixedAmount": 0,
+      "fieldLineId": 5301,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        {
+          "instanceId": { "$oid": "68cc3c0f9f6641a93acc7b10" },
+          "summaryId": { "$oid": "68bbbb6d7d078c821a3c5995" },
+          "definitionId": { "$oid": "68cc24189f6641a93acc79ea" },
+          "debitOrCredit": "credit",
+          "fallback": "none",
+          "fieldLineId": 5301
+        }
+      ]
+    },
+    {
+      "componentName": "Seller Net Receivable",
+      "type": "receivable",
+      "instanceId": { "$oid": "68ccd3f19f6641a93acc7ab8" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79ea" },
+      "debitOrCredit": "credit",
+      "percentage": 100,
+      "fixedAmount": 0,
+      "fieldLineId": 5303,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        {
+          "instanceId": { "$oid": "68ccd3f19f6641a93acc7ab8" },
+          "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" },
+          "definitionId": { "$oid": "68cc24189f6641a93acc79ea" },
+          "debitOrCredit": "debit",
+          "fallback": "none",
+          "fieldLineId": 5303
+        }
+      ]
+    },
+    {
+      "componentName": "Bank Charges",
+      "type": "deduction",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4b" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79ed" },
+      "debitOrCredit": "debit",
+      "percentage": 2,
+      "fixedAmount": 0,
+      "fieldLineId": 1128,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4b" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "definitionId": { "$oid": "68cc24189f6641a93acc79ed" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1128 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a53" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79ed" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1128 }
+      ]
+    },
+    {
+      "componentName": "Gateway Charges",
+      "type": "deduction",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4c" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79ee" },
+      "debitOrCredit": "debit",
+      "percentage": 1,
+      "fixedAmount": 0,
+      "fieldLineId": 1129,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4c" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "definitionId": { "$oid": "68cc24189f6641a93acc79ee" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1129 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a54" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79ee" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1129 }
+      ]
+    },
+    {
+      "componentName": "Postage Charges",
+      "type": "deduction",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4d" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79ef" },
+      "debitOrCredit": "debit",
+      "percentage": 1,
+      "fixedAmount": 0,
+      "fieldLineId": 1130,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4d" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "definitionId": { "$oid": "68cc24189f6641a93acc79ef" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1130 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a55" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79ef" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1130 }
+      ]
+    },
+    {
+      "componentName": "Delivery Charges",
+      "type": "deduction",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4e" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79f0" },
+      "debitOrCredit": "debit",
+      "percentage": 1,
+      "fixedAmount": 0,
+      "fieldLineId": 1131,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4e" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f0" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1131 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a56" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f0" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1131 }
+      ]
+    },
+    {
+      "componentName": "Cheque Handling Charges",
+      "type": "deduction",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4f" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79f1" },
+      "debitOrCredit": "debit",
+      "percentage": 1,
+      "fixedAmount": 0,
+      "fieldLineId": 1132,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a4f" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f1" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1132 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a57" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f1" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1132 }
+      ]
+    },
+    {
+      "componentName": "Other Instrument Charges",
+      "type": "deduction",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a50" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79f2" },
+      "debitOrCredit": "debit",
+      "percentage": 1,
+      "fixedAmount": 0,
+      "fieldLineId": 1133,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a50" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f2" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1133 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a58" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f2" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1133 }
+      ]
+    },
+    {
+      "componentName": "Transfer Fees",
+      "type": "deduction",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a51" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79f3" },
+      "debitOrCredit": "debit",
+      "percentage": 1,
+      "fixedAmount": 0,
+      "fieldLineId": 1134,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a51" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5994" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f3" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1134 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a59" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f3" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1134 }
+      ]
+    }
+  ]
+
+    {
+      "componentName": "Sales Tax",
+      "type": "tax",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a60" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79f4" },
+      "debitOrCredit": "debit",
+      "percentage": 5,
+      "fixedAmount": 0,
+      "fieldLineId": 1135,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a60" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f4" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1135 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a61" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f4" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1135 }
+      ]
+    },
+    {
+      "componentName": "Excise Tax",
+      "type": "tax",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a62" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79f5" },
+      "debitOrCredit": "debit",
+      "percentage": 3,
+      "fixedAmount": 0,
+      "fieldLineId": 1136,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a62" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f5" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1136 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a63" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f5" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1136 }
+      ]
+    },
+    {
+      "componentName": "Central Excise Duty",
+      "type": "tax",
+      "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a64" },
+      "summaryId": { "$oid": "68c295aa0c44d253dc1e06ff" },
+      "definitionId": { "$oid": "68cc24189f6641a93acc79f6" },
+      "debitOrCredit": "debit",
+      "percentage": 2,
+      "fixedAmount": 0,
+      "fieldLineId": 1137,
+      "isActual": false,
+      "perTransaction": true,
+      "periodicity": "none",
+      "mirrors": [
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a64" }, "summaryId": { "$oid": "68bbbb6d7d078c821a3c5996" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f6" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1137 },
+        { "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a65" }, "summaryId": { "$oid": "68c295aa0c44d253dc1e0701" }, "definitionId": { "$oid": "68cc24189f6641a93acc79f6" }, "debitOrCredit": "credit", "fallback": "none", "fieldLineId": 1137 }
+      ]
+    }
+  ]
+}

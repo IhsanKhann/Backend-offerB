@@ -39,13 +39,18 @@ const TransactionTestPanel = () => {
       buyerId: DEMO.buyers[type],
       orderId: DEMO.orders[type],
       orderAmount: customAmount,
+      actualAmount: customAmount,
     };
 
     console.log("➡️ Sending payload:", payload);
 
     try {
       const resp = await api.post("/transactions/order-process", payload);
-      setLastResponse({ type, data: resp.data });
+      setLastResponse({
+        type,
+        sentAmount: customAmount, // ✅ include the amount you sent
+        data: resp.data,
+      });
       setError(null);
     } catch (err) {
       console.error("❌ Axios error:", err);
