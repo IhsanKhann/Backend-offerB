@@ -22,6 +22,9 @@ import SalaryDashboard from "./Pages/Finance/SalaryDashboard.jsx";
 import BreakupSummary from "./Pages/Finance/BreakupSummary.jsx";
 import SalaryRulesTable from "./Pages/Finance/SalaryRules.jsx";
 import TransactionTestPage from "./Pages/Finance/Testing.jsx";
+import SellerDashboard from "./Pages/Finance/SellerDashboard.jsx";
+import BuyerBreakupSummary from "./Pages/Finance/BuyerBreakup.jsx";
+import BusinessTables from "./Pages/Finance/BussinessTable.jsx";
 
 import "./index.css";
 import store from "./store/store.jsx";
@@ -172,6 +175,30 @@ const router = createBrowserRouter([
    element: (
      <ProtectedRoute>
        <TransactionTestPage />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/sellerDashboard",
+   element: (
+     <ProtectedRoute>
+       <SellerDashboard />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/buyer-breakup/:buyerId",
+   element: (
+     <ProtectedRoute>
+       <BuyerBreakupSummary />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/BussinessBreakupTables",
+   element: (
+     <ProtectedRoute>
+       <BusinessTables />
      </ProtectedRoute> 
    ),
   },

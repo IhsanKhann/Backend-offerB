@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Sidebar from "../../components/Sidebar.jsx";
 import api from "../../api/axios.js";
-import { FaDollarSign, FaMoneyBillWave, FaFileInvoiceDollar, FaTachometerAlt } from "react-icons/fa";
+import { FaDollarSign, FaMoneyBillWave, FaFileInvoiceDollar, FaTachometerAlt, FaUndo, FaExchangeAlt } from "react-icons/fa";
 
 // Loader
 const Loader = () => (
@@ -23,8 +23,26 @@ const counterMap = {
   Salary: "Cash",
 };
 
+// Transaction Type Badge
+const TransactionTypeBadge = ({ type, isReturn }) => {
+  if (isReturn) {
+    return <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">Return</span>;
+  }
+  return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">{type || 'Order'}</span>;
+};
+
+// Balance Display Component
+const BalanceDisplay = ({ label, amount, isReturn = false }) => (
+  <div className={`p-3 rounded-lg border ${isReturn ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
+    <div className="text-sm font-medium text-gray-600">{label}</div>
+    <div className={`text-lg font-bold ${isReturn ? 'text-red-700' : 'text-blue-700'}`}>
+      {formatCurrency(amount)}
+    </div>
+  </div>
+);
+
 // ----------------- Finance Controls -----------------
-const FinanceControls = ({ fetchAll, setMessage, balances }) => {
+const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
   const [cash, setCash] = useState("");
   const [capital, setCapital] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
@@ -96,12 +114,20 @@ const FinanceControls = ({ fetchAll, setMessage, balances }) => {
     <div className="p-6 mb-6 bg-gray-50 rounded-xl shadow-md border border-gray-200 relative">
       <h2 className="text-xl font-bold text-gray-800">Finance Controls</h2>
 
-      <button
-        onClick={handleReset}
-        className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-semibold shadow transition-all"
-      >
-        Reset
-      </button>
+      <div className="absolute top-4 right-4 flex gap-2">
+        <button
+          onClick={onShowReturns}
+          className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-md text-xs font-semibold shadow transition-all flex items-center gap-1"
+        >
+          <FaUndo className="text-xs" /> View Returns
+        </button>
+        <button
+          onClick={handleReset}
+          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-semibold shadow transition-all"
+        >
+          Reset All
+        </button>
+      </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
         {/* Initial Balances */}
@@ -207,28 +233,28 @@ const FinanceControls = ({ fetchAll, setMessage, balances }) => {
           </button>
         </div>
 
-       {/* Retained → Capital */}
-<div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col gap-2">
-  <div className="flex items-center gap-2 text-gray-700 font-semibold">
-    <FaDollarSign /> Retained → Capital
-  </div>
-  <button
-    onClick={() => handleTransaction("retainedToCapital")}
-    disabled={balances?.retained === 0} // allow negative or positive
-    className={`px-4 py-2 rounded font-semibold transition-all ${
-      balances?.retained !== 0
-        ? "bg-teal-500 hover:bg-teal-600 text-white"
-        : "bg-gray-300 text-gray-600 cursor-not-allowed"
-    }`}
-  >
-    Transfer
-  </button>
-  {balances?.retained !== 0 && (
-    <div className="text-xs text-gray-500 mt-1">
-      {`Available: ${formatCurrency(Math.abs(balances.retained))}`}
-    </div>
-  )}
-</div>
+        {/* Retained → Capital */}
+        <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-gray-700 font-semibold">
+            <FaExchangeAlt /> Retained → Capital
+          </div>
+          <button
+            onClick={() => handleTransaction("retainedToCapital")}
+            disabled={balances?.retained === 0}
+            className={`px-4 py-2 rounded font-semibold transition-all ${
+              balances?.retained !== 0
+                ? "bg-teal-500 hover:bg-teal-600 text-white"
+                : "bg-gray-300 text-gray-600 cursor-not-allowed"
+            }`}
+          >
+            Transfer
+          </button>
+          {balances?.retained !== 0 && (
+            <div className="text-xs text-gray-500 mt-1">
+              {`Available: ${formatCurrency(Math.abs(balances.retained))}`}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -240,11 +266,14 @@ export default function SummaryManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState("");
+  const [showReturns, setShowReturns] = useState(false);
+  const [returnData, setReturnData] = useState([]);
 
   const [balances, setBalances] = useState({
     commission: 0,
     retained: 0,
     capital: 0,
+    netPosition: 0,
   });
 
   const fetchAll = useCallback(async () => {
@@ -265,36 +294,58 @@ export default function SummaryManager() {
       }));
 
       // set balances
-      let commission = 0,
-        retained = 0,
-        capital = 0;
+      let commission = 0, retained = 0, capital = 0, netPosition = 0;
       normalized.forEach((s) => {
         s.fieldLines.forEach((fl) => {
           if (fl.fieldLineNumericId === 5301) commission += fl.balance || 0;
           if (fl.fieldLineNumericId === 5401) retained += fl.balance || 0;
           if (fl.fieldLineNumericId === 5101) capital += fl.balance || 0;
+          netPosition += fl.balance || 0;
         });
       });
 
-      setBalances({ commission, retained, capital });
+      setBalances({ commission, retained, capital, netPosition });
       setSummaries(normalized);
+
+      // Fetch return data if showing returns
+      if (showReturns) {
+        await fetchReturnData();
+      }
     } catch (err) {
       console.error("Failed to fetch summaries", err);
       setError("Failed to load data");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showReturns]);
+
+  const fetchReturnData = async () => {
+    try {
+      const res = await api.get("/transactions/returns");
+      setReturnData(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch return data", err);
+      setReturnData([]);
+    }
+  };
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  const toggleReturnsView = () => {
+    setShowReturns(!showReturns);
+    if (!showReturns) {
+      fetchReturnData();
+    }
+  };
 
   const navItems = [
     { name: "Salary Dashboard", path: "/salary-dashboard", icon: <FaTachometerAlt /> },
     { name: "All Summaries", path: "/summary-table", icon: <FaFileInvoiceDollar /> },
     { name: "Expense Manager", path: "/expense-manager", icon: <FaMoneyBillWave /> },
     { name: "Rules / Breakups", path: "/rules", icon: <FaDollarSign /> },
+    { name: "Transaction Test", path: "/transaction-test", icon: <FaExchangeAlt /> },
   ];
 
   if (loading) return <Loader />;
@@ -308,80 +359,171 @@ export default function SummaryManager() {
 
       <main className="flex-1 p-6 space-y-6">
         <header className="flex items-center justify-between">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Account Summaries</h1>
-          <button
-            onClick={fetchAll}
-            className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors"
-          >
-            Refresh
-          </button>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+            {showReturns ? "Return Transactions" : "Account Summaries"}
+          </h1>
+          <div className="flex gap-2">
+            <button
+              onClick={toggleReturnsView}
+              className={`px-4 py-2 rounded font-semibold transition-all ${
+                showReturns 
+                  ? "bg-gray-600 hover:bg-gray-700 text-white" 
+                  : "bg-purple-600 hover:bg-purple-700 text-white"
+              }`}
+            >
+              {showReturns ? "Show Summaries" : "Show Returns"}
+            </button>
+            <button
+              onClick={fetchAll}
+              className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
         </header>
 
-        <FinanceControls fetchAll={fetchAll} setMessage={setMessage} balances={balances} />
+        <FinanceControls 
+          fetchAll={fetchAll} 
+          setMessage={setMessage} 
+          balances={balances}
+          onShowReturns={toggleReturnsView}
+        />
 
         {message && <div className="text-sm text-gray-600 font-medium">{message}</div>}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {summaries.map((summary) => (
-            <section
-              key={summary._id}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-            >
-              <div className="p-5 border-b flex justify-between items-start">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-800">{summary.name}</h2>
-                  <div className="text-xs text-gray-500 mt-0.5">Code: {summary.summaryId}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500">Start</div>
-                  <div className="font-semibold text-blue-700">{formatCurrency(summary.startingBalance)}</div>
-                  <div className="text-xs text-gray-500 mt-1">End</div>
-                  <div className="font-bold text-gray-800">{formatCurrency(summary.endingBalance)}</div>
-                </div>
-              </div>
-
-              <div className="p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="font-medium text-sm text-gray-700">Entries (Debit / Credit)</h3>
-                </div>
-
-                {summary.fieldLines?.length ? (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="p-2 text-left text-xs text-gray-500">Field Line</th>
-                          <th className="p-2 text-left text-xs text-gray-500">Balance</th>
-                          <th className="p-2 text-left text-xs text-gray-500">Debit</th>
-                          <th className="p-2 text-left text-xs text-gray-500">Credit</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {summary.fieldLines.map((line, idx) => (
-                          <tr key={`${summary._id}-${line.fieldLineNumericId}-${idx}`} className="border-b last:border-b-0">
-                            <td className="p-2 font-medium text-gray-700">
-                              {line.name}
-                              {counterMap[summary.name] && (
-                                <span className="ml-2 text-xs text-gray-500 italic">↔ {counterMap[summary.name]}</span>
-                              )}
-                            </td>
-                            <td className="p-2 font-semibold text-blue-700">{formatCurrency(line.balance)}</td>
-                            <td className="p-2 align-top">{line.balance > 0 ? formatCurrency(line.balance) : "—"}</td>
-                            <td className="p-2 align-top">{line.balance < 0 ? formatCurrency(Math.abs(line.balance)) : "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-xs text-gray-400 italic">No field lines for this summary.</div>
-                )}
-              </div>
-            </section>
-          ))}
+        {/* Net Position Display */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <BalanceDisplay label="Commission Balance" amount={balances.commission} />
+          <BalanceDisplay label="Retained Earnings" amount={balances.retained} />
+          <BalanceDisplay label="Capital" amount={balances.capital} />
+          <BalanceDisplay 
+            label="Net Position" 
+            amount={balances.netPosition} 
+            isReturn={balances.netPosition < 0}
+          />
         </div>
+
+        {showReturns ? (
+          /* Returns View */
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-800">Return Transactions</h2>
+              <p className="text-sm text-gray-600 mt-1">All processed returns and their effects</p>
+            </div>
+            
+            <div className="p-6">
+              {returnData.length > 0 ? (
+                <div className="space-y-4">
+                  {returnData.map((returnItem, index) => (
+                    <div key={index} className="border border-red-200 rounded-lg p-4 bg-red-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-red-800">
+                            Return for Order: {returnItem.orderId}
+                          </h3>
+                          <p className="text-sm text-red-600">
+                            Amount: {formatCurrency(returnItem.amount)} | 
+                            Date: {new Date(returnItem.returnDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <TransactionTypeBadge isReturn={true} />
+                      </div>
+                      
+                      {returnItem.lines && returnItem.lines.length > 0 && (
+                        <div className="mt-3 text-sm">
+                          <h4 className="font-medium text-red-700">Reversal Entries:</h4>
+                          <ul className="mt-1 space-y-1">
+                            {returnItem.lines.slice(0, 3).map((line, idx) => (
+                              <li key={idx} className="text-red-600">
+                                {line.componentName}: {formatCurrency(line.value)} ({line.debitOrCredit})
+                              </li>
+                            ))}
+                            {returnItem.lines.length > 3 && (
+                              <li className="text-red-500 italic">
+                                +{returnItem.lines.length - 3} more entries...
+                              </li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FaUndo className="text-4xl mx-auto mb-3 text-gray-300" />
+                  <p>No return transactions found</p>
+                  <p className="text-sm">Returns will appear here when processed</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Summaries View */
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {summaries.map((summary) => (
+              <section
+                key={summary._id}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+              >
+                <div className="p-5 border-b flex justify-between items-start">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-800">{summary.name}</h2>
+                    <div className="text-xs text-gray-500 mt-0.5">Code: {summary.summaryId}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500">Start</div>
+                    <div className="font-semibold text-blue-700">{formatCurrency(summary.startingBalance)}</div>
+                    <div className="text-xs text-gray-500 mt-1">End</div>
+                    <div className="font-bold text-gray-800">{formatCurrency(summary.endingBalance)}</div>
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="font-medium text-sm text-gray-700">Entries (Debit / Credit)</h3>
+                    {summary.breakupType === 'return' && (
+                      <TransactionTypeBadge isReturn={true} />
+                    )}
+                  </div>
+
+                  {summary.fieldLines?.length ? (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="p-2 text-left text-xs text-gray-500">Field Line</th>
+                            <th className="p-2 text-left text-xs text-gray-500">Balance</th>
+                            <th className="p-2 text-left text-xs text-gray-500">Debit</th>
+                            <th className="p-2 text-left text-xs text-gray-500">Credit</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {summary.fieldLines.map((line, idx) => (
+                            <tr key={`${summary._id}-${line.fieldLineNumericId}-${idx}`} className="border-b last:border-b-0">
+                              <td className="p-2 font-medium text-gray-700">
+                                {line.name}
+                                {counterMap[summary.name] && (
+                                  <span className="ml-2 text-xs text-gray-500 italic">↔ {counterMap[summary.name]}</span>
+                                )}
+                              </td>
+                              <td className="p-2 font-semibold text-blue-700">{formatCurrency(line.balance)}</td>
+                              <td className="p-2 align-top">{line.balance > 0 ? formatCurrency(line.balance) : "—"}</td>
+                              <td className="p-2 align-top">{line.balance < 0 ? formatCurrency(Math.abs(line.balance)) : "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-400 italic">No field lines for this summary.</div>
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
 }
-

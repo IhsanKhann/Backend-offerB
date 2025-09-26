@@ -1,6 +1,24 @@
 import express from "express";
 import mongoose from "mongoose";
 import RuleModel from "../../models/FinanceModals/TablesModel.js";
+
+import {
+  getBreakupRules,
+  getBreakupRuleById,
+  createBusinessBreakupRule,
+  updateBreakupRule,
+  deleteBreakupRule,
+
+  addSplit,
+  updateSplit,
+  deleteSplit,
+  
+  addMirror,
+  updateMirror,
+  deleteMirror,
+} from "../../contollers/FinanceControllers/BreakupRulesControllers.js";
+
+// ---------------- Controllers ----------------
 import {
   getAllSummaries,
   summariesGetWithFieldLines,
@@ -24,8 +42,6 @@ import {
   getSingleSalaryRole,
   createBreakupFile,
   getBreakupFile,
-  createBreakupRule,
-  getBreakupRules,
 } from "../../contollers/FinanceControllers/SalaryController.js";
 
 import {
@@ -36,28 +52,17 @@ import {
 } from "../../contollers/FinanceControllers/TablesControllers.js";
 
 import { authenticate } from "../../middlewares/authMiddlewares.js";
-
 const router = express.Router();
 
+// ---------------------- Rules --------------------
 router.get("/rulesInstances", fetchRulesForFrontend);
-/** ---------------------- Summaries -------------------- */
-router.get("/", getAllSummaries);
-router.get("/definitions", summariesCreateDefinition);
-router.get("/with-fieldlines", summariesGetWithFieldLines);
-router.get("/fieldlines", summariesGetAllFieldLines);
 router.get("/fieldlines/definitions", getAllFieldLineDefinitions);
-router.get("/:summaryId", getSummaryById);
-
-router.post("/reset", summariesReset);
-router.post("/init-capital-cash", summariesInitCapitalCash);
-
-/** ---------------------- Rules -------------------- */
 
 router.post("/rules", createRule);
 router.put("/rules/:ruleId", updateRule);
 router.delete("/rules/:ruleId", deleteRule);
 
-/** Delete Split */
+// Split / Mirror
 router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
   const { ruleId, splitIdx } = req.params;
   try {
@@ -73,7 +78,6 @@ router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
   }
 });
 
-/** Delete Mirror */
 router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, res) => {
   const { ruleId, splitIdx, mirrorIdx } = req.params;
   try {
@@ -89,7 +93,6 @@ router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, 
   }
 });
 
-/** Add Split */
 router.post("/rules/:ruleId/splits", async (req, res) => {
   const { ruleId } = req.params;
   const splitData = req.body;
@@ -112,7 +115,6 @@ router.post("/rules/:ruleId/splits", async (req, res) => {
   }
 });
 
-/** Add Mirror */
 router.post("/rules/:ruleId/splits/:splitIdx/mirrors", async (req, res) => {
   const { ruleId, splitIdx } = req.params;
   const mirrorData = req.body;
@@ -134,19 +136,44 @@ router.post("/rules/:ruleId/splits/:splitIdx/mirrors", async (req, res) => {
   }
 });
 
-/** ---------------------- Salary / Breakup -------------------- */
+// ---------------------- Summaries --------------------
+router.get("/", getAllSummaries);
+router.get("/definitions", summariesCreateDefinition);
+router.get("/with-fieldlines", summariesGetWithFieldLines);
+router.get("/fieldlines", summariesGetAllFieldLines);
+router.get("/:summaryId", getSummaryById);
+
+router.post("/reset", summariesReset);
+router.post("/init-capital-cash", summariesInitCapitalCash);
+
+// ---------------------- Salary --------------------
 router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
 router.get("/salary/role/:roleName", getSingleSalaryRole);
 router.post("/salary/breakup/:employeeId", createBreakupFile);
 router.get("/salary/breakup/:employeeId", getBreakupFile);
-router.post("/salary/createBreakupRule", createBreakupRule);
-router.get("/salary/getBreakupRules", getBreakupRules);
 
-/** Salary rules table */
+// ---------------------- Salary Rules Table --------------------
 router.get("/salarytable/all", getAllSalaryRules);
 router.get("/salarytable/:roleId", getSalaryRulesByRole);
 router.put("/salarytable/:roleId", updateSalaryRules);
 router.post("/salarytable", createRoleWithSalaryRules);
+
+// ---------------------- Breakup Rules --------------------
+router.get("/breakupRules", getBreakupRules);
+router.get("/breakupRules/:id", getBreakupRuleById);
+router.post("/breakupRules", createBusinessBreakupRule);
+router.put("/breakupRules/:id", updateBreakupRule);
+router.delete("/breakupRules/:id", deleteBreakupRule);
+
+// ---------------------- Splits --------------------
+router.post("/breakupRules/:id/splits", addSplit);
+router.put("/breakupRules/:id/splits/:splitId", updateSplit);
+router.delete("/breakupRules/:id/splits/:splitId", deleteSplit);
+
+// ---------------------- Mirrors --------------------
+router.post("/breakupRules/:id/splits/:splitId/mirrors", addMirror);
+router.put("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", updateMirror);
+router.delete("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", deleteMirror);
 
 router.use(authenticate);
 export default router;
