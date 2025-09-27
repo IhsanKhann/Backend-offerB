@@ -8,17 +8,14 @@ import {
   createBusinessBreakupRule,
   updateBreakupRule,
   deleteBreakupRule,
-
   addSplit,
   updateSplit,
   deleteSplit,
-  
   addMirror,
   updateMirror,
   deleteMirror,
 } from "../../contollers/FinanceControllers/BreakupRulesControllers.js";
 
-// ---------------- Controllers ----------------
 import {
   getAllSummaries,
   summariesGetWithFieldLines,
@@ -54,6 +51,11 @@ import {
 import { authenticate } from "../../middlewares/authMiddlewares.js";
 const router = express.Router();
 
+// Apply authentication to all routes
+router.use(authenticate);
+
+// ---------------------- Static Routes (Most Specific First) --------------------
+
 // ---------------------- Rules --------------------
 router.get("/rulesInstances", fetchRulesForFrontend);
 router.get("/fieldlines/definitions", getAllFieldLineDefinitions);
@@ -62,37 +64,7 @@ router.post("/rules", createRule);
 router.put("/rules/:ruleId", updateRule);
 router.delete("/rules/:ruleId", deleteRule);
 
-// Split / Mirror
-router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
-  const { ruleId, splitIdx } = req.params;
-  try {
-    const rule = await RuleModel.findById(ruleId);
-    if (!rule) return res.status(404).json({ message: "Rule not found" });
-
-    rule.splits.splice(Number(splitIdx), 1);
-    await rule.save();
-    res.status(200).json({ message: "Split deleted successfully!" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error deleting split" });
-  }
-});
-
-router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, res) => {
-  const { ruleId, splitIdx, mirrorIdx } = req.params;
-  try {
-    const rule = await RuleModel.findById(ruleId);
-    if (!rule) return res.status(404).json({ message: "Rule not found" });
-
-    rule.splits[Number(splitIdx)].mirrors.splice(Number(mirrorIdx), 1);
-    await rule.save();
-    res.status(200).json({ message: "Mirror deleted successfully!" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error deleting mirror" });
-  }
-});
-
+// Split / Mirror operations
 router.post("/rules/:ruleId/splits", async (req, res) => {
   const { ruleId } = req.params;
   const splitData = req.body;
@@ -112,6 +84,21 @@ router.post("/rules/:ruleId/splits", async (req, res) => {
   } catch (err) {
     console.error("[Add Split Error]", err);
     res.status(500).json({ message: "Error adding split" });
+  }
+});
+
+router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
+  const { ruleId, splitIdx } = req.params;
+  try {
+    const rule = await RuleModel.findById(ruleId);
+    if (!rule) return res.status(404).json({ message: "Rule not found" });
+
+    rule.splits.splice(Number(splitIdx), 1);
+    await rule.save();
+    res.status(200).json({ message: "Split deleted successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error deleting split" });
   }
 });
 
@@ -136,17 +123,22 @@ router.post("/rules/:ruleId/splits/:splitIdx/mirrors", async (req, res) => {
   }
 });
 
-// ---------------------- Summaries --------------------
-router.get("/", getAllSummaries);
-router.get("/definitions", summariesCreateDefinition);
-router.get("/with-fieldlines", summariesGetWithFieldLines);
-router.get("/fieldlines", summariesGetAllFieldLines);
-router.get("/:summaryId", getSummaryById);
+router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, res) => {
+  const { ruleId, splitIdx, mirrorIdx } = req.params;
+  try {
+    const rule = await RuleModel.findById(ruleId);
+    if (!rule) return res.status(404).json({ message: "Rule not found" });
 
-router.post("/reset", summariesReset);
-router.post("/init-capital-cash", summariesInitCapitalCash);
+    rule.splits[Number(splitIdx)].mirrors.splice(Number(mirrorIdx), 1);
+    await rule.save();
+    res.status(200).json({ message: "Mirror deleted successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error deleting mirror" });
+  }
+});
 
-// ---------------------- Salary --------------------
+// ---------------------- Salary Routes --------------------
 router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
 router.get("/salary/role/:roleName", getSingleSalaryRole);
 router.post("/salary/breakup/:employeeId", createBreakupFile);
@@ -175,5 +167,16 @@ router.post("/breakupRules/:id/splits/:splitId/mirrors", addMirror);
 router.put("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", updateMirror);
 router.delete("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", deleteMirror);
 
-router.use(authenticate);
+// ---------------------- Summaries (Keep these LAST) --------------------
+router.get("/", getAllSummaries);
+router.get("/definitions", summariesCreateDefinition);
+router.get("/with-fieldlines", summariesGetWithFieldLines);
+router.get("/fieldlines", summariesGetAllFieldLines);
+
+// This dynamic route should be LAST to avoid catching other routes
+router.get("/:summaryId", getSummaryById);
+
+router.post("/reset", summariesReset);
+router.post("/init-capital-cash", summariesInitCapitalCash);
+
 export default router;

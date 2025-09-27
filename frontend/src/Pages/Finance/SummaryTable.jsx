@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import Sidebar from "../../components/Sidebar.jsx";
 import api from "../../api/axios.js";
 import { FaDollarSign, FaMoneyBillWave, FaFileInvoiceDollar, FaTachometerAlt, FaUndo, FaExchangeAlt } from "react-icons/fa";
+import { Table, SplitSquareVertical } from "lucide-react";
 
 // Loader
 const Loader = () => (
@@ -341,12 +342,13 @@ export default function SummaryManager() {
   };
 
   const navItems = [
-    { name: "Salary Dashboard", path: "/salary-dashboard", icon: <FaTachometerAlt /> },
-    { name: "All Summaries", path: "/summary-table", icon: <FaFileInvoiceDollar /> },
-    { name: "Expense Manager", path: "/expense-manager", icon: <FaMoneyBillWave /> },
-    { name: "Rules / Breakups", path: "/rules", icon: <FaDollarSign /> },
-    { name: "Transaction Test", path: "/transaction-test", icon: <FaExchangeAlt /> },
-  ];
+    { name: "Salary Dashboard", path: "/salary-dashboard"},
+    { name: "All Summaries", path: "/summary-table"},
+    { name: "Non-Business Tables", path: "/tables" },
+    { name: "Business Breakup Tables", path: "/BussinessBreakupTables" },
+    { name: "Salary Rules", path: "/salary/rulesTable" },
+    { name: "Testing", path: "/paymentDashboard"},
+];
 
   if (loading) return <Loader />;
   if (error) return <div className="p-6 text-red-600">{error}</div>;

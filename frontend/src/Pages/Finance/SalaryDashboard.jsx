@@ -49,8 +49,8 @@ const SalaryDashboard = () => {
   const navItems = [
     { name: "Salary Dashboard", path: "/salary-dashboard" },
     { name: "All Summaries", path: "/summary-table" },
-    { name: "Salary Table", path: "/salary/rulesTable" },
     { name: "All Tables", path: "/tables" },
+    { name: "Testing", path: "/paymentDashboard"},
   ];
 
   return (
