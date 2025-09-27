@@ -82,6 +82,16 @@ function HomePage() {
     },
   ];
 
+  // Finance Division cards
+  const financeCards = [
+    {
+      title: "Salary Dashboard",
+      desc: "View and manage employee salaries",
+      onClick: () => navigate("/salary-dashboard"),
+      color: "bg-gradient-to-r from-teal-500 to-teal-600",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       {/* Top Header */}
@@ -112,8 +122,8 @@ function HomePage() {
         </button>
       </div>
 
-      {/* Dashboard Cards */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* General Dashboard Cards */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {cards.map((card, index) => (
             <div
@@ -125,6 +135,24 @@ function HomePage() {
                 {card.icon && card.icon}
                 <h2 className="text-xl font-semibold">{card.title}</h2>
               </div>
+              <p className="text-sm opacity-90">{card.desc}</p>
+              <div className="mt-4 text-sm font-medium opacity-90">→ Click to open</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Finance Division */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Finance Division</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {financeCards.map((card, index) => (
+            <div
+              key={index}
+              onClick={card.onClick}
+              className={`cursor-pointer ${card.color} text-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between`}
+            >
+              <h2 className="text-xl font-semibold mb-2">{card.title}</h2>
               <p className="text-sm opacity-90">{card.desc}</p>
               <div className="mt-4 text-sm font-medium opacity-90">→ Click to open</div>
             </div>
