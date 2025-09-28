@@ -42,6 +42,7 @@ SplitSchema.index({ componentName: 1, summaryId: 1, definitionId: 1 }, { unique:
 const BreakupRuleSchema = new mongoose.Schema({
   transactionType: { type: String, required: true },
   incrementType: { type: String, enum: ["fixed", "percentage", "both"], default: "both" },
+  category: { type: String, enum: ["business", "order", "tax"], default: "business" }, 
   splits: [SplitSchema],
 }, { timestamps: true });
 

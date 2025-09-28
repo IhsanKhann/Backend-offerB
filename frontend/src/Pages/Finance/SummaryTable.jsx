@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import Sidebar from "../../components/Sidebar.jsx";
 import api from "../../api/axios.js";
-import { FaDollarSign, FaMoneyBillWave, FaFileInvoiceDollar, FaTachometerAlt, FaUndo, FaExchangeAlt } from "react-icons/fa";
+import FieldLineManager from "../../components/Enteries.jsx";
+import { FaDollarSign, FaMoneyBillWave, FaFileInvoiceDollar, FaTachometerAlt, FaUndo, FaExchangeAlt ,FaPlus} from "react-icons/fa";
 import { Table, SplitSquareVertical } from "lucide-react";
 
 // Loader
@@ -50,7 +51,7 @@ const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
   const [expenseName, setExpenseName] = useState("");
   const [commissionAmount, setCommissionAmount] = useState("");
   const [commissionDesc, setCommissionDesc] = useState("");
-
+  
   const handleReset = async () => {
     try {
       const res = await api.post("/summaries/reset");
@@ -270,12 +271,94 @@ export default function SummaryManager() {
   const [showReturns, setShowReturns] = useState(false);
   const [returnData, setReturnData] = useState([]);
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newSummary, setNewSummary] = useState({
+    summaryId: "",
+    name: "",
+    accountType: "asset",
+    parentId: "",
+    startingBalance: 0,
+  });
+
   const [balances, setBalances] = useState({
     commission: 0,
     retained: 0,
     capital: 0,
     netPosition: 0,
   });
+
+  const [summaryOptions, setSummaryOptions] = useState([]);
+  const [selectedSummary, setSelectedSummary] = useState("");
+
+  // Fetch summaries from backend with better error handling
+  const fetchSummaryOptions = async () => {
+    try {
+      const res = await api.get("/summaries");
+      console.log("Summary options response:", res.data); // Debug log
+      
+      // Handle different response structures
+      let options = [];
+      if (Array.isArray(res.data)) {
+        options = res.data;
+      } else if (res.data && Array.isArray(res.data.data)) {
+        options = res.data.data;
+      } else if (res.data && Array.isArray(res.data.summaries)) {
+        options = res.data.summaries;
+      } else {
+        console.warn("Unexpected response structure:", res.data);
+        options = [];
+      }
+      
+      setSummaryOptions(options);
+    } catch (err) {
+      console.error("Failed to fetch summaries", err);
+      setSummaryOptions([]); // Ensure it's always an array
+    }
+  };
+
+  // Call this once when component mounts
+  useEffect(() => {
+    fetchSummaryOptions();
+  }, []);
+
+const handleDeleteSelected = async () => {
+  if (!selectedSummary) return alert("Select a summary first");
+  if (!window.confirm("Are you sure you want to delete this summary?")) return;
+
+  try {
+    // Send the MongoDB _id directly
+    const res = await api.post("/summaries/delete", { summaryId: selectedSummary });
+    setMessage(res.data.message || "Summary deleted successfully ✅");
+    setSelectedSummary("");
+    fetchAll();           // refresh summaries display
+    fetchSummaryOptions(); // refresh dropdown
+  } catch (err) {
+    console.error("Delete failed:", err);
+    setMessage("Error deleting summary: " + (err.response?.data?.error || err.message));
+  }
+};
+
+  // ----------------- Create Summary -----------------
+  const handleCreateSummary = async () => {
+    try {
+      const payload = {
+        summaryId: Number(newSummary.summaryId),
+        name: newSummary.name,
+        accountType: newSummary.accountType,
+        parentId: newSummary.parentId ? Number(newSummary.parentId) : null,
+        startingBalance: Number(newSummary.startingBalance),
+      };
+
+      const res = await api.post("/summaries/create", payload);
+      setMessage(res.data.message || "Summary created successfully ✅");
+      setShowCreateModal(false);
+      setNewSummary({ summaryId: "", name: "", accountType: "asset", parentId: "", startingBalance: 0 });
+      fetchAll();
+    } catch (err) {
+      console.error("Create summary failed:", err);
+      setMessage("Error creating summary: " + (err.response?.data?.message || err.message));
+    }
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -348,10 +431,13 @@ export default function SummaryManager() {
     { name: "Business Breakup Tables", path: "/BussinessBreakupTables" },
     { name: "Salary Rules", path: "/salary/rulesTable" },
     { name: "Testing", path: "/paymentDashboard"},
-];
+  ];
 
   if (loading) return <Loader />;
   if (error) return <div className="p-6 text-red-600">{error}</div>;
+
+  // Safe array check before mapping
+  const safeSummaryOptions = Array.isArray(summaryOptions) ? summaryOptions : [];
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -376,14 +462,47 @@ export default function SummaryManager() {
               {showReturns ? "Show Summaries" : "Show Returns"}
             </button>
             <button
-              onClick={fetchAll}
-              className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors"
+              onClick={() => setShowCreateModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center gap-1"
             >
-              Refresh
+              <FaPlus /> Add Summary
             </button>
           </div>
         </header>
 
+        {/* Delete Summary Section */}
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+          <h2 className="text-lg font-bold text-gray-800 mb-3">Delete Summary</h2>
+          <div className="flex gap-3 items-center flex-wrap">
+            <select
+              value={selectedSummary}
+              onChange={(e) => setSelectedSummary(e.target.value)}
+              className="border p-2 rounded w-60"
+            >
+              <option value="">-- Select Summary --</option>
+              {safeSummaryOptions.map((s) => (
+                <option key={s._id} value={s._id}>
+                  {s.name || "Unnamed"}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleDeleteSelected}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-semibold text-sm"
+            >
+              Delete
+            </button>
+            <button
+              onClick={fetchSummaryOptions}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold text-sm"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <FieldLineManager summaries={summaryOptions} fetchAll={fetchAll} />
+        
         <FinanceControls 
           fetchAll={fetchAll} 
           setMessage={setMessage} 
@@ -392,6 +511,70 @@ export default function SummaryManager() {
         />
 
         {message && <div className="text-sm text-gray-600 font-medium">{message}</div>}
+
+        {/* ----------- Create Summary Modal ----------- */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-lg">
+              <h2 className="text-xl font-bold mb-4">Create New Summary</h2>
+              <div className="flex flex-col gap-3">
+                <input
+                  type="number"
+                  placeholder="Summary ID"
+                  value={newSummary.summaryId}
+                  onChange={(e) => setNewSummary({ ...newSummary, summaryId: e.target.value })}
+                  className="border p-2 rounded w-full"
+                />
+                <input
+                  type="text"
+                  placeholder="Name"
+                  value={newSummary.name}
+                  onChange={(e) => setNewSummary({ ...newSummary, name: e.target.value })}
+                  className="border p-2 rounded w-full"
+                />
+                <select
+                  value={newSummary.accountType}
+                  onChange={(e) => setNewSummary({ ...newSummary, accountType: e.target.value })}
+                  className="border p-2 rounded w-full"
+                >
+                  <option value="asset">Asset</option>
+                  <option value="liability">Liability</option>
+                  <option value="income">Income</option>
+                  <option value="expense">Expense</option>
+                  <option value="equity">Equity</option>
+                </select>
+                <input
+                  type="number"
+                  placeholder="Parent ID (optional)"
+                  value={newSummary.parentId}
+                  onChange={(e) => setNewSummary({ ...newSummary, parentId: e.target.value })}
+                  className="border p-2 rounded w-full"
+                />
+                <input
+                  type="number"
+                  placeholder="Starting Balance"
+                  value={newSummary.startingBalance}
+                  onChange={(e) => setNewSummary({ ...newSummary, startingBalance: e.target.value })}
+                  className="border p-2 rounded w-full"
+                />
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateSummary}
+                    className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Net Position Display */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

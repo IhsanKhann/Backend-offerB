@@ -1,84 +1,106 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import api from "../../api/axios.js";
 import { useNavigate } from "react-router-dom";
 
-const DEMO = {
-  sellers: {
-    retail: "68ceed009f6641a93acc7b00",
-    wholesale: "68ceed009f6641a93acc7b01",
-    auction: "68ceed009f6641a93acc7b00",
-    service: "68ceed009f6641a93acc7b01",
-  },
-  buyers: {
-    retail: "68ceed409f6641a93acc7b05",
-    wholesale: "68ceed409f6641a93acc7b06",
-    auction: "68ceed409f6641a93acc7b05",
-    service: "68ceed409f6641a93acc7b06",
-  },
-  orders: {
-    retail: [
-      { id: "68cef0409f6641a93acc7c10", name: "Retail Order 1" },
-      { id: "68cef0409f6641a93acc7c14", name: "Retail Order 2" },
-    ],
-    wholesale: [
-      { id: "68cef0409f6641a93acc7c11", name: "Wholesale Order 1" },
-    ],
-    auction: [
-      { id: "68cef0409f6641a93acc7c12", name: "Auction Order 1" },
-    ],
-    service: [
-      { id: "68cef0409f6641a93acc7c13", name: "Service Order 1" },
-    ],
-  },
-};
-
-const TYPES = ["retail", "wholesale", "auction", "service"];
-
 const TransactionPanel = () => {
-  const [activeTab, setActiveTab] = useState("transaction"); // "transaction" | "return"
-  const [selectedType, setSelectedType] = useState("retail");
-  const [customAmount, setCustomAmount] = useState(2500);
-  const [selectedOrder, setSelectedOrder] = useState(DEMO.orders["retail"][0].id);
+  const [activeTab, setActiveTab] = useState("transaction");
+  const [transactionTypes, setTransactionTypes] = useState([]);
+  const [breakupRules, setBreakupRules] = useState([]);
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState("");
+  const [orders, setOrders] = useState({});
+  const [customAmount, setCustomAmount] = useState(""); // ✅ new input field
+  const [loading, setLoading] = useState(false);
   const [lastResponse, setLastResponse] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
+
+  // ✅ Fetch breakupRules
+  useEffect(() => {
+    const fetchBreakupRules = async () => {
+      try {
+        const resp = await api.get("/summaries/breakupRules");
+        const allRules = resp.data || [];
+        const orderRules = allRules.filter((r) => r.category === "order");
+        setBreakupRules(orderRules);
+
+        const types = orderRules.map((r) => r.transactionType);
+        setTransactionTypes(types);
+        if (types.length > 0) setSelectedType(types[0]);
+      } catch (err) {
+        console.error("❌ Error fetching breakupRules:", err);
+      }
+    };
+    fetchBreakupRules();
+  }, []);
+
+  // ✅ Demo orders (replace with live fetch later)
+  useEffect(() => {
+    setOrders({
+      retail: [
+        {
+          _id: "68cef0409f6641a93acc7c10",
+          seller: "68ceed009f6641a93acc7b00",
+          buyer: "68ceed409f6641a93acc7b05",
+          transaction_type: "retail",
+        },
+      ],
+      wholesale: [
+        {
+          _id: "68cef0409f6641a93acc7c11",
+          seller: "68ceed009f6641a93acc7b01",
+          buyer: "68ceed409f6641a93acc7b06",
+          transaction_type: "wholesale",
+        },
+      ],
+    });
+  }, []);
 
   const handleTypeChange = (type) => {
     setSelectedType(type);
-    setSelectedOrder(DEMO.orders[type]?.[0]?.id || "");
+    setSelectedOrder(orders[type]?.[0]?._id || "");
   };
 
+  // ✅ Order Processing with customAmount
   const sendTransaction = async (type) => {
+    const order = orders[type]?.[0];
+    if (!order || !customAmount) {
+      setError("⚠️ Please select an order and enter an order amount.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setLastResponse(null);
 
     const payload = {
-      orderType: type,
-      sellerId: DEMO.sellers[type],
-      buyerId: DEMO.buyers[type],
-      orderId: DEMO.orders[type][0].id,
-      orderAmount: customAmount,
-      actualAmount: customAmount,
+      orderId: order._id,
+      sellerId: order.seller,
+      buyerId: order.buyer,
+      orderType: order.transaction_type,
+      orderAmount: parseFloat(customAmount), // ✅ use customAmount
     };
+
+    console.log("🛠️ Sending Order Payload:", payload);
 
     try {
       const resp = await api.post("/transactions/order-process", payload);
-      setLastResponse({ type: payload.orderType, data: resp.data });
+      console.log("✅ Order response:", resp.data);
+      setLastResponse({ type, data: resp.data });
 
-      // Navigate to breakup page
-      navigate(`/buyer-breakup/${payload.orderId}`, {
-        state: { breakup: resp.data?.parentBreakup || resp.data?.breakup || null, orderId: payload.orderId },
+      navigate(`/buyer-breakup/${order._id}`, {
+        state: { breakup: resp.data?.parentBreakup || resp.data?.breakup, orderId: order._id },
       });
     } catch (err) {
-      console.error("❌ Transaction error:", err);
-      setError(err.response?.data?.error || "Error processing transaction");
+      console.error("❌ Order error:", err);
+      setError(err.response?.data?.error || "Error processing order");
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Return Processing
   const sendReturn = async () => {
     if (!selectedOrder) return;
 
@@ -86,18 +108,13 @@ const TransactionPanel = () => {
     setError(null);
     setLastResponse(null);
 
-    const payload = {
-      orderId: selectedOrder,
-    };
+    const payload = { orderId: selectedOrder };
+    console.log("🔄 Sending Return Payload:", payload);
 
     try {
-      console.log("🛠️ Sending return request for order:", selectedOrder);
       const resp = await api.post("/transactions/return-process", payload);
-
       console.log("✅ Return response:", resp.data);
-
       setLastResponse({ type: "return", data: resp.data });
-      alert("Return processed successfully!");
 
       navigate(`/buyer-breakup/${selectedOrder}`, {
         state: { breakup: resp.data.returnBreakup, orderId: selectedOrder },
@@ -133,42 +150,47 @@ const TransactionPanel = () => {
           </button>
         </div>
 
+        {/* Transaction Panel */}
         {activeTab === "transaction" && (
           <>
             <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center">Transaction Test Panel</h1>
-            <section className="mb-6 flex flex-col gap-4">
-              <label className="text-lg font-semibold text-gray-700">Enter Order Amount:</label>
+
+            {/* Input for custom amount */}
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">Enter Order Amount:</label>
               <input
                 type="number"
                 value={customAmount}
-                onChange={(e) => setCustomAmount(parseFloat(e.target.value))}
-                placeholder="Enter Amount"
-                className="w-full max-w-xs px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
+                onChange={(e) => setCustomAmount(e.target.value)}
+                placeholder="Enter custom amount"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
               />
-            </section>
+            </div>
+
             <section className="mb-6 flex flex-wrap justify-center gap-4">
-              {TYPES.map((type) => (
+              {transactionTypes.map((type) => (
                 <button
                   key={type}
                   onClick={() => sendTransaction(type)}
                   disabled={loading}
-                  className={`px-6 py-3 font-medium text-white rounded-lg shadow-lg transition transform hover:scale-105 ${
-                    type === "retail"
-                      ? "bg-green-600 hover:bg-green-700"
-                      : type === "wholesale"
-                      ? "bg-blue-600 hover:bg-blue-700"
-                      : type === "auction"
-                      ? "bg-yellow-500 text-gray-800 hover:bg-yellow-600"
-                      : "bg-purple-600 hover:bg-purple-700"
-                  } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`px-6 py-3 font-medium text-white rounded-lg shadow-lg transition transform hover:scale-105
+                    ${
+                      type.includes("retail")
+                        ? "bg-green-600 hover:bg-green-700"
+                        : type.includes("wholesale")
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : "bg-purple-600 hover:bg-purple-700"
+                    }
+                    ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  {loading && type === selectedType ? "Processing..." : `Send ${type.charAt(0).toUpperCase() + type.slice(1)} Order`}
+                  {loading && selectedType === type ? "Processing..." : `Send ${type}`}
                 </button>
               ))}
             </section>
           </>
         )}
 
+        {/* Return Panel */}
         {activeTab === "return" && (
           <>
             <h1 className="text-2xl font-bold text-gray-800 mb-4 text-center">Return / Reversal Panel</h1>
@@ -179,9 +201,9 @@ const TransactionPanel = () => {
                 onChange={(e) => handleTypeChange(e.target.value)}
                 className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
               >
-                {TYPES.map((type) => (
+                {transactionTypes.map((type) => (
                   <option key={type} value={type}>
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                    {type}
                   </option>
                 ))}
               </select>
@@ -193,9 +215,9 @@ const TransactionPanel = () => {
                 onChange={(e) => setSelectedOrder(e.target.value)}
                 className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500"
               >
-                {DEMO.orders[selectedType]?.map((order) => (
-                  <option key={order.id} value={order.id}>
-                    {order.name}
+                {orders[selectedType]?.map((order) => (
+                  <option key={order._id} value={order._id}>
+                    {order._id}
                   </option>
                 ))}
               </select>
@@ -203,7 +225,9 @@ const TransactionPanel = () => {
             <button
               onClick={sendReturn}
               disabled={loading}
-              className={`w-full px-6 py-3 bg-red-600 text-white font-medium rounded-lg shadow-lg hover:bg-red-700 transition transform hover:scale-105 ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+              className={`w-full px-6 py-3 bg-red-600 text-white font-medium rounded-lg shadow-lg hover:bg-red-700 transition transform hover:scale-105 ${
+                loading ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
               {loading ? "Processing Return..." : "Process Return / Reversal"}
             </button>

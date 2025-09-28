@@ -24,6 +24,10 @@ import {
   summariesCreateDefinition,
   summariesReset,
   summariesInitCapitalCash,
+  createSummary,
+  deleteSummary,
+  createFieldLine,
+  deleteFieldLine,
 } from "../../contollers/FinanceControllers/SummaryController.js";
 
 import {
@@ -55,7 +59,6 @@ const router = express.Router();
 router.use(authenticate);
 
 // ---------------------- Static Routes (Most Specific First) --------------------
-
 // ---------------------- Rules --------------------
 router.get("/rulesInstances", fetchRulesForFrontend);
 router.get("/fieldlines/definitions", getAllFieldLineDefinitions);
@@ -167,16 +170,21 @@ router.post("/breakupRules/:id/splits/:splitId/mirrors", addMirror);
 router.put("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", updateMirror);
 router.delete("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", deleteMirror);
 
-// ---------------------- Summaries (Keep these LAST) --------------------
-router.get("/", getAllSummaries);
+// ---------------------- Summaries --------------------
+
+router.post("/create", createSummary);
+router.post("/delete", deleteSummary);
+router.post("/createFieldLines", createFieldLine);
+router.post("/deleteFieldLines", deleteFieldLine);
+router.post("/reset", summariesReset);
+router.post("/init-capital-cash", summariesInitCapitalCash);
+
 router.get("/definitions", summariesCreateDefinition);
 router.get("/with-fieldlines", summariesGetWithFieldLines);
 router.get("/fieldlines", summariesGetAllFieldLines);
 
-// This dynamic route should be LAST to avoid catching other routes
-router.get("/:summaryId", getSummaryById);
+router.get("/", getAllSummaries);
 
-router.post("/reset", summariesReset);
-router.post("/init-capital-cash", summariesInitCapitalCash);
+router.get("/:summaryId", getSummaryById);
 
 export default router;

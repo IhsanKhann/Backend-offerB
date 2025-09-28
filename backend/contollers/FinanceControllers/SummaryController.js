@@ -252,3 +252,127 @@ export const getSummariesWithEntries = async (req, res) => {
   }
 };
 
+// ---------------- CREATE SUMMARY ----------------
+export const createSummary = async (req, res) => {
+  try {
+    const { summaryId, name, accountType, parentId, startingBalance } = req.body;
+
+    // Validate required fields
+    if (!summaryId || !name || !accountType) {
+      return res.status(400).json({ success: false, message: "summaryId, name, and accountType are required" });
+    }
+
+    // Check if summaryId already exists
+    const existing = await SummaryModel.findOne({ summaryId });
+    if (existing) {
+      return res.status(409).json({ success: false, message: "Summary with this summaryId already exists" });
+    }
+
+    // Create new summary
+    const summary = await SummaryModel.create({
+      summaryId,
+      name,
+      accountType,
+      parentId: parentId || null,
+      startingBalance: startingBalance || 0,
+      endingBalance: startingBalance || 0
+    });
+
+    return res.status(201).json({ success: true, summary });
+  } catch (err) {
+    console.error("Error creating summary:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Delete summary by ID or Name
+export const deleteSummary = async (req, res) => {
+  try {
+    const { summaryId, name } = req.body; // POST body contains either _id or name
+
+    if (!summaryId && !name) {
+      return res.status(400).json({ error: "Provide summaryId or name to delete" });
+    }
+
+    let query = {};
+
+    if (summaryId) {
+      // No need to parse number, just use _id
+      query = { _id: summaryId };
+    } else {
+      query = { name };
+    }
+
+    const deleted = await SummaryModel.findOneAndDelete(query);
+
+    if (!deleted) {
+      return res.status(404).json({ error: "Summary not found" });
+    }
+
+    res.json({ message: "Summary deleted successfully ✅" });
+  } catch (err) {
+    console.error("Delete summary error:", err);
+
+    if (err.name === 'CastError') {
+      return res.status(400).json({ error: "Invalid _id format provided" });
+    }
+
+    res.status(500).json({ error: "Failed to delete summary" });
+  }
+};
+
+// Create Definition + Instance
+export const createFieldLine = async (req, res) => {
+  try {
+    const { summaryId, name, fieldLineNumericId } = req.body;
+    if (!summaryId || !name || !fieldLineNumericId) {
+      return res.status(400).json({ error: "Provide summaryId, name, and numeric ID" });
+    }
+
+    // Create definition
+    const definition = await SummaryFieldLineDefinition.create({ name, fieldLineNumericId });
+
+    // Create instance in the selected summary
+    await SummaryFieldLineInstance.create({
+      name,
+      summaryId,
+      definitionId: definition._id,
+      fieldLineNumericId,
+      balance: 0,
+    });
+
+    res.json({ message: "Field line definition + instance created ✅" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to create field line" });
+  }
+};
+
+// Delete Definition + All Instances
+export const deleteFieldLine = async (req, res) => {
+  try {
+    const { summaryId, fieldLineNumericId } = req.body;
+    if (!summaryId || !fieldLineNumericId) {
+      return res.status(400).json({ error: "Provide summaryId and numeric ID" });
+    }
+
+    // Find definition
+    const definition = await SummaryFieldLineDefinition.findOne({ fieldLineNumericId });
+    if (!definition) return res.status(404).json({ error: "Field line definition not found" });
+
+    // Delete all instances in that summary
+    await SummaryFieldLineInstance.deleteMany({
+      summaryId,
+      definitionId: definition._id,
+    });
+
+    // Delete definition
+    await definition.deleteOne();
+
+    res.json({ message: "Field line definition + all instances deleted ✅" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete field line" });
+  }
+};
+

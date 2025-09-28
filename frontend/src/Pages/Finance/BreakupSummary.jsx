@@ -75,6 +75,7 @@ const BreakupSummary = () => {
     }
 
     const payload = {
+      employeeId, 
       salary: { splits },
       transactionDate: new Date(),
       description: `Salary for ${employeeId}`,

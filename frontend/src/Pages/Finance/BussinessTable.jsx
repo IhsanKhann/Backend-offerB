@@ -752,77 +752,106 @@ export default function BreakupRulesTable() {
         </div>
       ))}
 
-      {/* Create New Rule */}
-      {editRuleId === null && (
-        <div className="space-y-4">
-          <button
-            onClick={() => {
-              setEditRuleId("new");
-              setFormData({ 
-                transactionType: "",
-                splits: [],
-                incrementType: "both"
-              });
-            }}
-            className="px-4 py-2 bg-green-500 text-white rounded"
-          >
-            + Create New Rule
-          </button>
-        </div>
-      )}
-      {editRuleId === "new" && (
-        <div className="bg-white rounded-2xl shadow p-6 mt-4">
-          <div className="grid md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Transaction Type
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., retail, retailTax, wholesale, wholesaleTax"
-                value={formData.transactionType || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, transactionType: e.target.value })
-                }
-                className="border p-2 rounded w-full"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Use "Tax" suffix for tax rules (e.g., retailTax)
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Increment Type
-              </label>
-              <select
-                value={formData.incrementType || "both"}
-                onChange={(e) =>
-                  setFormData({ ...formData, incrementType: e.target.value })
-                }
-                className="border p-2 rounded w-full"
-              >
-                <option value="fixed">Fixed Amount Only</option>
-                <option value="percentage">Percentage Only</option>
-                <option value="both">Both Fixed and Percentage</option>
-              </select>
-            </div>
-          </div>
-          <div className="space-x-2">
-            <button
-              onClick={handleCreateRule}
-              className="px-3 py-1 bg-green-500 text-white rounded"
-            >
-              Save Rule
-            </button>
-            <button
-              onClick={handleCancel}
-              className="px-3 py-1 bg-gray-300 text-gray-800 rounded"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+{/* Create New Rule */}
+{editRuleId === null && (
+  <div className="space-y-4">
+    <button
+      onClick={() => {
+        setEditRuleId("new");
+        setFormData({
+          transactionType: "",
+          category: "business", // ✅ default to schema default
+          splits: [],
+          incrementType: "both",
+        });
+      }}
+      className="px-4 py-2 bg-green-500 text-white rounded"
+    >
+      + Create New Rule
+    </button>
+  </div>
+)}
+
+{editRuleId === "new" && (
+  <div className="bg-white rounded-2xl shadow p-6 mt-4">
+    <div className="grid md:grid-cols-2 gap-4 mb-4">
+      {/* Transaction Type */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Transaction Type
+        </label>
+        <input
+          type="text"
+          placeholder="e.g., retail, wholesale, service"
+          value={formData.transactionType || ""}
+          onChange={(e) =>
+            setFormData({ ...formData, transactionType: e.target.value })
+          }
+          className="border p-2 rounded w-full"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Use a unique keyword for each type (e.g., <code>retail</code>,{" "}
+          <code>wholesale</code>, <code>service</code>)
+        </p>
+      </div>
+
+      {/* Category Dropdown */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Category
+        </label>
+        <select
+          value={formData.category || "business"}
+          onChange={(e) =>
+            setFormData({ ...formData, category: e.target.value })
+          }
+          className="border p-2 rounded w-full"
+        >
+          <option value="business">Business</option>
+          <option value="order">Order</option>
+          <option value="tax">Tax</option>
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          ⚠️ If set to <strong>"order"</strong>, this rule will be used for
+          transaction triggers.
+        </p>
+      </div>
+
+      {/* Increment Type */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Increment Type
+        </label>
+        <select
+          value={formData.incrementType || "both"}
+          onChange={(e) =>
+            setFormData({ ...formData, incrementType: e.target.value })
+          }
+          className="border p-2 rounded w-full"
+        >
+          <option value="fixed">Fixed Amount Only</option>
+          <option value="percentage">Percentage Only</option>
+          <option value="both">Both Fixed and Percentage</option>
+        </select>
+      </div>
+    </div>
+
+    <div className="space-x-2">
+      <button
+        onClick={handleCreateRule}
+        className="px-3 py-1 bg-green-500 text-white rounded"
+      >
+        Save Rule
+      </button>
+      <button
+        onClick={handleCancel}
+        className="px-3 py-1 bg-gray-300 text-gray-800 rounded"
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }

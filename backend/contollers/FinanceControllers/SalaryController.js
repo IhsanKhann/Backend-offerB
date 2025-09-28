@@ -73,14 +73,22 @@ export const createBreakupFile = async (req, res) => {
   try {
     const { employeeId, roleId, salaryRules } = req.body;
 
+    if (!employeeId || !roleId || !salaryRules) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // ✅ Convert to ObjectId
+    const empObjectId = new mongoose.Types.ObjectId(employeeId);
+    const roleObjectId = new mongoose.Types.ObjectId(roleId);
+
     // 1️⃣ Validate Employee
-    const employee = await FinalizedEmployeeModel.findById(employeeId);
+    const employee = await FinalizedEmployeeModel.findById(empObjectId);
     if (!employee) {
       return res.status(404).json({ success: false, message: "Employee not found" });
     }
 
     // 2️⃣ Validate Role
-    const role = await AllRolesModel.findById(roleId);
+    const role = await AllRolesModel.findById(roleObjectId);
     if (!role) {
       return res.status(404).json({ success: false, message: "Role not found" });
     }
@@ -99,7 +107,7 @@ export const createBreakupFile = async (req, res) => {
       },
     ];
 
-    let totalAllowances = 0;   // EXCLUDE administrative transfer
+    let totalAllowances = 0;
     let totalDeductions = 0;
 
     // 5️⃣ Process components
@@ -113,7 +121,7 @@ export const createBreakupFile = async (req, res) => {
       if (compType === "percentage") {
         const pct = Number(component.value || 0);
         calculatedValue = Math.round((Number(baseSalary || 0) * pct) / 100);
-        // Special rule: Administrative Allowance is a transfer of base
+
         if (compName && compName.toLowerCase() === "administrative allowance") {
           calculatedValue = Number(baseSalary || 0);
         }
@@ -121,7 +129,6 @@ export const createBreakupFile = async (req, res) => {
         calculatedValue = Number(component.value || 0);
       }
 
-      // Flag lines that should not be included in totals (administrative transfer)
       const excludeFromTotals =
         compName && compName.toLowerCase() === "administrative allowance";
 
@@ -136,18 +143,13 @@ export const createBreakupFile = async (req, res) => {
         excludeFromTotals,
       });
 
-      // Add to totals only if NOT excluded
-      if (compCategory === "deduction") {
-        totalDeductions += calculatedValue;
-      } else if (compCategory === "allowance" && !excludeFromTotals) {
-        totalAllowances += calculatedValue;
-      }
+      if (compCategory === "deduction") totalDeductions += calculatedValue;
+      else if (compCategory === "allowance" && !excludeFromTotals) totalAllowances += calculatedValue;
     }
 
-    // 6️⃣ Calculate Net Salary (base + allowances_excl_admin - deductions)
+    // 6️⃣ Calculate Net Salary
     const netSalary = Math.round((Number(baseSalary || 0) + totalAllowances - totalDeductions) * 100) / 100;
 
-    // Add Net Salary line (category 'net') if you want it in breakdown
     breakdown.push({
       name: "Net Salary",
       category: "net",
@@ -156,22 +158,23 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    // 7️⃣ Save/Update Breakup File
+    // 7️⃣ Save/Update Breakup File (using $set and upsert)
     const breakupFile = await BreakupFile.findOneAndUpdate(
-      { employeeId },
+      { employeeId: empObjectId }, // filter
       {
-        employeeId,
-        roleId,
-        salaryRules: {
-          baseSalary: Number(baseSalary || 0),
-          salaryType: salaryRules.salaryType || "monthly",
-          components: components || [],
-        },
-        calculatedBreakup: {
-          breakdown,
-          totalAllowances,
-          totalDeductions,
-          netSalary,
+        $set: {
+          roleId: roleObjectId,
+          salaryRules: {
+            baseSalary: Number(baseSalary || 0),
+            salaryType: salaryRules.salaryType || "monthly",
+            components: components || [],
+          },
+          calculatedBreakup: {
+            breakdown,
+            totalAllowances,
+            totalDeductions,
+            netSalary,
+          },
         },
       },
       { new: true, upsert: true }
