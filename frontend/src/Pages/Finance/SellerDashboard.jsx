@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import api from "../../api/axios.js";
+import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../../components/Sidebar.jsx";
-import OrderBreakupModal from "../../components/OrderModal.jsx";
+import api from "../../api/axios.js";
 
 const Loader = () => (
   <div className="flex justify-center items-center min-h-[60vh]">
@@ -9,105 +9,223 @@ const Loader = () => (
   </div>
 );
 
-const SellerDashboard = ({ sellerId }) => {
-  const [orders, setOrders] = useState([]);
-  const [selectedBreakup, setSelectedBreakup] = useState(null);
+const SellerDashboard = () => {
+  const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [openActionMenu, setOpenActionMenu] = useState(null);
+  const [selectedSellers, setSelectedSellers] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  // Fetch all orders for seller
-  const fetchOrders = async () => {
+  const fetchSellers = async () => {
     try {
-      const res = await api.get(`/transactions/orders/seller/${sellerId}`);
-      const fetchedOrders = res.data?.data || [];
-      setOrders(fetchedOrders);
+      setLoading(true);
+      const res = await api.get("/sellers/all");
+      setSellers(res.data || []);
     } catch (err) {
-      console.error("❌ Failed to fetch seller orders:", err);
-    }
-  };
-
-  // Fetch parent breakup for a specific order (auction or regular)
-  const fetchBreakupForOrder = async (orderId) => {
-    try {
-      const res = await api.get(`/transactions/orders/${orderId}/parent-breakup`);
-      setSelectedBreakup(res.data || null);
-    } catch (err) {
-      console.error("❌ Failed to fetch parent breakup:", err);
-      setSelectedBreakup(null);
+      console.error("Error fetching sellers:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (sellerId) {
-      setLoading(true);
-      fetchOrders().finally(() => setLoading(false));
-    }
-  }, [sellerId]);
+    fetchSellers();
+  }, []);
 
-  const handleViewBreakup = async (order) => {
-    setSelectedOrder(order);
-    await fetchBreakupForOrder(order._id);
+  const toggleSelectSeller = (id) => {
+    setSelectedSellers((prev) =>
+      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+    );
+  };
+
+  // 🔹 Pay Single Seller
+  const paySeller = async (sellerId) => {
+    try {
+      await api.post(`/statements/create/seller/${sellerId}`, { startDate, endDate });
+      alert("Account statement created successfully!");
+    } catch (err) {
+      console.error("Error paying seller:", err);
+      alert("Failed to process payment");
+    }
+  };
+
+  // 🔹 Pay Selected Sellers
+  const paySelectedSellers = async () => {
+    try {
+      await api.post("/statements/create/selected", {
+        sellerIds: selectedSellers,
+        startDate,
+        endDate,
+      });
+      alert("Account statements for selected sellers created!");
+      setSelectedSellers([]);
+    } catch (err) {
+      console.error(err);
+      alert("Error paying selected sellers");
+    }
+  };
+
+  // 🔹 Pay All Sellers
+  const payAllSellers = async () => {
+    try {
+      await api.post("/statements/create/all", { startDate, endDate });
+      alert("Account statements created for all sellers!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to process all sellers payment");
+    }
   };
 
   if (loading) return <Loader />;
 
-  const navItems = [{ name: "Seller Dashboard", path: "/sellerDashboard" }];
+  const navItems = [
+    { name: "Sellers Dashboard", path: "/sellers-dashboard" },
+    { name: "Transactions", path: "/transactions" },
+    { name: "Reports", path: "/reports" },
+  ];
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar navItems={navItems} title="SellerDashboard" />
+      {/* Sidebar */}
+      <div className="sticky top-0 h-screen">
+        <Sidebar navItems={navItems} title="Seller Dashboard" />
+      </div>
 
-      <div className="flex-1 p-4 md:p-6 space-y-6">
-        <h1 className="text-2xl md:text-3xl font-bold">Seller Dashboard</h1>
+      {/* Main Content */}
+      <div className="flex-1 p-4 md:p-6 space-y-4">
+        <div className="flex flex-wrap justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Sellers Payment Dashboard</h1>
 
-        {/* Orders Section */}
-        <section>
-          <h2 className="text-xl font-semibold mb-3">Orders</h2>
-          {orders.length === 0 ? (
-            <p className="text-gray-500 text-sm md:text-base">No orders found.</p>
-          ) : (
-            <div className="space-y-3">
-              {orders.map((order) => (
-                <div
-                  key={order._id}
-                  className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row justify-between items-start md:items-center border border-gray-200"
-                >
-                  <div>
+          <div className="flex gap-2 items-center">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="border p-1 rounded"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="border p-1 rounded"
+            />
+            <button
+              onClick={payAllSellers}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              Pay All Sellers
+            </button>
+            {selectedSellers.length > 0 && (
+              <button
+                onClick={paySelectedSellers}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              >
+                Pay Selected ({selectedSellers.length})
+              </button>
+            )}
+          </div>
+        </div>
+
+        {sellers.length === 0 ? (
+          <p className="text-gray-500">No sellers found.</p>
+        ) : (
+          <div className="space-y-3">
+            {sellers.map((seller) => (
+              <div
+                key={seller._id}
+                className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition-all border border-gray-200"
+              >
+                {/* Seller Info */}
+                <div className="flex items-center space-x-3 md:w-1/3">
+                  <input
+                    type="checkbox"
+                    checked={selectedSellers.includes(seller._id)}
+                    onChange={() => toggleSelectSeller(seller._id)}
+                  />
+                  <div className="flex flex-col">
                     <p className="text-base font-semibold text-gray-800">
-                      Order ID: {order._id}
+                      {seller.name}
                     </p>
-                    <p className="text-sm text-gray-500">
-                      Buyer: {order.buyer?.name || "N/A"}
+                    <p className="text-xs text-gray-500">{seller.email || "No email available"}</p>
+                    <p className="text-xs text-gray-400">
+                      Business ID: {seller.businessSellerId}
                     </p>
-                    <p className="text-sm text-gray-500">
-                      Total: PKR {order.order_total_amount?.toLocaleString() || "N/A"}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Type: {order.transaction_type || "N/A"}
-                    </p>
-                  </div>
-                  <div className="mt-3 md:mt-0">
-                    <button
-                      onClick={() => handleViewBreakup(order)}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg shadow"
-                    >
-                      View Breakup
-                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
 
-        {/* Breakup Modal */}
-        {selectedOrder && selectedBreakup && (
-          <OrderBreakupModal
-            order={selectedOrder}
-            breakups={selectedBreakup.lines || []}
-            isOpen={!!selectedOrder}
-            onClose={() => setSelectedOrder(null)}
-          />
+                {/* Seller Stats */}
+                <div className="mt-3 md:mt-0 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700">
+                  <p>
+                    <span className="font-medium">Total Orders:</span>{" "}
+                    {seller.totalOrders ?? "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Total Pending:</span>{" "}
+                    {seller.totalPending ?? "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Total Paid:</span>{" "}
+                    {seller.totalPaid ?? "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Current Balance:</span>{" "}
+                    {seller.currentBalance ?? "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Last Payment:</span>{" "}
+                    {seller.lastPaymentDate
+                      ? new Date(seller.lastPaymentDate).toLocaleDateString()
+                      : "No payments yet"}
+                  </p>
+                </div>
+
+                {/* Action Menu */}
+                <div className="mt-3 md:mt-0 relative">
+                  <button
+                    onClick={() =>
+                      setOpenActionMenu(openActionMenu === seller._id ? null : seller._id)
+                    }
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs flex items-center justify-between w-28"
+                  >
+                    Actions
+                    <span
+                      className={`ml-1 transition-transform duration-300 ${
+                        openActionMenu === seller._id ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▼
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {openActionMenu === seller._id && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
+                      >
+                        <button
+                          onClick={() => paySeller(seller._id)}
+                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                        >
+                          Pay Seller
+                        </button>
+                        <button
+                          onClick={() => alert(`Breakup for ${seller.name} coming soon`)}
+                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                        >
+                          View Breakup
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

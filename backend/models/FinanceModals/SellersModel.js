@@ -1,16 +1,25 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const { Schema } = mongoose;
+const SellerSchema = new mongoose.Schema(
+  {
+    businessSellerId: {
+      type: String,
+      required: true,
+      unique: true, // prevents duplicates
+      index: true,
+    },
+    name: { type: String, required: true },
+    email: { type: String },
+  
+    totalOrders: { type: Number, default: 0 },
+    totalPending: { type: Number, default: 0 }, // not yet paid
+    totalPaid: { type: Number, default: 0 },
+    currentBalance: { type: Number, default: 0 }, // pending - paid
+    lastPaymentDate: { type: Date },
+    lastUpdated: { type: Date, default: Date.now },
+    lastSyncedAt: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
 
-const SellerSchema = new Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  phone: { type: String },
-  address: { type: String },
-}, {
-  timestamps: true // adds createdAt, updatedAt
-});
-
-const Seller = mongoose.model('Seller', SellerSchema);
-
-export default Seller;
+export default mongoose.model("Seller", SellerSchema);

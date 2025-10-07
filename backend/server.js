@@ -19,6 +19,8 @@ import LeavesRouter from "./Routes/LeaveRoutes.js";
 // Finance-Routes..
 import SummaryRouter from "./Routes/financeRoutes/summaryroutes.js";
 import TransactionRouter from "./Routes/financeRoutes/TransactionRoutes.js";
+import AccountStatementRouter from "./Routes/financeRoutes/AccountStatementRoutes.js";
+import sellerRoutes from "./Routes/financeRoutes/SellerRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -61,6 +63,8 @@ app.use("/api/leaves", LeavesRouter);
 // finance routes:
 app.use("/api/summaries", SummaryRouter);
 app.use("/api/transactions", TransactionRouter);
+app.use("/api/statements", AccountStatementRouter);
+app.use("/api/sellers", sellerRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

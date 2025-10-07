@@ -13,11 +13,7 @@ import {
 import {
   createOrderWithTransaction,
   returnOrderWithTransaction,
-  getSellerOrders,
-  getOrderBreakups,
-  getParentBreakup,
-  getBuyerBreakup,
-  getSellerBreakup,
+  
 } from "../../contollers/FinanceControllers/OrderControllers.js";
 
 const router = express.Router();
@@ -41,17 +37,8 @@ router.post("/transaction/salary/:employeeId", SalaryTransactionController);
 // Create + process order with breakups & transaction
 router.post("/order-process", createOrderWithTransaction);
 
-// Seller: view all orders received
-router.get("/orders/seller/:sellerId", getSellerOrders);
-
-// Seller/Admin: view all breakup files for a specific order
-router.get("/orders/:orderId/breakups", getOrderBreakups);
-
-router.get("/order/:orderId/breakup/parent", getParentBreakup);
-router.get("/order/:orderId/breakup/buyer", getBuyerBreakup);
-router.get("/order/:orderId/breakup/seller", getSellerBreakup);
-
 // the transaction for - order return..
 router.post("/return-process", returnOrderWithTransaction);
+
 
 export default router;
