@@ -6,6 +6,7 @@ const accountStatementSchema = new mongoose.Schema({
     ref: "Seller",
     required: true,
   },
+  sellerName: { type: String, required: true },
   periodStart: { type: Date, required: true },
   periodEnd: { type: Date, required: true },
   totalAmount: { type: Number, required: true },
@@ -22,6 +23,8 @@ const accountStatementSchema = new mongoose.Schema({
     enum: ["pending", "sent", "paid"],
     default: "pending",
   },
+  madeAt: Date,
+  paidAt: Date,
   referenceId: String, // Returned from business side API
 });
 

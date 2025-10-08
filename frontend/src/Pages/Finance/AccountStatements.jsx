@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog } from "@headlessui/react";
+import { Send, User, Calendar, Clock, ChevronDown } from "lucide-react";
 import Sidebar from "../../components/Sidebar.jsx";
 import api from "../../api/axios.js";
 
@@ -21,7 +22,7 @@ const AccountStatementsDashboard = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-   const navItems = [
+  const navItems = [
     { name: "Sellers Dashboard", path: "/sellerDashboard" },
     { name: "Account Statements", path: "/accountStatements" },
     { name: "Paid Statements", path: "/accountStatements/paid" },
@@ -45,40 +46,27 @@ const AccountStatementsDashboard = () => {
     fetchStatements();
   }, []);
 
-  // ✅ Toggle select statement
+  // ✅ Toggle statement selection
   const toggleSelect = (id) => {
     setSelectedStatements((prev) =>
       prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
     );
   };
 
-  // ✅ Send a single statement
-  const sendStatement = async (statementId) => {
+  // ✅ Send statements
+  const sendStatement = async (ids) => {
     try {
-      await api.post(`/statements/send`, { ids: [statementId] });
-      alert("✅ Statement sent successfully!");
+      await api.post(`/statements/send`, { ids });
+      alert("✅ Statements sent successfully!");
       fetchStatements();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to send statement");
-    }
-  };
-
-  // ✅ Send selected statements
-  const sendSelectedStatements = async () => {
-    if (selectedStatements.length === 0) return alert("Select at least one statement");
-    try {
-      await api.post(`/statements/send`, { ids: selectedStatements });
-      alert("✅ Selected statements sent!");
       setSelectedStatements([]);
-      fetchStatements();
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to send selected statements");
+      alert("❌ Failed to send statements");
     }
   };
 
-  // ✅ Send all statements
+  // ✅ Send all
   const sendAllStatements = async () => {
     try {
       await api.post(`/statements/send/all`, { startDate, endDate });
@@ -90,23 +78,10 @@ const AccountStatementsDashboard = () => {
     }
   };
 
-  // ✅ Open send modal for single statement
+  // ✅ Open send modal
   const openSendModal = (statement) => {
     setSelectedStatement(statement);
     setShowSendModal(true);
-  };
-
-  // ✅ Confirm send inside modal
-  const handleSendStatement = async () => {
-    try {
-      await api.post(`/statements/send`, { ids: [selectedStatement._id] });
-      alert("✅ Statement sent successfully!");
-      setShowSendModal(false);
-      fetchStatements();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to send statement");
-    }
   };
 
   if (loading) return <Loader />;
@@ -114,38 +89,41 @@ const AccountStatementsDashboard = () => {
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="sticky top-0 h-screen">
-        <Sidebar navItems={navItems} title="Account Statements" />
-      </div>
+      <Sidebar navItems={navItems} title="Pending Account Statements" />
 
       {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 space-y-4">
-        <div className="flex flex-wrap justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Pending Account Statements</h1>
+      <main className="flex-1 p-6 space-y-6">
+        {/* Header */}
+        <div className="flex flex-wrap justify-between items-center">
+          <h2 className="text-3xl font-bold text-gray-800">
+            Pending Account Statements
+          </h2>
 
-          <div className="flex gap-2 items-center">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border p-1 rounded"
+              className="border border-gray-300 text-sm p-2 rounded-md"
             />
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border p-1 rounded"
+              className="border border-gray-300 text-sm p-2 rounded-md"
             />
+
             <button
               onClick={sendAllStatements}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition-all"
             >
               Send All
             </button>
+
             {selectedStatements.length > 0 && (
               <button
-                onClick={sendSelectedStatements}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+                onClick={() => sendStatement(selectedStatements)}
+                className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 transition-all"
               >
                 Send Selected ({selectedStatements.length})
               </button>
@@ -153,78 +131,115 @@ const AccountStatementsDashboard = () => {
           </div>
         </div>
 
+        {/* Cards */}
         {statements.length === 0 ? (
-          <p className="text-gray-500">No pending statements.</p>
+          <p className="text-gray-500 text-center mt-10">
+            No pending statements found.
+          </p>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {statements.map((st) => (
-              <div
+              <motion.div
                 key={st._id}
-                className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition-all border border-gray-200"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative bg-white rounded-2xl shadow-md hover:shadow-lg transition-all p-6 border border-gray-100"
               >
-                <div className="flex items-center space-x-3 md:w-1/3">
-                  <input
-                    type="checkbox"
-                    checked={selectedStatements.includes(st._id)}
-                    onChange={() => toggleSelect(st._id)}
-                  />
-                  <div className="flex flex-col">
-                    <p className="text-base font-semibold text-gray-800">
+                {/* Checkbox */}
+                <input
+                  type="checkbox"
+                  checked={selectedStatements.includes(st._id)}
+                  onChange={() => toggleSelect(st._id)}
+                  className="absolute top-4 left-4 accent-blue-600 h-4 w-4"
+                />
+
+                {/* Seller Info */}
+                <div className="flex items-center mb-4 mt-2">
+                  <div className="p-2 bg-blue-100 rounded-full mr-3">
+                    <User size={18} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Seller</p>
+                    <p className="text-lg font-semibold text-gray-800">
                       {st.sellerName || "Unknown Seller"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Period: {st.startDate} → {st.endDate}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Status: {st.status}
                     </p>
                   </div>
                 </div>
 
-                {/* Action menu */}
-                <div className="mt-3 md:mt-0 relative">
+                {/* Period Info */}
+                <div className="flex items-center mb-3">
+                  <div className="p-2 bg-yellow-100 rounded-full mr-3">
+                    <Calendar size={18} className="text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Period</p>
+                    <p className="text-gray-800 text-sm">
+                      {st.startDate} → {st.endDate}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-center mb-4">
+                  <div className="p-2 bg-gray-100 rounded-full mr-3">
+                    <Clock size={18} className="text-gray-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Status</p>
+                    <p className="text-gray-800 text-sm capitalize">
+                      {st.status || "Pending"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="border-t pt-3 mt-3 flex justify-between items-center">
                   <button
-                    onClick={() =>
-                      setOpenActionMenu(openActionMenu === st._id ? null : st._id)
-                    }
-                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs flex items-center justify-between w-28"
+                    onClick={() => openSendModal(st)}
+                    className="flex items-center gap-2 text-sm bg-blue-50 text-blue-700 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-all"
                   >
-                    Actions
-                    <span
-                      className={`ml-1 transition-transform duration-300 ${
-                        openActionMenu === st._id ? "rotate-180" : ""
-                      }`}
-                    >
-                      ▼
-                    </span>
+                    <Send size={14} /> Send
                   </button>
 
-                  <AnimatePresence>
-                    {openActionMenu === st._id && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
-                      >
-                        <button
-                          onClick={() => openSendModal(st)}
-                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                  <div className="relative">
+                    <button
+                      onClick={() =>
+                        setOpenActionMenu(
+                          openActionMenu === st._id ? null : st._id
+                        )
+                      }
+                      className="text-gray-600 text-sm flex items-center gap-1 hover:text-gray-800 transition-all"
+                    >
+                      Actions <ChevronDown size={14} />
+                    </button>
+
+                    <AnimatePresence>
+                      {openActionMenu === st._id && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
                         >
-                          Send
-                        </button>
-                        <button
-                          onClick={() => alert("Breakup coming soon")}
-                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        >
-                          View Breakup
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                          <button
+                            onClick={() => openSendModal(st)}
+                            className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                          >
+                            Send Statement
+                          </button>
+                          <button
+                            onClick={() => alert('Breakup feature coming soon')}
+                            className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
+                          >
+                            View Breakup
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
@@ -237,35 +252,41 @@ const AccountStatementsDashboard = () => {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           >
             <div className="bg-white p-6 rounded-lg w-96 space-y-3">
-              <h2 className="text-xl font-bold">Send Account Statement</h2>
-              <p className="text-sm text-gray-600">{selectedStatement?.sellerName}</p>
-              <p className="text-xs text-gray-500">Status: {selectedStatement?.status}</p>
+              <h2 className="text-xl font-bold text-gray-800">
+                Send Account Statement
+              </h2>
+              <p className="text-sm text-gray-600">
+                {selectedStatement?.sellerName}
+              </p>
+              <p className="text-xs text-gray-500 capitalize">
+                Status: {selectedStatement?.status}
+              </p>
 
               <div className="flex flex-col gap-2 mt-2">
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="border p-2 rounded"
+                  className="border p-2 rounded text-sm"
                 />
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="border p-2 rounded"
+                  className="border p-2 rounded text-sm"
                 />
               </div>
 
               <div className="flex justify-end gap-2 mt-4">
                 <button
                   onClick={() => setShowSendModal(false)}
-                  className="px-4 py-2 border rounded-md"
+                  className="px-4 py-2 border rounded-md text-sm"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleSendStatement}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md"
+                  onClick={() => sendStatement([selectedStatement._id])}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700"
                 >
                   Confirm Send
                 </button>
@@ -273,7 +294,7 @@ const AccountStatementsDashboard = () => {
             </div>
           </Dialog>
         )}
-      </div>
+      </main>
     </div>
   );
 };

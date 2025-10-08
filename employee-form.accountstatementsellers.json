@@ -1,0 +1,176 @@
+[{
+  "_id": {
+    "$oid": "68e5ef0df7f36a2c51577923"
+  },
+  "sellerId": {
+    "$oid": "68e55612de71cd2a235943a2"
+  },
+  "periodStart": {
+    "$date": "2025-09-01T00:00:00.000Z"
+  },
+  "periodEnd": {
+    "$date": "2025-09-15T00:00:00.000Z"
+  },
+  "totalAmount": 32000,
+  "orders": [
+    {
+      "orderId": "ORD-1001",
+      "sellerNetReceivable": 12000,
+      "orderDate": {
+        "$date": "2025-09-03T00:00:00.000Z"
+      },
+      "_id": {
+        "$oid": "68e5ef0df7f36a2c51577924"
+      }
+    },
+    {
+      "orderId": "ORD-1002",
+      "sellerNetReceivable": 20000,
+      "orderDate": {
+        "$date": "2025-09-10T00:00:00.000Z"
+      },
+      "_id": {
+        "$oid": "68e5ef0df7f36a2c51577925"
+      }
+    }
+  ],
+  "status": "pending",
+  "referenceId": "REF-SENT-001",
+  "generatedAt": {
+    "$date": "2025-10-08T04:56:45.933Z"
+  },
+  "__v": 0,
+  "sellerName": "Abcd"
+},
+{
+  "_id": {
+    "$oid": "68e5ef0df7f36a2c51577926"
+  },
+  "sellerId": {
+    "$oid": "68e55612de71cd2a235943a3"
+  },
+  "periodStart": {
+    "$date": "2025-09-16T00:00:00.000Z"
+  },
+  "periodEnd": {
+    "$date": "2025-09-30T00:00:00.000Z"
+  },
+  "totalAmount": 27000,
+  "orders": [
+    {
+      "orderId": "ORD-1010",
+      "sellerNetReceivable": 15000,
+      "orderDate": {
+        "$date": "2025-09-20T00:00:00.000Z"
+      },
+      "_id": {
+        "$oid": "68e5ef0df7f36a2c51577927"
+      }
+    },
+    {
+      "orderId": "ORD-1011",
+      "sellerNetReceivable": 12000,
+      "orderDate": {
+        "$date": "2025-09-25T00:00:00.000Z"
+      },
+      "_id": {
+        "$oid": "68e5ef0df7f36a2c51577928"
+      }
+    }
+  ],
+  "status": "pending",
+  "referenceId": "REF-PAID-001",
+  "generatedAt": {
+    "$date": "2025-10-08T04:56:45.935Z"
+  },
+  "__v": 0,
+  "sellerName": "Abcd"
+},
+{
+  "_id": {
+    "$oid": "68e5fabc1234567890abc004"
+  },
+  "sellerId": {
+    "$oid": "68e55612de71cd2a235943a4"
+  },
+  "periodStart": {
+    "$date": "2025-09-01T00:00:00.000Z"
+  },
+  "periodEnd": {
+    "$date": "2025-09-15T00:00:00.000Z"
+  },
+  "totalAmount": 45000,
+  "orders": [
+    {
+      "orderId": "ORD-3001",
+      "sellerNetReceivable": 20000,
+      "orderDate": {
+        "$date": "2025-09-05T00:00:00.000Z"
+      },
+      "_id": {
+        "$oid": "68e5fabc1234567890abc005"
+      }
+    },
+    {
+      "orderId": "ORD-3002",
+      "sellerNetReceivable": 25000,
+      "orderDate": {
+        "$date": "2025-09-10T00:00:00.000Z"
+      },
+      "_id": {
+        "$oid": "68e5fabc1234567890abc006"
+      }
+    }
+  ],
+  "status": "paid",
+  "referenceId": "REF-PAID-003",
+  "generatedAt": {
+    "$date": "2025-10-08T12:00:00.000Z"
+  },
+  "__v": 0,
+  "sellerName": "Abcd"
+},
+{
+  "_id": {
+    "$oid": "68e5fabc1234567890abc007"
+  },
+  "sellerId": {
+    "$oid": "68e55612de71cd2a235943a5"
+  },
+  "periodStart": {
+    "$date": "2025-09-16T00:00:00.000Z"
+  },
+  "periodEnd": {
+    "$date": "2025-09-30T00:00:00.000Z"
+  },
+  "totalAmount": 72000,
+  "orders": [
+    {
+      "orderId": "ORD-4001",
+      "sellerNetReceivable": 30000,
+      "orderDate": {
+        "$date": "2025-09-18T00:00:00.000Z"
+      },
+      "_id": {
+        "$oid": "68e5fabc1234567890abc008"
+      }
+    },
+    {
+      "orderId": "ORD-4002",
+      "sellerNetReceivable": 42000,
+      "orderDate": {
+        "$date": "2025-09-25T00:00:00.000Z"
+      },
+      "_id": {
+        "$oid": "68e5fabc1234567890abc009"
+      }
+    }
+  ],
+  "status": "paid",
+  "referenceId": "REF-PAID-004",
+  "generatedAt": {
+    "$date": "2025-10-08T12:10:00.000Z"
+  },
+  "__v": 0,
+  "sellerName": "Abcd"
+}]

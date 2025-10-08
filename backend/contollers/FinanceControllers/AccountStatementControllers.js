@@ -1,5 +1,6 @@
 import AccountStatementSeller from "../../models/FinanceModals/AccountStatementsSellerModel.js";
 import BreakupFile from "../../models/FinanceModals/BreakupFiles.js";
+import Seller from "../../models/FinanceModals/SellersModel.js";
 import axios from "axios";
 import dotenv from "dotenv";
 dotenv.config();
@@ -14,17 +15,15 @@ function groupBySeller(breakups) {
   return grouped;
 }
 
-// create Account Statement for all sellers
+// 🧾 Create Account Statement for ALL Sellers
 export const createAccountStatementForAll = async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
-
     const breakupFiles = await BreakupFile.find({
-      orderDate: { $gte: startDate, $lte: endDate },
+      orderDate: { $gte: new Date(startDate), $lte: new Date(endDate) },
     });
 
     const grouped = groupBySeller(breakupFiles);
-
     const statements = [];
 
     for (const sellerId in grouped) {
@@ -34,11 +33,17 @@ export const createAccountStatementForAll = async (req, res) => {
         0
       );
 
+      const seller = await Seller.findById(sellerId);
+
       const statement = new AccountStatementSeller({
         sellerId,
-        periodStart: startDate,
-        periodEnd: endDate,
+        sellerName: seller ? seller.name : "Unknown Seller",
+        periodStart: new Date(startDate),
+        periodEnd: new Date(endDate),
         totalAmount,
+        status: "pending",
+        referenceId: `REF-${Date.now()}`,
+        generatedAt: new Date(),
         orders: sellerBreakups.map((b) => ({
           orderId: b.orderId,
           sellerNetReceivable: b.sellerNetReceivable,
@@ -50,19 +55,19 @@ export const createAccountStatementForAll = async (req, res) => {
       statements.push(statement);
     }
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
-      message: "Account statements generated successfully",
+      message: "Account statements generated successfully for all sellers.",
       count: statements.length,
       statements,
     });
   } catch (error) {
     console.error("Error generating statements:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// create Account Statement for one single seller
+// 🧾 Create Account Statement for ONE Seller
 export const createAccountStatementForSeller = async (req, res) => {
   try {
     const { sellerId } = req.params;
@@ -70,19 +75,28 @@ export const createAccountStatementForSeller = async (req, res) => {
 
     const breakupFiles = await BreakupFile.find({
       sellerId,
-      orderDate: { $gte: startDate, $lte: endDate },
+      orderDate: { $gte: new Date(startDate), $lte: new Date(endDate) },
     });
+
+    if (breakupFiles.length === 0)
+      return res.status(404).json({ message: "No breakup files found for this seller." });
 
     const totalAmount = breakupFiles.reduce(
       (sum, b) => sum + b.sellerNetReceivable,
       0
     );
 
+    const seller = await Seller.findById(sellerId);
+
     const statement = await AccountStatementSeller.create({
       sellerId,
-      periodStart: startDate,
-      periodEnd: endDate,
+      sellerName: seller ? seller.name : "Unknown Seller",
+      periodStart: new Date(startDate),
+      periodEnd: new Date(endDate),
       totalAmount,
+      status: "pending",
+      referenceId: `REF-${Date.now()}`,
+      generatedAt: new Date(),
       orders: breakupFiles.map((b) => ({
         orderId: b.orderId,
         sellerNetReceivable: b.sellerNetReceivable,
@@ -92,17 +106,18 @@ export const createAccountStatementForSeller = async (req, res) => {
 
     res.status(201).json({ success: true, statement });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 👥 Create account statements for selected sellers
+// 🧾 Create Account Statements for SELECTED Sellers
 export const createAccountStatementForSelected = async (req, res) => {
   try {
     const { sellerIds, startDate, endDate } = req.body;
+
     const breakupFiles = await BreakupFile.find({
       sellerId: { $in: sellerIds },
-      orderDate: { $gte: startDate, $lte: endDate },
+      orderDate: { $gte: new Date(startDate), $lte: new Date(endDate) },
     });
 
     const grouped = groupBySeller(breakupFiles);
@@ -117,11 +132,17 @@ export const createAccountStatementForSelected = async (req, res) => {
         0
       );
 
+      const seller = await Seller.findById(sellerId);
+
       const statement = new AccountStatementSeller({
         sellerId,
-        periodStart: startDate,
-        periodEnd: endDate,
+        sellerName: seller ? seller.name : "Unknown Seller",
+        periodStart: new Date(startDate),
+        periodEnd: new Date(endDate),
         totalAmount,
+        status: "pending",
+        referenceId: `REF-${Date.now()}`,
+        generatedAt: new Date(),
         orders: sellerBreakups.map((b) => ({
           orderId: b.orderId,
           sellerNetReceivable: b.sellerNetReceivable,
@@ -135,18 +156,19 @@ export const createAccountStatementForSelected = async (req, res) => {
 
     res.status(201).json({
       success: true,
+      message: "Account statements created for selected sellers.",
       count: statements.length,
       statements,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// send account Statements to bussiness side api - call the bussiness api.
+// 🚀 Send account statements to business API
 export const sendAccountStatementsToBusiness = async (req, res) => {
   try {
-    const { ids } = req.body; // list of statement IDs to send
+    const { ids } = req.body;
 
     const statements = await AccountStatementSeller.find({ _id: { $in: ids } });
 
@@ -158,58 +180,65 @@ export const sendAccountStatementsToBusiness = async (req, res) => {
         st
       );
 
-      await AccountStatement.findByIdAndUpdate(st._id, {
+      await AccountStatementSeller.findByIdAndUpdate(st._id, {
         status: "sent",
-        referenceId: response.data.referenceId,
+        referenceId: response.data.referenceId || `BUS-${Date.now()}`,
       });
 
       results.push({
         id: st._id,
         status: "sent",
-        referenceId: response.data.referenceId,
+        referenceId: response.data.referenceId || `BUS-${Date.now()}`,
       });
     }
 
-    res.status(200).json({ success: true, results });
+    res.status(200).json({ success: true, message: "Statements sent successfully", results });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 1️⃣ Fetch all account statements
+// 📋 Fetch All Statements (with optional status)
 export const getAllAccountStatements = async (req, res) => {
   try {
-    const { status } = req.query; // optional filter (e.g. ?status=pending)
+    const { status } = req.query;
     const query = status ? { status } : {};
-    const statements = await AccountStatementSeller.find(query).sort({ createdAt: -1 });
+    const statements = await AccountStatementSeller.find(query)
+      .sort({ createdAt: -1 })
+      .populate("sellerId", "name email");
+
     res.status(200).json({ success: true, data: statements });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 2️⃣ Fetch a single account statement
+// 📋 Fetch Single Statement by ID
 export const getSingleAccountStatement = async (req, res) => {
   try {
     const { id } = req.params;
-    const statement = await AccountStatementSeller.findById(id);
-    if (!statement) return res.status(404).json({ message: "Statement not found" });
+    const statement = await AccountStatementSeller.findById(id).populate("sellerId", "name email");
+    if (!statement)
+      return res.status(404).json({ success: false, message: "Statement not found" });
+
     res.status(200).json({ success: true, data: statement });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 3️⃣ Update statement status (e.g. mark as paid)
+// 💵 Update Statement Status (paid, sent, pending)
 export const updateAccountStatementStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+
     const updated = await AccountStatementSeller.findByIdAndUpdate(
       id,
-      { status },
+      { status, lastUpdated: new Date() },
       { new: true }
     );
+
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
