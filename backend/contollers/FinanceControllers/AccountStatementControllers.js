@@ -215,3 +215,82 @@ export const updateAccountStatementStatus = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+const testStatements = [
+  {
+    sellerId: "68e55612de71cd2a235943a2",
+    periodStart: new Date("2025-09-01"),
+    periodEnd: new Date("2025-09-15"),
+    totalAmount: 32000,
+    orders: [
+      { orderId: "ORD-1001", sellerNetReceivable: 12000, orderDate: new Date("2025-09-03") },
+      { orderId: "ORD-1002", sellerNetReceivable: 20000, orderDate: new Date("2025-09-10") },
+    ],
+    status: "sent",
+    referenceId: "REF-SENT-001"
+  },
+  {
+    sellerId: "68e55612de71cd2a235943a2",
+    periodStart: new Date("2025-09-16"),
+    periodEnd: new Date("2025-09-30"),
+    totalAmount: 27000,
+    orders: [
+      { orderId: "ORD-1010", sellerNetReceivable: 15000, orderDate: new Date("2025-09-20") },
+      { orderId: "ORD-1011", sellerNetReceivable: 12000, orderDate: new Date("2025-09-25") },
+    ],
+    status: "paid",
+    referenceId: "REF-PAID-001"
+  },
+  // Add other sellers' statements as needed...
+];
+
+export const initializeAccountStatements = async (req, res) => {
+  try {
+    // Optional: clear existing statements first
+    await AccountStatementSeller.deleteMany({});
+
+    // Insert test statements
+    const inserted = await AccountStatementSeller.insertMany(testStatements);
+
+    res.status(200).json({
+      success: true,
+      message: "Account statements collection initialized successfully!",
+      data: inserted,
+    });
+  } catch (error) {
+    console.error("Error initializing account statements:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+// Fetch account statements by status
+export const getAccountStatementsByStatus = async (req, res) => {
+  try {
+    const status = req.query.status || "pending"; // default to pending
+
+    // Fetch statements and populate seller info
+    const statements = await AccountStatementSeller.find({ status })
+      .populate("sellerId", "name email businessSellerId")
+      .sort({ generatedAt: -1 });
+
+    // Map for frontend-friendly response
+    const formatted = statements.map((st) => ({
+      _id: st._id,
+      sellerId: st.sellerId._id,
+      sellerName: st.sellerId.name,
+      sellerEmail: st.sellerId.email,
+      businessSellerId: st.sellerId.businessSellerId,
+      startDate: st.periodStart.toISOString().split("T")[0],
+      endDate: st.periodEnd.toISOString().split("T")[0],
+      totalAmount: st.totalAmount,
+      orders: st.orders,
+      status: st.status,
+      referenceId: st.referenceId,
+    }));
+
+    res.status(200).json({ success: true, data: formatted });
+  } catch (error) {
+    console.error("Error fetching account statements:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

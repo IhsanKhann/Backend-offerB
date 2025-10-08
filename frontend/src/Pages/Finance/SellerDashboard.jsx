@@ -128,13 +128,12 @@ const SellerDashboard = () => {
     }
   };
 
-  // ✅ Sidebar Items
   const navItems = [
-    { name: "Sellers Dashboard", path: "/sellers-dashboard" },
+    { name: "Sellers Dashboard", path: "/sellerDashboard" },
     { name: "Account Statements", path: "/accountStatements" },
     { name: "Paid Statements", path: "/accountStatements/paid" },
   ];
-
+  
   if (loading) return <Loader />;
 
   return (

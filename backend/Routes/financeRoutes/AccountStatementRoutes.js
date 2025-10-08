@@ -7,6 +7,9 @@ import {
     getAllAccountStatements,
     getSingleAccountStatement,
     updateAccountStatementStatus,
+    initializeAccountStatements,
+    getAccountStatementsByStatus,
+
 } from "../../contollers/FinanceControllers/AccountStatementControllers.js";
 
 import express from "express";
@@ -27,5 +30,9 @@ router.post("/send", sendAccountStatementsToBusiness);
 router.get("/", getAllAccountStatements);
 router.get("/:id", getSingleAccountStatement);
 router.patch("/:id/status", updateAccountStatementStatus);
+router.get("/", getAccountStatementsByStatus);
+
+// testing:
+router.post("/initialize", initializeAccountStatements);
 
 export default router;

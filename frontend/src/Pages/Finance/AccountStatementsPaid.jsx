@@ -6,6 +6,7 @@ const PaidStatements = () => {
 
   useEffect(() => {
     api.get("/statements?status=paid").then((res) => setStatements(res.data.data));
+    console.log(statements);
   }, []);
 
   return (
