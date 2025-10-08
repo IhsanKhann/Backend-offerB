@@ -9,13 +9,13 @@ import {
 import { authenticate,authorize } from "../../middlewares/authMiddlewares.js";
 
 const router = express.Router();
-router.use(authenticate());
+router.use(authenticate);
 
 // Admin/manual sync
 router.get("/sync", syncSellersFromBusiness);
 
 // Frontend usage
-router.get("/sellers", getAllSellers);
+router.get("/all", getAllSellers);
 router.get("/:id", getSingleSeller);
 
 export default router;

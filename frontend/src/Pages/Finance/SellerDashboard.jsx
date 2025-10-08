@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Dialog } from "@headlessui/react";
 import Sidebar from "../../components/Sidebar.jsx";
 import api from "../../api/axios.js";
 
@@ -12,18 +13,22 @@ const Loader = () => (
 const SellerDashboard = () => {
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [openActionMenu, setOpenActionMenu] = useState(null);
   const [selectedSellers, setSelectedSellers] = useState([]);
+  const [openActionMenu, setOpenActionMenu] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [selectedSeller, setSelectedSeller] = useState(null);
+  const [showPayModal, setShowPayModal] = useState(false);
 
+  // ✅ Fetch Sellers
   const fetchSellers = async () => {
     try {
       setLoading(true);
       const res = await api.get("/sellers/all");
-      setSellers(res.data || []);
-    } catch (err) {
-      console.error("Error fetching sellers:", err);
+      setSellers(res.data.data || []);
+    } catch (error) {
+      console.error("Error fetching sellers:", error);
+      alert("Failed to fetch sellers list.");
     } finally {
       setLoading(false);
     }
@@ -33,57 +38,104 @@ const SellerDashboard = () => {
     fetchSellers();
   }, []);
 
-  const toggleSelectSeller = (id) => {
+  // ✅ Select or Deselect Seller
+  const toggleSelectSeller = (sellerId) => {
     setSelectedSellers((prev) =>
-      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
+      prev.includes(sellerId)
+        ? prev.filter((id) => id !== sellerId)
+        : [...prev, sellerId]
     );
   };
 
-  // 🔹 Pay Single Seller
+  // ✅ Pay a Single Seller
   const paySeller = async (sellerId) => {
+    if (!startDate || !endDate)
+      return alert("Please select both start and end dates.");
+
     try {
-      await api.post(`/statements/create/seller/${sellerId}`, { startDate, endDate });
-      alert("Account statement created successfully!");
-    } catch (err) {
-      console.error("Error paying seller:", err);
-      alert("Failed to process payment");
+      await api.post(`/statements/create/seller/${sellerId}`, {
+        startDate,
+        endDate,
+      });
+      alert("✅ Account statement created successfully for seller.");
+    } catch (error) {
+      console.error("Error paying seller:", error);
+      alert("❌ Failed to process seller payment.");
     }
   };
 
-  // 🔹 Pay Selected Sellers
+  // ✅ Pay Selected Sellers
   const paySelectedSellers = async () => {
+    if (selectedSellers.length === 0)
+      return alert("Please select at least one seller.");
+
+    if (!startDate || !endDate)
+      return alert("Please select both start and end dates.");
+
     try {
       await api.post("/statements/create/selected", {
         sellerIds: selectedSellers,
         startDate,
         endDate,
       });
-      alert("Account statements for selected sellers created!");
+      alert("✅ Statements created for selected sellers.");
       setSelectedSellers([]);
-    } catch (err) {
-      console.error(err);
-      alert("Error paying selected sellers");
+    } catch (error) {
+      console.error(error);
+      alert("❌ Failed to process selected sellers payment.");
     }
   };
 
-  // 🔹 Pay All Sellers
+  // ✅ Pay All Sellers
   const payAllSellers = async () => {
+    if (!startDate || !endDate)
+      return alert("Please select both start and end dates.");
+
     try {
       await api.post("/statements/create/all", { startDate, endDate });
-      alert("Account statements created for all sellers!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to process all sellers payment");
+      alert("✅ Account statements created for all sellers.");
+    } catch (error) {
+      console.error(error);
+      alert("❌ Failed to process all sellers payment.");
     }
   };
 
-  if (loading) return <Loader />;
+  // ✅ Open Pay Modal
+  const openPayModal = async (sellerId) => {
+    try {
+      const res = await api.get(`/sellers/${sellerId}`);
+      setSelectedSeller(res.data.data);
+      setShowPayModal(true);
+    } catch (error) {
+      alert("❌ Failed to load seller details.");
+    }
+  };
 
+  // ✅ Confirm Pay inside Modal
+  const handlePaySeller = async () => {
+    if (!startDate || !endDate)
+      return alert("Please select both start and end dates.");
+
+    try {
+      await api.post(`/statements/create/seller/${selectedSeller._id}`, {
+        startDate,
+        endDate,
+      });
+      alert("✅ Seller paid successfully!");
+      setShowPayModal(false);
+    } catch (error) {
+      alert("❌ Payment failed.");
+    }
+  };
+
+  // ✅ Sidebar Items
   const navItems = [
     { name: "Sellers Dashboard", path: "/sellers-dashboard" },
-    { name: "Transactions", path: "/transactions" },
-    { name: "Reports", path: "/reports" },
+    { name: "Account Statements", path: "/accountStatements" },
+    { name: "Paid Statements", path: "/accountStatements/paid" },
   ];
+
+  if (loading) return <Loader />;
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -94,6 +146,7 @@ const SellerDashboard = () => {
 
       {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 space-y-4">
+        {/* Header */}
         <div className="flex flex-wrap justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Sellers Payment Dashboard</h1>
 
@@ -110,12 +163,14 @@ const SellerDashboard = () => {
               onChange={(e) => setEndDate(e.target.value)}
               className="border p-1 rounded"
             />
+
             <button
               onClick={payAllSellers}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               Pay All Sellers
             </button>
+
             {selectedSellers.length > 0 && (
               <button
                 onClick={paySelectedSellers}
@@ -127,6 +182,7 @@ const SellerDashboard = () => {
           </div>
         </div>
 
+        {/* Seller List */}
         {sellers.length === 0 ? (
           <p className="text-gray-500">No sellers found.</p>
         ) : (
@@ -147,9 +203,11 @@ const SellerDashboard = () => {
                     <p className="text-base font-semibold text-gray-800">
                       {seller.name}
                     </p>
-                    <p className="text-xs text-gray-500">{seller.email || "No email available"}</p>
+                    <p className="text-xs text-gray-500">
+                      {seller.email || "No email"}
+                    </p>
                     <p className="text-xs text-gray-400">
-                      Business ID: {seller.businessSellerId}
+                      Business ID: {seller.businessSellerId || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -161,11 +219,11 @@ const SellerDashboard = () => {
                     {seller.totalOrders ?? "N/A"}
                   </p>
                   <p>
-                    <span className="font-medium">Total Pending:</span>{" "}
+                    <span className="font-medium">Pending:</span>{" "}
                     {seller.totalPending ?? "N/A"}
                   </p>
                   <p>
-                    <span className="font-medium">Total Paid:</span>{" "}
+                    <span className="font-medium">Paid:</span>{" "}
                     {seller.totalPaid ?? "N/A"}
                   </p>
                   <p>
@@ -184,7 +242,9 @@ const SellerDashboard = () => {
                 <div className="mt-3 md:mt-0 relative">
                   <button
                     onClick={() =>
-                      setOpenActionMenu(openActionMenu === seller._id ? null : seller._id)
+                      setOpenActionMenu(
+                        openActionMenu === seller._id ? null : seller._id
+                      )
                     }
                     className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs flex items-center justify-between w-28"
                   >
@@ -208,13 +268,15 @@ const SellerDashboard = () => {
                         className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
                       >
                         <button
-                          onClick={() => paySeller(seller._id)}
+                          onClick={() => openPayModal(seller._id)}
                           className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
                         >
                           Pay Seller
                         </button>
                         <button
-                          onClick={() => alert(`Breakup for ${seller.name} coming soon`)}
+                          onClick={() =>
+                            alert(`Breakup for ${seller.name} coming soon`)
+                          }
                           className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
                         >
                           View Breakup
@@ -226,6 +288,51 @@ const SellerDashboard = () => {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Pay Modal */}
+        {showPayModal && (
+          <Dialog
+            open={showPayModal}
+            onClose={() => setShowPayModal(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          >
+            <div className="bg-white p-6 rounded-lg w-96 space-y-3">
+              <h2 className="text-xl font-bold">Pay Seller</h2>
+              <p className="text-sm text-gray-600">{selectedSeller?.name}</p>
+              <p className="text-xs text-gray-500">{selectedSeller?.email}</p>
+
+              <div className="flex flex-col gap-2">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="border p-2 rounded"
+                />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="border p-2 rounded"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => setShowPayModal(false)}
+                  className="px-4 py-2 border rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePaySeller}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md"
+                >
+                  Confirm Pay
+                </button>
+              </div>
+            </div>
+          </Dialog>
         )}
       </div>
     </div>

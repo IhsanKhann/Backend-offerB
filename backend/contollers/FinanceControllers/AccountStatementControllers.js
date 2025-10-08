@@ -175,3 +175,43 @@ export const sendAccountStatementsToBusiness = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// 1️⃣ Fetch all account statements
+export const getAllAccountStatements = async (req, res) => {
+  try {
+    const { status } = req.query; // optional filter (e.g. ?status=pending)
+    const query = status ? { status } : {};
+    const statements = await AccountStatementSeller.find(query).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: statements });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 2️⃣ Fetch a single account statement
+export const getSingleAccountStatement = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const statement = await AccountStatementSeller.findById(id);
+    if (!statement) return res.status(404).json({ message: "Statement not found" });
+    res.status(200).json({ success: true, data: statement });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 3️⃣ Update statement status (e.g. mark as paid)
+export const updateAccountStatementStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const updated = await AccountStatementSeller.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

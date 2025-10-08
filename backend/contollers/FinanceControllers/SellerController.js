@@ -91,7 +91,7 @@ cron.schedule("0 */6 * * *", async () => {
 // seller Dashboard - fetch sellers from the database - local Database
 export const getAllSellers = async (req, res) => {
   try {
-    await syncSellersFromBusiness();
+    // await syncSellersFromBusiness();
     const sellers = await Seller.find().sort({ createdAt: -1 });
     res.status(200).json({
       success: true,

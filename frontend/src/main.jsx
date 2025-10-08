@@ -26,6 +26,10 @@ import SellerDashboard from "./Pages/Finance/SellerDashboard.jsx";
 import BuyerBreakupSummary from "./Pages/Finance/BuyerBreakup.jsx";
 import BusinessTables from "./Pages/Finance/BussinessTable.jsx";
 
+// Account Statements:
+import AccountStatements from "./Pages/Finance/AccountStatements.jsx";
+import PaidStatements from "./Pages/Finance/AccountStatementsPaid.jsx";
+
 import "./index.css";
 import store from "./store/store.jsx";
 import { Provider } from "react-redux";
@@ -202,7 +206,22 @@ const router = createBrowserRouter([
      </ProtectedRoute> 
    ),
   },
-  
+   {
+   path: "/accountStatements",
+   element: (
+     <ProtectedRoute>
+       <AccountStatements />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/accountStatements/paid",
+   element: (
+     <ProtectedRoute>
+       <PaidStatements />
+     </ProtectedRoute> 
+   ),
+  },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
