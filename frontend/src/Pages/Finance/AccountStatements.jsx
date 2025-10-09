@@ -174,7 +174,7 @@ const AccountStatementsDashboard = () => {
                   <div>
                     <p className="text-sm text-gray-500 font-medium">Period</p>
                     <p className="text-gray-800 text-sm">
-                      {st.startDate} → {st.endDate}
+                      {st.periodStart} → {st.periodEnd}
                     </p>
                   </div>
                 </div>

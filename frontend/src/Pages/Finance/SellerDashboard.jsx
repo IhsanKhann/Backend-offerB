@@ -24,7 +24,7 @@ const SellerDashboard = () => {
   const fetchSellers = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/sellers/all");
+      const res = await api.get("/sellers/all") || await axios.get("https://offersberries.com/api/v2/sellers/all_sellers");
       setSellers(res.data.data || []);
     } catch (error) {
       console.error("Error fetching sellers:", error);
