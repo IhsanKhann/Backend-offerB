@@ -42,6 +42,7 @@ function HomePage() {
     }
   };
 
+  // 🧩 HR / Admin Division
   const cards = [
     {
       title: "My Profile",
@@ -82,13 +83,35 @@ function HomePage() {
     },
   ];
 
-  // Finance Division cards
+  // 💰 Finance Division
   const financeCards = [
     {
       title: "Salary Dashboard",
       desc: "View and manage employee salaries",
       onClick: () => navigate("/salary-dashboard"),
       color: "bg-gradient-to-r from-teal-500 to-teal-600",
+    },
+    {
+      title: "Account Statements",
+      desc: "Track financial statements and payments",
+      onClick: () => navigate("/accountStatements"),
+      color: "bg-gradient-to-r from-emerald-500 to-emerald-600",
+    },
+  ];
+
+  // 🏢 Business Operations Division
+  const businessOpsCards = [
+    {
+      title: "Seller Dashboard",
+      desc: "Manage all sellers, their data, and actions",
+      onClick: () => navigate("/sellerDashboard"),
+      color: "bg-gradient-to-r from-pink-500 to-pink-600",
+    },
+    {
+      title: "Bidder Dashboard",
+      desc: "View and manage bidders and their statuses",
+      onClick: () => navigate("/bidderDashboard"),
+      color: "bg-gradient-to-r from-orange-500 to-orange-600",
     },
   ];
 
@@ -98,8 +121,12 @@ function HomePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 flex items-center justify-between">
         {/* Logo / Title */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900">OfferBerries Dashboard</h1>
-          <p className="text-gray-600 text-lg">{message || "Loading welcome message..."}</p>
+          <h1 className="text-4xl font-bold text-gray-900">
+            OfferBerries Dashboard
+          </h1>
+          <p className="text-gray-600 text-lg">
+            {message || "Loading welcome message..."}
+          </p>
         </div>
 
         {/* Profile Icon */}
@@ -109,7 +136,9 @@ function HomePage() {
             onClick={() => navigate("/profile")}
           >
             <FiUser size={28} className="text-indigo-600" />
-            <p className="font-semibold text-gray-900">{profile.individualName}</p>
+            <p className="font-semibold text-gray-900">
+              {profile.individualName}
+            </p>
           </div>
         )}
 
@@ -122,8 +151,11 @@ function HomePage() {
         </button>
       </div>
 
-      {/* General Dashboard Cards */}
+      {/* HR / Admin Division */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          HR & Admin Division
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {cards.map((card, index) => (
             <div
@@ -136,15 +168,19 @@ function HomePage() {
                 <h2 className="text-xl font-semibold">{card.title}</h2>
               </div>
               <p className="text-sm opacity-90">{card.desc}</p>
-              <div className="mt-4 text-sm font-medium opacity-90">→ Click to open</div>
+              <div className="mt-4 text-sm font-medium opacity-90">
+                → Click to open
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Finance Division */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Finance Division</h2>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          Finance Division
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {financeCards.map((card, index) => (
             <div
@@ -154,7 +190,31 @@ function HomePage() {
             >
               <h2 className="text-xl font-semibold mb-2">{card.title}</h2>
               <p className="text-sm opacity-90">{card.desc}</p>
-              <div className="mt-4 text-sm font-medium opacity-90">→ Click to open</div>
+              <div className="mt-4 text-sm font-medium opacity-90">
+                → Click to open
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Business Operations Division */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          Business Operations Division
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {businessOpsCards.map((card, index) => (
+            <div
+              key={index}
+              onClick={card.onClick}
+              className={`cursor-pointer ${card.color} text-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between`}
+            >
+              <h2 className="text-xl font-semibold mb-2">{card.title}</h2>
+              <p className="text-sm opacity-90">{card.desc}</p>
+              <div className="mt-4 text-sm font-medium opacity-90">
+                → Click to open
+              </div>
             </div>
           ))}
         </div>

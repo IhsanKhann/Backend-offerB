@@ -9,6 +9,7 @@ const PaidStatements = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const navItems = [
+    { name: "Dashboard", path: "/sellers" },
     { name: "Sellers Dashboard", path: "/sellerDashboard" },
     { name: "Account Statements", path: "/accountStatements" },
     { name: "Paid Statements", path: "/accountStatements/paid" },

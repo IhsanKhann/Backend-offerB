@@ -178,8 +178,8 @@
       ]
     }
   ]
-
-    {
+  
+  [{
       "componentName": "Sales Tax",
       "type": "tax",
       "instanceId": { "$oid": "68cc3c0f9f6641a93acc7a60" },
@@ -235,3 +235,5 @@
     }
   ]
 }
+]
+    

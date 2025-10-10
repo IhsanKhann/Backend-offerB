@@ -26,9 +26,11 @@ import SellerDashboard from "./Pages/Finance/SellerDashboard.jsx";
 import BuyerBreakupSummary from "./Pages/Finance/BuyerBreakup.jsx";
 import BusinessTables from "./Pages/Finance/BussinessTable.jsx";
 
+import Sellers from "./Pages/Finance/Sellers.jsx";
 // Account Statements:
 import AccountStatements from "./Pages/Finance/AccountStatements.jsx";
 import PaidStatements from "./Pages/Finance/AccountStatementsPaid.jsx";
+import BidderDashboard from "./Pages/Finance/BidderDashboard.jsx";
 
 import "./index.css";
 import store from "./store/store.jsx";
@@ -219,6 +221,22 @@ const router = createBrowserRouter([
    element: (
      <ProtectedRoute>
        <PaidStatements />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/sellers",
+   element: (
+     <ProtectedRoute>
+       <Sellers />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/bidderDashboard",
+   element: (
+     <ProtectedRoute>
+       <BidderDashboard />
      </ProtectedRoute> 
    ),
   },

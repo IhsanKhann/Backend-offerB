@@ -47,14 +47,42 @@ export const syncSellersFromBusiness = async (req, res) => {
   }
 };
 
-// ✅ Fetch all sellers (with sync)
+// ✅ Fetch all sellers (with smart sync)
 export const getAllSellers = async (req, res) => {
   try {
+    // Get latest seller record (for checking last sync)
+    const latestSeller = await Seller.findOne().sort({ lastSyncedAt: -1 });
+
+    // If sellers exist and were synced within last 6 hours, just return them
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+    if (latestSeller && latestSeller.lastSyncedAt > sixHoursAgo) {
+      const sellers = await Seller.find().sort({ createdAt: -1 });
+      return res.status(200).json({
+        success: true,
+        message: "✅ Returning cached sellers (recent sync)",
+        count: sellers.length,
+        data: sellers,
+      });
+    }
+
+    // Otherwise, perform a fresh sync from the business API
+    console.log("[SYNC] Sellers outdated — syncing fresh data...");
     await syncSellers();
     const sellers = await Seller.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: sellers.length, data: sellers });
+
+    res.status(200).json({
+      success: true,
+      message: "✅ Sellers synced and returned successfully",
+      count: sellers.length,
+      data: sellers,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Error fetching sellers", error: error.message });
+    console.error("[ERROR] Fetching sellers:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching sellers",
+      error: error.message,
+    });
   }
 };
 
