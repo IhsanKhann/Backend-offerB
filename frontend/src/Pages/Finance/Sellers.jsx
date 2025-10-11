@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import api from "../../api/axios.js";
 import Sidebar from "../../components/Sidebar.jsx";
 
@@ -12,22 +11,22 @@ const Loader = () => (
 const SellerDashboard = () => {
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [openActionMenu, setOpenActionMenu] = useState(null);
-  const dropdownRef = useRef(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [selectedSeller, setSelectedSeller] = useState(null);
+  const menuRef = useRef(null);
 
-  // Sidebar nav items
   const navItems = [
-    { name: "Seller Dashboard", path: "/sellerDashboard" },
+    { name: "Sellers Dashboard", path: "/sellers" },
+    { name: "Pay Sellers", path: "/sellerDashboard" },
     { name: "Account Statements", path: "/accountStatements" },
     { name: "Paid Statements", path: "/accountStatements/paid" },
   ];
 
-  // ✅ Fetch all sellers
   const fetchSellers = async () => {
     try {
       setLoading(true);
       const res = await api.get("/sellers/all");
-      setSellers(res.data?.sellers || []);
+      setSellers(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching sellers:", err);
     } finally {
@@ -35,7 +34,6 @@ const SellerDashboard = () => {
     }
   };
 
-  // ✅ Sync sellers
   const handleSyncSellers = async () => {
     try {
       setLoading(true);
@@ -51,7 +49,6 @@ const SellerDashboard = () => {
     }
   };
 
-  // ✅ Handle actions
   const handleAction = async (action, id) => {
     try {
       const res = await api.patch(`/sellers/${action}/${id}`);
@@ -63,19 +60,22 @@ const SellerDashboard = () => {
       console.error(`Error performing ${action}:`, err);
       alert(`❌ Failed to ${action} seller`);
     } finally {
-      setOpenActionMenu(null);
+      setOpenMenuId(null);
     }
   };
 
-  // 🧹 Close dropdown when clicking outside
+  const toggleMenu = (id) => {
+    setOpenMenuId(openMenuId === id ? null : id);
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpenActionMenu(null);
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -86,20 +86,16 @@ const SellerDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
       <div className="sticky top-0 h-screen">
         <Sidebar title="Sellers Dashboard" navItems={navItems} />
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-4 md:p-6 space-y-4">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-            Sellers
-          </h1>
+      <div className="flex-1 p-6 space-y-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Sellers</h1>
           <button
             onClick={handleSyncSellers}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition-colors"
           >
             Sync Sellers
           </button>
@@ -108,112 +104,148 @@ const SellerDashboard = () => {
         {sellers.length === 0 ? (
           <p className="text-gray-500 text-sm md:text-base">No sellers found.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {sellers.map((seller) => (
               <div
-                key={seller._id}
-                className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition-all border border-gray-200"
+                key={seller.id}
+                ref={menuRef}
+                className={`bg-white rounded-xl shadow-md p-6 border border-gray-200 transition-all duration-300 ${
+                  openMenuId === seller.id ? "ring-2 ring-blue-200" : "hover:shadow-lg"
+                }`}
               >
                 {/* Seller Info */}
-                <div className="flex items-center space-x-3 md:w-1/3">
-                  {seller.avatar?.url ? (
-                    <img
-                      src={seller.avatar.url}
-                      alt="Avatar"
-                      className="w-16 h-16 rounded-full object-cover border border-blue-300"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded-full bg-gray-300 flex items-center justify-center text-gray-500 text-sm font-semibold">
-                      N/A
-                    </div>
-                  )}
-                  <div className="flex flex-col">
-                    <p className="text-base font-semibold text-gray-800">
-                      {seller.name || "Unnamed Seller"}
-                    </p>
-                    <p className="text-xs text-gray-500">{seller.email}</p>
-                    <div className="flex flex-wrap gap-1 mt-0.5">
-                      <span className="text-xs text-gray-400">
-                        ID: {seller.businessSellerId || "N/A"}
-                      </span>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
-                        {seller.status || "Pending"}
-                      </span>
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                  <div className="flex items-center space-x-4 lg:w-2/5">
+                    {seller.image ? (
+                      <img
+                        src={`https://your-image-base-url.com/${seller.image}`}
+                        alt={seller.f_name}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-blue-300"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-sm font-semibold">
+                        N/A
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-lg font-semibold capitalize text-gray-800">
+                        {seller.f_name} {seller.l_name}
+                      </p>
+                      <p className="text-sm text-gray-500">{seller.email}</p>
+                      <p className="text-sm text-gray-500"> {seller.phone}</p>
+                      <div className="flex gap-2 mt-1 flex-wrap">
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                          ID: {seller.id}
+                        </span>
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                          {seller.status || "Pending"}
+                        </span>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                          {seller.app_language?.toUpperCase() || "EN"}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Seller Details */}
-                <div className="mt-3 md:mt-0 md:w-2/3 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700">
-                  <p>
-                    <span className="font-medium">Business Name:</span>{" "}
-                    {seller.businessName || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Category:</span>{" "}
-                    {seller.category || "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Joined:</span>{" "}
-                    {seller.createdAt
-                      ? new Date(seller.createdAt).toLocaleDateString()
-                      : "N/A"}
-                  </p>
-                </div>
+                  {/* Bank & Account Info */}
+                  <div className="lg:w-2/5 grid grid-cols-2 gap-3 text-sm text-gray-700">
+                    <p><span className="font-medium">Bank:</span> {seller.bank_name || "N/A"}</p>
+                    <p><span className="font-medium">Branch:</span> {seller.branch || "N/A"}</p>
+                    <p><span className="font-medium">Account #:</span> {seller.account_no || "N/A"}</p>
+                    <p><span className="font-medium">Holder:</span> {seller.holder_name || "N/A"}</p>
+                    <p><span className="font-medium">POS:</span> {seller.pos_status ? "Active" : "Inactive"}</p>
+                    <p><span className="font-medium">GST:</span> {seller.gst || "N/A"}</p>
+                  </div>
 
-                {/* Action Menu */}
-                <div className="mt-3 md:mt-0 relative" ref={dropdownRef}>
+                  {/* Actions Toggle */}
                   <button
-                    onClick={() =>
-                      setOpenActionMenu(
-                        openActionMenu === seller._id ? null : seller._id
-                      )
-                    }
-                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs flex items-center justify-between w-28"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleMenu(seller.id);
+                    }}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg shadow text-sm font-medium border border-gray-300"
                   >
-                    Actions
-                    <span
-                      className={`ml-1 transition-transform duration-300 ${
-                        openActionMenu === seller._id ? "rotate-180" : ""
-                      }`}
-                    >
-                      ▼
-                    </span>
+                    {openMenuId === seller.id ? "Close Actions" : "Actions"}
                   </button>
-
-                  <AnimatePresence>
-                    {openActionMenu === seller._id && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-36 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
-                      >
-                        {[
-                          "approve",
-                          "reject",
-                          "suspend",
-                          "terminate",
-                          "block",
-                        ].map((action) => (
-                          <button
-                            key={action}
-                            onClick={() => handleAction(action, seller._id)}
-                            className="px-4 py-2 text-left hover:bg-gray-100 text-sm capitalize"
-                          >
-                            {action}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
+
+                {/* Horizontal Attached Action Menu */}
+                {openMenuId === seller.id && (
+                  <div className="mt-4 border-t border-gray-200 pt-3 flex flex-wrap gap-3 justify-center lg:justify-start">
+                    {["approve", "reject", "suspend", "terminate", "block"].map((action) => (
+                      <button
+                        key={action}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAction(action, seller.id);
+                        }}
+                        className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-sm font-medium transition-colors"
+                      >
+                        {action.charAt(0).toUpperCase() + action.slice(1)}
+                      </button>
+                    ))}
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSeller(seller);
+                        setOpenMenuId(null);
+                      }}
+                      className="px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-md text-sm font-medium transition-colors"
+                    >
+                      View Profile
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Profile Modal */}
+      {selectedSeller && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+          onClick={() => setSelectedSeller(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold mb-4">Seller Profile</h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+              <p><span className="font-medium">Full Name:</span> {selectedSeller.f_name} {selectedSeller.l_name}</p>
+              <p><span className="font-medium">Email:</span> {selectedSeller.email}</p>
+              <p><span className="font-medium">Phone:</span> {selectedSeller.phone}</p>
+              <p><span className="font-medium">Status:</span> {selectedSeller.status}</p>
+              <p><span className="font-medium">Language:</span> {selectedSeller.app_language?.toUpperCase()}</p>
+              <p><span className="font-medium">Created At:</span> {new Date(selectedSeller.created_at).toLocaleString()}</p>
+              <p><span className="font-medium">Updated At:</span> {new Date(selectedSeller.updated_at).toLocaleString()}</p>
+              <p><span className="font-medium">Email Verified:</span> {selectedSeller.is_email_verified ? "Yes" : "No"}</p>
+              <p><span className="font-medium">Phone Verified:</span> {selectedSeller.is_phone_verified ? "Yes" : "No"}</p>
+              <p><span className="font-medium">Bank Name:</span> {selectedSeller.bank_name || "N/A"}</p>
+              <p><span className="font-medium">Branch:</span> {selectedSeller.branch || "N/A"}</p>
+              <p><span className="font-medium">Account #:</span> {selectedSeller.account_no || "N/A"}</p>
+              <p><span className="font-medium">Holder Name:</span> {selectedSeller.holder_name || "N/A"}</p>
+              <p><span className="font-medium">GST:</span> {selectedSeller.gst || "N/A"}</p>
+              <p><span className="font-medium">Commission %:</span> {selectedSeller.sales_commission_percentage || "N/A"}</p>
+              <p><span className="font-medium">POS Status:</span> {selectedSeller.pos_status ? "Enabled" : "Disabled"}</p>
+              <p><span className="font-medium">Min Order:</span> {selectedSeller.minimum_order_amount}</p>
+              <p><span className="font-medium">Free Delivery:</span> {selectedSeller.free_delivery_status ? "Yes" : "No"}</p>
+              <p><span className="font-medium">Free Delivery Over:</span> {selectedSeller.free_delivery_over_amount}</p>
+            </div>
+
+            <button
+              onClick={() => setSelectedSeller(null)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-lg"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -129,8 +129,8 @@ const SellerDashboard = () => {
   };
 
   const navItems = [
-    { name: "Dashboard", path: "/sellers" },
-    { name: "Sellers Dashboard", path: "/sellerDashboard" },
+    { name: "Sellers Dashboard", path: "/sellers" },
+    { name: "Pay Sellers ", path: "/sellerDashboard" },
     { name: "Account Statements", path: "/accountStatements" },
     { name: "Paid Statements", path: "/accountStatements/paid" },
   ];
