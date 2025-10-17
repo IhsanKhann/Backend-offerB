@@ -90,12 +90,12 @@ const SellerDashboard = () => {
         <Sidebar title="Sellers Dashboard" navItems={navItems} />
       </div>
 
-      <div className="flex-1 p-6 space-y-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Sellers</h1>
+      <div className="flex-1 p-4 md:p-6 space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">Sellers Dashboard</h1>
           <button
             onClick={handleSyncSellers}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-sm transition-colors"
           >
             Sync Sellers
           </button>
@@ -104,74 +104,73 @@ const SellerDashboard = () => {
         {sellers.length === 0 ? (
           <p className="text-gray-500 text-sm md:text-base">No sellers found.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {sellers.map((seller) => (
               <div
                 key={seller.id}
                 ref={menuRef}
-                className={`bg-white rounded-xl shadow-md p-6 border border-gray-200 transition-all duration-300 ${
+                className={`bg-white rounded-xl shadow-md p-4 border border-gray-200 transition-all duration-300 ${
                   openMenuId === seller.id ? "ring-2 ring-blue-200" : "hover:shadow-lg"
                 }`}
               >
-                {/* Seller Info */}
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                  <div className="flex items-center space-x-4 lg:w-2/5">
-                    {seller.image ? (
-                      <img
-                        src={`https://your-image-base-url.com/${seller.image}`}
-                        alt={seller.f_name}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-blue-300"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-sm font-semibold">
-                        N/A
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-lg font-semibold capitalize text-gray-800">
-                        {seller.f_name} {seller.l_name}
-                      </p>
-                      <p className="text-sm text-gray-500">{seller.email}</p>
-                      <p className="text-sm text-gray-500"> {seller.phone}</p>
-                      <div className="flex gap-2 mt-1 flex-wrap">
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                          ID: {seller.id}
-                        </span>
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                          {seller.status || "Pending"}
-                        </span>
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                          {seller.app_language?.toUpperCase() || "EN"}
-                        </span>
-                      </div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  {/* Seller Info */}
+                  <div className="flex flex-col space-y-1 md:w-1/3">
+                    <p className="text-base font-semibold text-gray-800 capitalize">
+                      {seller.f_name} {seller.l_name}
+                    </p>
+                    <p className="text-sm text-gray-600">{seller.email}</p>
+                    <p className="text-sm text-gray-500">{seller.phone}</p>
+                    <div className="flex gap-2 mt-1 flex-wrap">
+                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                        ID: {seller.id}
+                      </span>
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                        {seller.status || "Pending"}
+                      </span>
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                        {seller.app_language?.toUpperCase() || "EN"}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Bank & Account Info */}
-                  <div className="lg:w-2/5 grid grid-cols-2 gap-3 text-sm text-gray-700">
-                    <p><span className="font-medium">Bank:</span> {seller.bank_name || "N/A"}</p>
-                    <p><span className="font-medium">Branch:</span> {seller.branch || "N/A"}</p>
-                    <p><span className="font-medium">Account #:</span> {seller.account_no || "N/A"}</p>
-                    <p><span className="font-medium">Holder:</span> {seller.holder_name || "N/A"}</p>
-                    <p><span className="font-medium">POS:</span> {seller.pos_status ? "Active" : "Inactive"}</p>
-                    <p><span className="font-medium">GST:</span> {seller.gst || "N/A"}</p>
+                  {/* Bank Info */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700 md:w-1/2">
+                    <p>
+                      <span className="font-medium">Bank:</span> {seller.bank_name || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Branch:</span> {seller.branch || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Account #:</span> {seller.account_no || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Holder:</span> {seller.holder_name || "N/A"}
+                    </p>
+                    <p>
+                      <span className="font-medium">POS:</span> {seller.pos_status ? "Active" : "Inactive"}
+                    </p>
+                    <p>
+                      <span className="font-medium">GST:</span> {seller.gst || "N/A"}
+                    </p>
                   </div>
 
-                  {/* Actions Toggle */}
+                  {/* Actions Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleMenu(seller.id);
                     }}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg shadow text-sm font-medium border border-gray-300"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md shadow text-sm font-medium border border-gray-300 transition"
                   >
                     {openMenuId === seller.id ? "Close Actions" : "Actions"}
                   </button>
                 </div>
 
-                {/* Horizontal Attached Action Menu */}
+                {/* Actions Menu */}
                 {openMenuId === seller.id && (
-                  <div className="mt-4 border-t border-gray-200 pt-3 flex flex-wrap gap-3 justify-center lg:justify-start">
+                  <div className="mt-4 border-t border-gray-200 pt-3 flex flex-wrap gap-2 justify-center md:justify-start">
                     {["approve", "reject", "suspend", "terminate", "block"].map((action) => (
                       <button
                         key={action}
@@ -179,7 +178,7 @@ const SellerDashboard = () => {
                           e.stopPropagation();
                           handleAction(action, seller.id);
                         }}
-                        className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-sm font-medium transition-colors"
+                        className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-sm font-medium transition"
                       >
                         {action.charAt(0).toUpperCase() + action.slice(1)}
                       </button>
@@ -191,7 +190,7 @@ const SellerDashboard = () => {
                         setSelectedSeller(seller);
                         setOpenMenuId(null);
                       }}
-                      className="px-4 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-md text-sm font-medium transition-colors"
+                      className="px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 rounded-md text-sm font-medium transition"
                     >
                       View Profile
                     </button>
@@ -206,15 +205,14 @@ const SellerDashboard = () => {
       {/* Profile Modal */}
       {selectedSeller && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
           onClick={() => setSelectedSeller(null)}
         >
           <div
             className="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-bold mb-4">Seller Profile</h2>
-
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Seller Profile</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
               <p><span className="font-medium">Full Name:</span> {selectedSeller.f_name} {selectedSeller.l_name}</p>
               <p><span className="font-medium">Email:</span> {selectedSeller.email}</p>
