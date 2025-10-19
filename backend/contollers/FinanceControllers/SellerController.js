@@ -5,6 +5,26 @@ import Seller from "../../models/FinanceModals/SellersModel.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+const PHP_BASE_URL = process.env.BUSINESS_API_BASE || "https://your-php-server.com/api";
+
+// ✅ Helper to make consistent API calls
+const callPhpApi = async (endpoint, method = "GET", data = null, params = {}) => {
+  try {
+    const res = await axios({
+      url: `${PHP_BASE_URL}${endpoint}`,
+      method,
+      data,
+      params,
+      headers: { "Content-Type": "application/json" },
+      timeout: 8000,
+    });
+    return res.data;
+  } catch (err) {
+    console.error(`🔥 PHP API error at ${endpoint}:`, err.response?.data || err.message);
+    throw new Error(err.response?.data?.message || "PHP API call failed");
+  }
+};
+
 // 🧠 Helper function
 export const syncSellers = async () => {
   console.log("[SYNC] Syncing sellers...");
@@ -130,9 +150,19 @@ export const ensureSellerExists = async (businessSellerId) => {
 
   if (!seller) {
     console.log(`[INFO] Seller ${businessSellerId} not found. Fetching from Business API...`);
-    const response = await axios.get(`${process.env.BUSINESS_API_BASE}/seller/single_seller/${businessSellerId}` ) || await axios.get(`https://offersberries.com/api/v2/seller/single_seller/${businessSellerId}`);
 
-    const businessSeller = response.data.data;
+    // 🧠 Convert to numeric ID if needed
+    const numericId = /^\d+$/.test(businessSellerId)
+      ? businessSellerId
+      : businessSellerId.replace(/\D/g, ""); // remove non-digits
+
+    const response =
+      await axios.get(`${process.env.BUSINESS_API_BASE}/seller/single_seller/${numericId}`)
+        .catch(() =>
+          axios.get(`https://offersberries.com/api/v2/seller/single_seller/${numericId}`)
+        );
+
+    const businessSeller = response.data?.data;
 
     if (!businessSeller || !businessSeller.id) {
       throw new Error("Seller not found on business side");
@@ -152,8 +182,98 @@ export const ensureSellerExists = async (businessSellerId) => {
       lastSyncedAt: new Date(),
     });
 
-    console.log(`[INFO] Seller ${seller.businessSellerId} created locally.`);
+    console.log(`[INFO] ✅ Seller ${seller.businessSellerId} created locally.`);
   }
 
   return seller;
 };
+
+export const approveSeller = async (req, res) => {
+  try {
+    const { sellerId } = req.params;
+    if (!sellerId) return res.status(400).json({ success: false, message: "sellerId is required" });
+
+    const phpResponse = await callPhpApi(`/seller/approve/${sellerId}`, "POST");
+
+    return res.status(200).json({
+      success: true,
+      message: phpResponse.message || "Seller approved successfully",
+      data: phpResponse.data || null,
+    });
+  } catch (error) {
+    console.error("approveSeller error:", error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const rejectSeller = async (req, res) => {
+  try {
+    const { sellerId } = req.params;
+    if (!sellerId) return res.status(400).json({ success: false, message: "sellerId is required" });
+
+    const phpResponse = await callPhpApi(`/seller/reject/${sellerId}`, "POST");
+
+    return res.status(200).json({
+      success: true,
+      message: phpResponse.message || "Seller rejected successfully",
+    });
+  } catch (error) {
+    console.error("rejectSeller error:", error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const blockSeller = async (req, res) => {
+  try {
+    const { sellerId } = req.params;
+    if (!sellerId) return res.status(400).json({ success: false, message: "sellerId is required" });
+
+    const phpResponse = await callPhpApi(`/seller/block/${sellerId}`, "POST");
+
+    return res.status(200).json({
+      success: true,
+      message: phpResponse.message || "Seller blocked successfully",
+    });
+  } catch (error) {
+    console.error("blockSeller error:", error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const terminateSeller = async (req, res) => {
+  try {
+    const { sellerId } = req.params;
+    if (!sellerId) return res.status(400).json({ success: false, message: "sellerId is required" });
+
+    const phpResponse = await callPhpApi(`/seller/terminate/${sellerId}`, "POST");
+
+    return res.status(200).json({
+      success: true,
+      message: phpResponse.message || "Seller terminated successfully",
+    });
+  } catch (error) {
+    console.error("terminateSeller error:", error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const suspendSeller = async (req, res) => {
+  try {
+    const { sellerId } = req.params;
+    const { duration, reason } = req.body;
+
+    if (!sellerId) return res.status(400).json({ success: false, message: "sellerId is required" });
+
+    const phpResponse = await callPhpApi(`/seller/suspend/${sellerId}`, "POST", { duration, reason });
+
+    return res.status(200).json({
+      success: true,
+      message: phpResponse.message || "Seller suspended successfully",
+      data: phpResponse.data || null,
+    });
+  } catch (error) {
+    console.error("suspendSeller error:", error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+

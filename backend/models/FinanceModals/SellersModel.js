@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const SellerSchema = new mongoose.Schema(
   {
     businessSellerId: {
-      type: String,
+      type: Number,
       required: true,
       unique: true, // prevents duplicates
       index: true,

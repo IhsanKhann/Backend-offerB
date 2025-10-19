@@ -158,20 +158,21 @@ export default function BreakupRulesTable() {
   /** ➕ Splits & Mirrors */
   const addSplit = () => {
     setFormData((prev) => {
-      const baseSplit = {
-        componentName: "",
-        type: "income",
-        definitionId: "",
-        summaryId: "",
-        debitOrCredit: "debit",
-        percentage: 0,
-        fixedAmount: 0,
-        mirrors: [],
-      };
+    const baseSplit = {
+      componentName: "",
+      type: "income",
+      definitionId: "",
+      summaryId: "",
+      debitOrCredit: "debit",
+      percentage: 0,
+      fixedAmount: 0,
+      mirrors: [],
+      isReflectionOnly: false, // ✅ added
+    };
 
       // Add tax-specific fields if this is a tax rule
       const isTaxRule = prev.transactionType?.includes("Tax");
-      const taxFields = isTaxRule ? {
+        const taxFields = isTaxRule ? {
         isActual: true,
         perTransaction: true,
         periodicity: "none",
@@ -179,6 +180,7 @@ export default function BreakupRulesTable() {
         slabEnd: null,
         fixedTax: 0,
         additionalTaxPercentage: 0,
+        isReflectionOnly: false, // ✅ keep consistent
       } : {};
 
       return {
@@ -432,6 +434,7 @@ export default function BreakupRulesTable() {
                   <div className="space-y-3">
                     {/* Basic Split Fields */}
                     <div className="flex flex-wrap gap-3 items-center">
+
                       <input
                         type="text"
                         value={split.componentName || ''}
@@ -647,6 +650,26 @@ export default function BreakupRulesTable() {
                     <div key={mIdx} className="mt-1 flex items-center gap-3">
                       {editRuleId === rule._id ? (
                         <>
+
+                        <div className="flex items-center space-x-2">
+  <label className="text-xs text-gray-700">Reflection Only</label>
+  <select
+    value={split.isReflectionOnly ? "true" : "false"}
+    onChange={(e) =>
+      handleInputChange(
+        splitIdx,
+        undefined,
+        "isReflectionOnly",
+        e.target.value === "true"
+      )
+    }
+    className="border p-2 rounded w-28"
+  >
+    <option value="false">No</option>
+    <option value="true">Yes</option>
+  </select>
+</div>
+
                           <select
                             value={mirror.definitionId || ''}
                             onChange={(e) =>

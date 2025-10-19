@@ -24,19 +24,21 @@ const AccountStatementsDashboard = () => {
 
   const navItems = [
     { name: "Sellers Dashboard", path: "/sellers" },
-    { name: "Pay Sellers ", path: "/sellerDashboard" },
+    { name: "Pay Sellers", path: "/sellerDashboard" },
     { name: "Account Statements", path: "/accountStatements" },
     { name: "Paid Statements", path: "/accountStatements/paid" },
   ];
 
-  // ✅ Fetch statements
+  // ✅ Fetch pending statements
   const fetchStatements = async () => {
+    console.log("🔍 Fetching pending statements...");
     try {
       setLoading(true);
       const res = await api.get("/statements?status=pending");
+      console.log("✅ Fetched statements:", res.data.data);
       setStatements(res.data.data || []);
     } catch (err) {
-      console.error("Failed to fetch statements:", err);
+      console.error("❌ Failed to fetch statements:", err);
       alert("Failed to load account statements.");
     } finally {
       setLoading(false);
@@ -47,39 +49,97 @@ const AccountStatementsDashboard = () => {
     fetchStatements();
   }, []);
 
-  // ✅ Toggle statement selection
+  // ✅ Toggle selection
   const toggleSelect = (id) => {
     setSelectedStatements((prev) =>
       prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
     );
   };
 
-  // ✅ Send statements
-  const sendStatement = async (ids) => {
+  // ✅ Generic send handler (single, bulk, or all)
+  const handleSend = async (mode = "selected") => {
     try {
-      await api.post(`/statements/send`, { ids });
-      alert("✅ Statements sent successfully!");
+      setLoading(true);
+      let payload = {};
+      let actionType = "";
+      let sellersInfo = [];
+
+      if (mode === "all") {
+        actionType = "ALL SELLERS";
+        payload = { startDate, endDate };
+        sellersInfo = statements.map((s) => ({
+          sellerId: s.sellerId,
+          sellerName: s.sellerName,
+          statementId: s._id,
+        }));
+        console.group("📦 [DEBUG] Sending ALL Sellers Statements");
+      } else if (mode === "selected" && selectedStatements.length > 0) {
+        actionType = "BULK SELLERS";
+        payload = { ids: selectedStatements };
+        sellersInfo = statements
+          .filter((s) => selectedStatements.includes(s._id))
+          .map((s) => ({
+            sellerId: s.sellerId,
+            sellerName: s.sellerName,
+            statementId: s._id,
+          }));
+        console.group("📦 [DEBUG] Sending BULK Sellers Statements");
+      } else if (mode === "single" && selectedStatement) {
+        actionType = "SINGLE SELLER";
+        payload = { ids: [selectedStatement._id] };
+        sellersInfo = [
+          {
+            sellerId: selectedStatement.sellerId,
+            sellerName: selectedStatement.sellerName,
+            statementId: selectedStatement._id,
+          },
+        ];
+        console.group("📦 [DEBUG] Sending SINGLE Seller Statement");
+      } else {
+        alert("⚠️ No statements selected.");
+        return;
+      }
+
+      // Log clear debugging info
+      console.log("🧾 Action Type:", actionType);
+      console.log("📆 Date Range:", { startDate, endDate });
+      console.log("📤 Payload being sent to backend:", payload);
+      console.table(sellersInfo);
+
+      // Determine API route
+      const route =
+        mode === "all"
+          ? `/statements/send/all`
+          : `/statements/send`;
+
+      console.log("🌐 API Route:", route);
+
+      // Make request
+      const res = await api.post(route, payload);
+      console.log("✅ Backend Response:", res.data);
+      console.groupEnd();
+
+      // Notify user
+      if (mode === "all")
+        alert("✅ All pending statements sent successfully!");
+      else if (mode === "selected")
+        alert(`✅ ${selectedStatements.length} statements sent successfully!`);
+      else alert("✅ Statement sent successfully!");
+
+      // Refresh
       fetchStatements();
       setSelectedStatements([]);
+      setShowSendModal(false);
     } catch (err) {
-      console.error(err);
-      alert("❌ Failed to send statements");
+      console.error("❌ Error sending statements:", err);
+      alert("❌ Failed to send statements.");
+      console.groupEnd();
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ Send all
-  const sendAllStatements = async () => {
-    try {
-      await api.post(`/statements/send/all`, { startDate, endDate });
-      alert("✅ All statements sent!");
-      fetchStatements();
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to send all statements");
-    }
-  };
-
-  // ✅ Open send modal
+  // ✅ Modal open for single statement
   const openSendModal = (statement) => {
     setSelectedStatement(statement);
     setShowSendModal(true);
@@ -92,7 +152,7 @@ const AccountStatementsDashboard = () => {
       {/* Sidebar */}
       <Sidebar navItems={navItems} title="Pending Account Statements" />
 
-      {/* Main Content */}
+      {/* Main Section */}
       <main className="flex-1 p-6 space-y-6">
         {/* Header */}
         <div className="flex flex-wrap justify-between items-center">
@@ -115,7 +175,7 @@ const AccountStatementsDashboard = () => {
             />
 
             <button
-              onClick={sendAllStatements}
+              onClick={() => handleSend("all")}
               className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition-all"
             >
               Send All
@@ -123,7 +183,7 @@ const AccountStatementsDashboard = () => {
 
             {selectedStatements.length > 0 && (
               <button
-                onClick={() => sendStatement(selectedStatements)}
+                onClick={() => handleSend("selected")}
                 className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 transition-all"
               >
                 Send Selected ({selectedStatements.length})
@@ -230,7 +290,9 @@ const AccountStatementsDashboard = () => {
                             Send Statement
                           </button>
                           <button
-                            onClick={() => alert('Breakup feature coming soon')}
+                            onClick={() =>
+                              alert("🧮 Breakup feature coming soon.")
+                            }
                             className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
                           >
                             View Breakup
@@ -286,7 +348,7 @@ const AccountStatementsDashboard = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={() => sendStatement([selectedStatement._id])}
+                  onClick={() => handleSend("single")}
                   className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700"
                 >
                   Confirm Send

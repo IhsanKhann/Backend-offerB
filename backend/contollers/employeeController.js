@@ -724,7 +724,6 @@ export const AssignEmployeePost = async (req, res) => {
   }
 };
 
-
 export const getAllRoles = async (req, res) => {
   try {
     const roles = await RoleModel.find();

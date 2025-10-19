@@ -5,6 +5,7 @@ const MirrorSchema = new mongoose.Schema({
   summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary" },
   definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition" },
   debitOrCredit: { type: String, enum: ["debit", "credit"], required: true },
+  isReflectOnly: { type: Boolean, default: false }, // if its a true balancing entry - false.
   fallback: { type: String, enum: ["capital", "none"], default: "none" },
 }, { _id: false });
 

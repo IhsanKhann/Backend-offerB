@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import api from "../../api/axios.js";
 import Sidebar from "../../components/Sidebar.jsx";
 
+// 🔹 Loader Component
 const Loader = () => (
   <div className="flex justify-center items-center min-h-[60vh]">
     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500"></div>
@@ -22,6 +23,7 @@ const SellerDashboard = () => {
     { name: "Paid Statements", path: "/accountStatements/paid" },
   ];
 
+  // 🔹 Fetch all sellers
   const fetchSellers = async () => {
     try {
       setLoading(true);
@@ -34,6 +36,7 @@ const SellerDashboard = () => {
     }
   };
 
+  // 🔹 Sync sellers
   const handleSyncSellers = async () => {
     try {
       setLoading(true);
@@ -49,12 +52,15 @@ const SellerDashboard = () => {
     }
   };
 
+  // 🔹 Base action handler (matches backend routes)
   const handleAction = async (action, id) => {
     try {
-      const res = await api.patch(`/sellers/${action}/${id}`);
+      const res = await api.post(`/sellers/${id}/${action}`);
       if (res.data.success) {
         alert(`✅ Seller ${action}d successfully`);
         fetchSellers();
+      } else {
+        alert(`❌ Failed to ${action} seller`);
       }
     } catch (err) {
       console.error(`Error performing ${action}:`, err);
@@ -64,10 +70,19 @@ const SellerDashboard = () => {
     }
   };
 
+  // 🔹 Individual action wrappers
+  const handleApprove = (id) => handleAction("approve", id);
+  const handleReject = (id) => handleAction("reject", id);
+  const handleSuspend = (id) => handleAction("suspend", id);
+  const handleTerminate = (id) => handleAction("terminate", id);
+  const handleBlock = (id) => handleAction("block", id);
+
+  // 🔹 Menu toggle logic
   const toggleMenu = (id) => {
     setOpenMenuId(openMenuId === id ? null : id);
   };
 
+  // 🔹 Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -78,6 +93,7 @@ const SellerDashboard = () => {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  // 🔹 Initial load
   useEffect(() => {
     fetchSellers();
   }, []);
@@ -86,10 +102,12 @@ const SellerDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
       <div className="sticky top-0 h-screen">
         <Sidebar title="Sellers Dashboard" navItems={navItems} />
       </div>
 
+      {/* Main Content */}
       <div className="flex-1 p-4 md:p-6 space-y-4">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-gray-800">Sellers Dashboard</h1>
@@ -107,10 +125,10 @@ const SellerDashboard = () => {
           <div className="space-y-3">
             {sellers.map((seller) => (
               <div
-                key={seller.id}
+                key={seller._id}
                 ref={menuRef}
                 className={`bg-white rounded-xl shadow-md p-4 border border-gray-200 transition-all duration-300 ${
-                  openMenuId === seller.id ? "ring-2 ring-blue-200" : "hover:shadow-lg"
+                  openMenuId === seller._id ? "ring-2 ring-blue-200" : "hover:shadow-lg"
                 }`}
               >
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -123,7 +141,7 @@ const SellerDashboard = () => {
                     <p className="text-sm text-gray-500">{seller.phone}</p>
                     <div className="flex gap-2 mt-1 flex-wrap">
                       <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                        ID: {seller.id}
+                        ID: {seller.businessSellerId}
                       </span>
                       <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                         {seller.status || "Pending"}
@@ -136,54 +154,59 @@ const SellerDashboard = () => {
 
                   {/* Bank Info */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700 md:w-1/2">
-                    <p>
-                      <span className="font-medium">Bank:</span> {seller.bank_name || "N/A"}
-                    </p>
-                    <p>
-                      <span className="font-medium">Branch:</span> {seller.branch || "N/A"}
-                    </p>
-                    <p>
-                      <span className="font-medium">Account #:</span> {seller.account_no || "N/A"}
-                    </p>
-                    <p>
-                      <span className="font-medium">Holder:</span> {seller.holder_name || "N/A"}
-                    </p>
-                    <p>
-                      <span className="font-medium">POS:</span> {seller.pos_status ? "Active" : "Inactive"}
-                    </p>
-                    <p>
-                      <span className="font-medium">GST:</span> {seller.gst || "N/A"}
-                    </p>
+                    <p><span className="font-medium">Bank:</span> {seller.bank_name || "N/A"}</p>
+                    <p><span className="font-medium">Branch:</span> {seller.branch || "N/A"}</p>
+                    <p><span className="font-medium">Account #:</span> {seller.account_no || "N/A"}</p>
+                    <p><span className="font-medium">Holder:</span> {seller.holder_name || "N/A"}</p>
+                    <p><span className="font-medium">POS:</span> {seller.pos_status ? "Active" : "Inactive"}</p>
+                    <p><span className="font-medium">GST:</span> {seller.gst || "N/A"}</p>
                   </div>
 
                   {/* Actions Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleMenu(seller.id);
+                      toggleMenu(seller._id);
                     }}
                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md shadow text-sm font-medium border border-gray-300 transition"
                   >
-                    {openMenuId === seller.id ? "Close Actions" : "Actions"}
+                    {openMenuId === seller._id ? "Close Actions" : "Actions"}
                   </button>
                 </div>
 
                 {/* Actions Menu */}
-                {openMenuId === seller.id && (
+                {openMenuId === seller._id && (
                   <div className="mt-4 border-t border-gray-200 pt-3 flex flex-wrap gap-2 justify-center md:justify-start">
-                    {["approve", "reject", "suspend", "terminate", "block"].map((action) => (
-                      <button
-                        key={action}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAction(action, seller.id);
-                        }}
-                        className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-sm font-medium transition"
-                      >
-                        {action.charAt(0).toUpperCase() + action.slice(1)}
-                      </button>
-                    ))}
-
+                    <button
+                      onClick={() => handleApprove(seller._id)}
+                      className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-sm font-medium transition"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleReject(seller._id)}
+                      className="px-3 py-2 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200 rounded-md text-sm font-medium transition"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => handleSuspend(seller._id)}
+                      className="px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded-md text-sm font-medium transition"
+                    >
+                      Suspend
+                    </button>
+                    <button
+                      onClick={() => handleTerminate(seller._id)}
+                      className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-md text-sm font-medium transition"
+                    >
+                      Terminate
+                    </button>
+                    <button
+                      onClick={() => handleBlock(seller._id)}
+                      className="px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-md text-sm font-medium transition"
+                    >
+                      Block
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

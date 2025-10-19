@@ -2,6 +2,7 @@
 import mongoose from "mongoose";
 const { ObjectId } = mongoose.Types;
 import dotenv from "dotenv";
+import axios from "axios";
 dotenv.config();
 
 import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
@@ -10,6 +11,7 @@ import SummaryFieldLineInstance from "../../models/FinanceModals/FieldLineInstan
 import BreakupFileModel from "../../models/FinanceModals/BreakupFiles.js";
 import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 import Order from "../../models/FinanceModals/OrdersModel.js";
+import api from "../../../frontend/src/api/axios.js";
 import {ensureSellerExists} from "../../contollers/FinanceControllers/SellerController.js";
 
 // -------------------------------
@@ -261,23 +263,22 @@ const updateSummaryBalance = async (summaryIdentifier, value, debitOrCredit, ses
 };
 
 const BUSINESS_API_BASE = process.env.BUSINESS_API_BASE;
-
 export const createOrderWithTransaction = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
     await session.withTransaction(async () => {
-      // ✅ Step 1: Validate incoming request
+      // ✅ Step 1: Validate input
       const { orderAmount, orderType, buyerId, sellerId, orderId } = req.body;
       if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId)
         throw new Error("Missing required fields");
 
-      console.log(`[ORDER] Processing Order: ${orderId} | Seller: ${sellerId}`);
+      console.log(`🚀 [ORDER] Processing Order: ${orderId} | Seller: ${sellerId}`);
 
-      // ✅ Step 2: Ensure Seller Exists Locally (auto-fetch from Business API if missing)
+      // ✅ Step 2: Ensure Seller Exists
       const seller = await ensureSellerExists(sellerId);
 
-      // ✅ Step 3: Fetch breakup rules for the order type
+      // ✅ Step 3: Load breakup rules
       const ruleTypes =
         orderType === "auction"
           ? ["auction", "auctionTax", "auctionDeposit"]
@@ -292,44 +293,86 @@ export const createOrderWithTransaction = async (req, res) => {
       if (!rules?.length)
         throw new Error(`No BreakupRules found for type ${orderType}`);
 
-      console.log(`[RULES] Loaded ${rules.length} breakup rules`);
+      console.log(`📘 [RULES] Loaded ${rules.length} breakup rules`);
 
-      // ✅ Step 4: Compute breakup lines
+      // ✅ Step 4: Compute all splits + mirrors
       const allLines = [];
 
       for (const rule of rules) {
         for (const split of rule.splits || []) {
-          const value = computeValue(orderAmount, split);
+          const baseValue = computeValue(orderAmount, split);
 
-          const splitInstance = await resolveOrCreateInstance(split, session);
-          await updateBalance(splitInstance, value, split.debitOrCredit, session);
-          await updateSummaryBalance(split.summaryId, value, split.debitOrCredit, session);
+          // --- MAIN SPLIT ---
+          const mainInstance = await resolveOrCreateInstance(split, session);
+          await updateBalance(mainInstance, baseValue, split.debitOrCredit, session);
+          await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
 
           allLines.push({
             componentName: split.componentName,
             category: split.type,
-            value,
+            amount: baseValue,
             debitOrCredit: split.debitOrCredit,
             summaryId: split.summaryId,
-            instanceId: splitInstance._id,
+            instanceId: mainInstance._id,
             definitionId: split.definitionId,
             ruleType: rule.transactionType,
+            isReflectOnly: false,
           });
+
+          // --- MIRRORS ---
+          if (Array.isArray(split.mirrors) && split.mirrors.length > 0) {
+            for (const mirror of split.mirrors) {
+              const mirrorInstance = await resolveOrCreateInstance(mirror, session);
+
+              // ✅ Only update balances if NOT reflection-only
+              if (!mirror.isReflectOnly) {
+                await updateBalance(mirrorInstance, baseValue, mirror.debitOrCredit, session);
+                await updateSummaryBalance(mirror.summaryId, baseValue, mirror.debitOrCredit, session);
+              } else {
+                console.log(
+                  `🪞 [REFLECT] Mirror for ${split.componentName} (Summary: ${mirror.summaryId}) is reflection-only — skipping balance updates.`
+                );
+              }
+
+              // ✅ Still include in lines for display / tracking
+              allLines.push({
+                componentName: `${split.componentName} (mirror)`,
+                category: split.type,
+                amount: baseValue,
+                debitOrCredit: mirror.debitOrCredit,
+                summaryId: mirror.summaryId,
+                instanceId: mirrorInstance._id,
+                definitionId: mirror.definitionId,
+                ruleType: rule.transactionType,
+                isReflectOnly: mirror.isReflectOnly || false,
+              });
+            }
+          }
         }
       }
 
+      // ✅ Step 5: Compute totals excluding reflection-only entries
       const totals = allLines.reduce(
         (acc, l) => {
-          if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.value);
-          else acc.credit += safeNumber(l.value);
+          if (!l.isReflectOnly) {
+            if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
+            else acc.credit += safeNumber(l.amount);
+          }
           return acc;
         },
         { debit: 0, credit: 0 }
       );
 
-      console.log(`[BREAKUP] Computed totals | Debit: ${totals.debit}, Credit: ${totals.credit}`);
+      const imbalance = Math.abs(totals.debit - totals.credit);
+      if (imbalance > 0.01) {
+        console.warn(
+          `⚠️ [IMBALANCE DETECTED] Debit: ${totals.debit}, Credit: ${totals.credit}, Difference: ${imbalance}`
+        );
+      } else {
+        console.log(`💰 [BALANCED] Debit: ${totals.debit}, Credit: ${totals.credit}`);
+      }
 
-      // ✅ Step 5: Create Parent + Child Breakup Files
+      // ✅ Step 6: Create breakup files
       const [parentBreakup] = await BreakupFileModel.create(
         [
           {
@@ -353,7 +396,7 @@ export const createOrderWithTransaction = async (req, res) => {
         ["income", "receivable", "commission", "principal"].includes(l.category)
       );
       const buyerLines = allLines.filter(l =>
-        ["expense", "deduction", "tax"].includes(l.category)
+        ["expense", "deduction", "tax", "charge"].includes(l.category)
       );
 
       const [sellerBreakup] = await BreakupFileModel.create(
@@ -367,8 +410,14 @@ export const createOrderWithTransaction = async (req, res) => {
             breakupType: "seller",
             parentBreakupId: parentBreakup._id,
             lines: sellerLines,
-            totalDebit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.value : 0), 0),
-            totalCredit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.value : 0), 0),
+            totalDebit: sellerLines.reduce(
+              (sum, l) => sum + (!l.isReflectOnly && l.debitOrCredit === "debit" ? l.amount : 0),
+              0
+            ),
+            totalCredit: sellerLines.reduce(
+              (sum, l) => sum + (!l.isReflectOnly && l.debitOrCredit === "credit" ? l.amount : 0),
+              0
+            ),
           },
         ],
         { session }
@@ -385,49 +434,55 @@ export const createOrderWithTransaction = async (req, res) => {
             breakupType: "buyer",
             parentBreakupId: parentBreakup._id,
             lines: buyerLines,
-            totalDebit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.value : 0), 0),
-            totalCredit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.value : 0), 0),
+            totalDebit: buyerLines.reduce(
+              (sum, l) => sum + (!l.isReflectOnly && l.debitOrCredit === "debit" ? l.amount : 0),
+              0
+            ),
+            totalCredit: buyerLines.reduce(
+              (sum, l) => sum + (!l.isReflectOnly && l.debitOrCredit === "credit" ? l.amount : 0),
+              0
+            ),
           },
         ],
         { session }
       );
 
-      console.log(`[BREAKUP] Parent, Seller, Buyer breakups created successfully.`);
+      console.log(`🧾 [BREAKUP] Parent, Seller, Buyer breakups created successfully.`);
 
-      // ✅ Step 6: Record the transaction
+      // ✅ Step 7: Record transaction (excluding reflection-only)
       const transactionAmount = totals.credit - totals.debit;
+
       await TransactionModel.create(
         [
           {
             description: `Transaction for Order ID: ${orderId}`,
             amount: transactionAmount,
-            lines: allLines,
+            lines: allLines
+              .filter(l => !l.isReflectOnly)
+              .map(l => ({
+                instanceId: l.instanceId,
+                summaryId: l.summaryId,
+                definitionId: l.definitionId,
+                debitOrCredit: l.debitOrCredit,
+                amount: l.amount,
+              })),
           },
         ],
         { session }
       );
 
-      console.log(`[TRANSACTION] Recorded transaction of ${transactionAmount}`);
+      console.log(`📒 [TRANSACTION] Recorded transaction of ${transactionAmount}`);
 
-      // ✅ Step 7: Update Seller Financials
+      // ✅ Step 8: Update Seller Financials
       seller.totalOrders += 1;
       seller.totalPending += orderAmount;
       seller.currentBalance = seller.totalPending - seller.totalPaid;
       seller.lastUpdated = new Date();
       await seller.save({ session });
 
-      console.log(`[SELLER] Updated financials for ${seller.name}`);
+      console.log(`🏦 [SELLER] Updated financials for ${seller.name}`);
 
-      // ✅ Step 8: Send Breakups to Business API
-      await axios.post(`${BUSINESS_API_BASE}/orders/${orderId}/breakups`, {
-        parentBreakup,
-        sellerBreakup,
-        buyerBreakup,
-      });
-
-      console.log(`[SYNC] Breakup data sent back to Business API for order ${orderId}`);
-
-      // ✅ Step 9: Final response
+      // ✅ Step 9: Respond
       res.status(200).json({
         success: true,
         message: "Order transaction processed successfully",
@@ -436,11 +491,16 @@ export const createOrderWithTransaction = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ [ORDER ERROR]:", err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({
+      success: false,
+      error: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
   } finally {
     await session.endSession();
   }
 };
+
 
 // ----------------- RETURN ORDER -----------------
 export const returnOrderWithTransaction = async (req, res) => {

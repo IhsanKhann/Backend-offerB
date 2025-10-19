@@ -25,7 +25,7 @@ router.use(authenticate);
 router.post("/create/all", createAccountStatementForAll);
 router.post("/create/selected", createAccountStatementForSelected);
 router.post("/create/seller/:sellerId", createAccountStatementForSeller);
-router.post("/send", sendAccountStatementsToBusiness);
+router.post("/send/all", sendAccountStatementsToBusiness);
 
 router.get("/", getAllAccountStatements);
 router.get("/:id", getSingleAccountStatement);
