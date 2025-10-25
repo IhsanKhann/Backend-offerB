@@ -264,6 +264,7 @@ const updateSummaryBalance = async (summaryIdentifier, value, debitOrCredit, ses
 
 const BUSINESS_API_BASE = process.env.BUSINESS_API_BASE;
 
+// -----------Order WITH TRANSACTION -------
 export const createOrderWithTransaction = async (req, res) => {
   const session = await mongoose.startSession();
 
@@ -305,7 +306,7 @@ export const createOrderWithTransaction = async (req, res) => {
         for (const split of rule.splits || []) {
           const baseValue = computeValue(orderAmount, split);
 
-          // Main split posting
+          // --- Main Split Posting ---
           const mainInstance = await resolveOrCreateInstance(split, session);
           await updateBalance(mainInstance, baseValue, split.debitOrCredit, session);
           await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
@@ -329,7 +330,7 @@ export const createOrderWithTransaction = async (req, res) => {
           const mirrorSet = split.mirrors || [];
 
           // =============================
-          //  PROCESS MIRRORS (PER-SPLIT)
+          //  PROCESS MIRRORS (BALANCING)
           // =============================
           let splitDebit = mainLine.debitOrCredit === "debit" ? baseValue : 0;
           let splitCredit = mainLine.debitOrCredit === "credit" ? baseValue : 0;
@@ -355,15 +356,9 @@ export const createOrderWithTransaction = async (req, res) => {
               await updateBalance(mirrorInstance, baseValue, mirror.debitOrCredit, session);
               await updateSummaryBalance(mirror.summaryId, baseValue, mirror.debitOrCredit, session);
               postingLines.push(mirrorLine);
-            } else {
-              console.log(
-                `🪞 [REFLECT] Mirror for ${split.componentName} (Summary: ${mirror.summaryId}) is reflection-only — skipping posting.`
-              );
             }
 
-            allLines.push(mirrorLine);
-
-            // Track debit/credit for validation
+            // 🪞 DO NOT push mirrors into allLines (we skip storing them)
             if (!mirror.isReflectOnly) {
               if (mirror.debitOrCredit === "debit") splitDebit += baseValue;
               if (mirror.debitOrCredit === "credit") splitCredit += baseValue;
@@ -374,13 +369,11 @@ export const createOrderWithTransaction = async (req, res) => {
           const diff = Math.abs(splitDebit - splitCredit);
           if (diff > 0.01) {
             console.error(
-              `❌ [SPLIT IMBALANCE] Component "${split.componentName}" not balanced with its mirrors. Debit: ${splitDebit} | Credit: ${splitCredit} | Diff: ${diff}`
+              `❌ [SPLIT IMBALANCE] Component "${split.componentName}" not balanced. Debit: ${splitDebit} | Credit: ${splitCredit} | Diff: ${diff}`
             );
             throw new Error(`Component ${split.componentName} imbalance (diff=${diff})`);
           } else {
-            console.log(
-              `✅ [SPLIT BALANCED] ${split.componentName} group balanced successfully.`
-            );
+            console.log(`✅ [SPLIT BALANCED] ${split.componentName} balanced successfully.`);
           }
         }
       }
@@ -401,7 +394,7 @@ export const createOrderWithTransaction = async (req, res) => {
 
       if (postingImbalance > 0.01) {
         console.warn(
-          `⚠️ [POSTING IMBALANCE] Posted lines not balanced overall. Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit} | Diff: ${postingImbalance}`
+          `⚠️ [POSTING IMBALANCE] Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit} | Diff: ${postingImbalance}`
         );
       } else {
         console.log(
@@ -412,6 +405,11 @@ export const createOrderWithTransaction = async (req, res) => {
       // =============================
       //  CREATE BREAKUP DOCUMENTS
       // =============================
+
+      // Remove mirrors from stored breakups
+      const realLines = allLines.filter(l => !l._isMirror);
+
+      // --- Parent Breakup (Full Ledger) ---
       const [parentBreakup] = await BreakupFileModel.create(
         [
           {
@@ -423,7 +421,7 @@ export const createOrderWithTransaction = async (req, res) => {
             sellerId,
             breakupType: "parent",
             parentBreakupId: null,
-            lines: allLines,
+            lines: realLines,
             totalDebit: postingTotals.debit,
             totalCredit: postingTotals.credit,
           },
@@ -431,11 +429,9 @@ export const createOrderWithTransaction = async (req, res) => {
         { session }
       );
 
-      const sellerLines = allLines.filter(l =>
-        ["income", "receivable", "commission", "principal"].includes(l.category)
-      );
-      const buyerLines = allLines.filter(l =>
-        ["expense", "deduction", "tax", "charge"].includes(l.category)
+      // --- Seller Breakup ---
+      const sellerLines = realLines.filter(l =>
+        ["receivable", "commission", "income", "tax"].includes(l.category)
       );
 
       const [sellerBreakup] = await BreakupFileModel.create(
@@ -450,16 +446,21 @@ export const createOrderWithTransaction = async (req, res) => {
             parentBreakupId: parentBreakup._id,
             lines: sellerLines,
             totalDebit: sellerLines.reduce(
-              (sum, l) => sum + (!l.isReflectOnly && l.debitOrCredit === "debit" ? l.amount : 0),
+              (sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0),
               0
             ),
             totalCredit: sellerLines.reduce(
-              (sum, l) => sum + (!l.isReflectOnly && l.debitOrCredit === "credit" ? l.amount : 0),
+              (sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0),
               0
             ),
           },
         ],
         { session }
+      );
+
+      // --- Buyer Breakup ---
+      const buyerLines = realLines.filter(l =>
+        ["principal", "tax", "expense", "deduction"].includes(l.category)
       );
 
       const [buyerBreakup] = await BreakupFileModel.create(
@@ -474,11 +475,11 @@ export const createOrderWithTransaction = async (req, res) => {
             parentBreakupId: parentBreakup._id,
             lines: buyerLines,
             totalDebit: buyerLines.reduce(
-              (sum, l) => sum + (!l.isReflectOnly && l.debitOrCredit === "debit" ? l.amount : 0),
+              (sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0),
               0
             ),
             totalCredit: buyerLines.reduce(
-              (sum, l) => sum + (!l.isReflectOnly && l.debitOrCredit === "credit" ? l.amount : 0),
+              (sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0),
               0
             ),
           },

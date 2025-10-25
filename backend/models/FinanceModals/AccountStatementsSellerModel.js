@@ -2,8 +2,7 @@ import mongoose from "mongoose";
 
 const accountStatementSchema = new mongoose.Schema({
   sellerId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Seller",
+    type: Number,
     required: true,
   },
   sellerName: { type: String, required: true },

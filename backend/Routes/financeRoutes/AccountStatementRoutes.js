@@ -1,14 +1,15 @@
 import {
-    createAccountStatementForAll,
+    createAccountStatementsForAll,
     createAccountStatementForSeller,
-    createAccountStatementForSelected,
+    createAccountStatementsForSelected,
     sendAccountStatementsToBusiness,
 
     getAllAccountStatements,
     getSingleAccountStatement,
     updateAccountStatementStatus,
-    initializeAccountStatements,
     getAccountStatementsByStatus,
+
+    receiveAccountStatements,
 
 } from "../../contollers/FinanceControllers/AccountStatementControllers.js";
 
@@ -22,8 +23,8 @@ router.use(authenticate);
 // --------------------
 // 🧾 Account Statements Routes
 // --------------------
-router.post("/create/all", createAccountStatementForAll);
-router.post("/create/selected", createAccountStatementForSelected);
+router.post("/create/all", createAccountStatementsForAll);
+router.post("/create/selected", createAccountStatementsForSelected);
 router.post("/create/seller/:sellerId", createAccountStatementForSeller);
 router.post("/send/all", sendAccountStatementsToBusiness);
 
@@ -31,8 +32,6 @@ router.get("/", getAllAccountStatements);
 router.get("/:id", getSingleAccountStatement);
 router.patch("/:id/status", updateAccountStatementStatus);
 router.get("/", getAccountStatementsByStatus);
-
-// testing:
-router.post("/initialize", initializeAccountStatements);
+router.post("/receive", receiveAccountStatements);
 
 export default router;

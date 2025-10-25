@@ -11,8 +11,20 @@ const MirrorSchema = new mongoose.Schema({
 
 const SplitSchema = new mongoose.Schema({
   componentName: { type: String, required: true },
-  type: { type: String, enum: ["allowance", "deduction", "base", "tax", "commission", "receivable", "income"], required: true },
-
+  type: {
+      type: String,
+    enum: [
+      "base",
+      "deduction",
+      "tax",
+      "commission",
+      "income",
+      "receivable",
+      "principal",
+      "expense"
+    ],
+      required: true
+    },
   // Core wiring
   definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition", required: true },
   summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary", required: true },

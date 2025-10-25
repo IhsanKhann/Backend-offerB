@@ -10,6 +10,7 @@ const Loader = () => (
   </div>
 );
 
+// 💰 Sellers Payment Dashboard
 const SellerDashboard = () => {
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,12 +21,16 @@ const SellerDashboard = () => {
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
 
-  // ✅ Fetch Sellers
+  // ✅ Fetch Sellers (from Node or PHP)
   const fetchSellers = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/sellers/all") || await axios.get("https://offersberries.com/api/v2/sellers/all_sellers");
-      setSellers(res.data.data || []);
+      const res =
+        (await api.get("/sellers/all")) ||
+        (await axios.get("https://offersberries.com/api/v2/sellers/all_sellers"));
+
+      const fetched = res.data?.sellers || res.data?.data || [];
+      setSellers(fetched);
     } catch (error) {
       console.error("Error fetching sellers:", error);
       alert("Failed to fetch sellers list.");
@@ -38,39 +43,38 @@ const SellerDashboard = () => {
     fetchSellers();
   }, []);
 
-  // ✅ Select or Deselect Seller
-  const toggleSelectSeller = (sellerId) => {
+  // ✅ Toggle seller selection by businessSellerId (numeric)
+  const toggleSelectSeller = (businessSellerId) => {
     setSelectedSellers((prev) =>
-      prev.includes(sellerId)
-        ? prev.filter((id) => id !== sellerId)
-        : [...prev, sellerId]
+      prev.includes(businessSellerId)
+        ? prev.filter((id) => id !== businessSellerId)
+        : [...prev, businessSellerId]
     );
   };
 
-  // ✅ Pay a Single Seller
-  const paySeller = async (sellerId) => {
-    if (!startDate || !endDate)
-      return alert("Please select both start and end dates.");
+  // ✅ Pay a single seller
+  const paySeller = async (seller) => {
+    if (!startDate || !endDate) return alert("Select both start and end dates.");
 
     try {
-      await api.post(`/statements/create/seller/${sellerId}`, {
+      await api.post(`/statements/create/seller/${seller.businessSellerId}`, {
         startDate,
         endDate,
       });
-      alert("✅ Account statement created successfully for seller.");
+      alert(`✅ Statement created for ${seller.name}`);
     } catch (error) {
       console.error("Error paying seller:", error);
-      alert("❌ Failed to process seller payment.");
+      alert("❌ Failed to create statement for seller.");
     }
   };
 
-  // ✅ Pay Selected Sellers
+  // ✅ Pay multiple selected sellers
   const paySelectedSellers = async () => {
     if (selectedSellers.length === 0)
       return alert("Please select at least one seller.");
 
     if (!startDate || !endDate)
-      return alert("Please select both start and end dates.");
+      return alert("Select both start and end dates.");
 
     try {
       await api.post("/statements/create/selected", {
@@ -81,60 +85,62 @@ const SellerDashboard = () => {
       alert("✅ Statements created for selected sellers.");
       setSelectedSellers([]);
     } catch (error) {
-      console.error(error);
-      alert("❌ Failed to process selected sellers payment.");
+      console.error("Error paying selected sellers:", error);
+      alert("❌ Failed to create statements for selected sellers.");
     }
   };
 
-  // ✅ Pay All Sellers
+  // ✅ Pay all sellers
   const payAllSellers = async () => {
     if (!startDate || !endDate)
-      return alert("Please select both start and end dates.");
+      return alert("Select both start and end dates.");
 
     try {
       await api.post("/statements/create/all", { startDate, endDate });
       alert("✅ Account statements created for all sellers.");
     } catch (error) {
-      console.error(error);
-      alert("❌ Failed to process all sellers payment.");
+      console.error("Error paying all sellers:", error);
+      alert("❌ Failed to process all sellers.");
     }
   };
 
   // ✅ Open Pay Modal
-  const openPayModal = async (sellerId) => {
+  const openPayModal = async (businessSellerId) => {
     try {
-      const res = await api.get(`/sellers/${sellerId}`);
-      setSelectedSeller(res.data.data);
+      const seller = sellers.find((s) => s.businessSellerId === businessSellerId);
+      if (!seller) return alert("Seller not found.");
+      setSelectedSeller(seller);
       setShowPayModal(true);
-    } catch (error) {
+    } catch {
       alert("❌ Failed to load seller details.");
     }
   };
 
-  // ✅ Confirm Pay inside Modal
+  // ✅ Confirm Pay in Modal
   const handlePaySeller = async () => {
     if (!startDate || !endDate)
-      return alert("Please select both start and end dates.");
+      return alert("Select both start and end dates.");
 
     try {
-      await api.post(`/statements/create/seller/${selectedSeller._id}`, {
+      await api.post(`/statements/create/seller/${selectedSeller.businessSellerId}`, {
         startDate,
         endDate,
       });
-      alert("✅ Seller paid successfully!");
+      alert(`✅ Seller ${selectedSeller.name} paid successfully!`);
       setShowPayModal(false);
     } catch (error) {
+      console.error("Payment failed:", error);
       alert("❌ Payment failed.");
     }
   };
 
   const navItems = [
     { name: "Sellers Dashboard", path: "/sellers" },
-    { name: "Pay Sellers ", path: "/sellerDashboard" },
+    { name: "Pay Sellers", path: "/sellerDashboard" },
     { name: "Account Statements", path: "/accountStatements" },
     { name: "Paid Statements", path: "/accountStatements/paid" },
   ];
-  
+
   if (loading) return <Loader />;
 
   return (
@@ -144,7 +150,7 @@ const SellerDashboard = () => {
         <Sidebar navItems={navItems} title="Seller Dashboard" />
       </div>
 
-      {/* Main Content */}
+      {/* Main */}
       <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Header */}
         <div className="flex flex-wrap justify-between items-center mb-4">
@@ -182,22 +188,22 @@ const SellerDashboard = () => {
           </div>
         </div>
 
-        {/* Seller List */}
+        {/* Seller Cards */}
         {sellers.length === 0 ? (
           <p className="text-gray-500">No sellers found.</p>
         ) : (
           <div className="space-y-3">
             {sellers.map((seller) => (
               <div
-                key={seller._id}
+                key={seller.businessSellerId}
                 className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition-all border border-gray-200"
               >
                 {/* Seller Info */}
                 <div className="flex items-center space-x-3 md:w-1/3">
                   <input
                     type="checkbox"
-                    checked={selectedSellers.includes(seller._id)}
-                    onChange={() => toggleSelectSeller(seller._id)}
+                    checked={selectedSellers.includes(seller.businessSellerId)}
+                    onChange={() => toggleSelectSeller(seller.businessSellerId)}
                   />
                   <div className="flex flex-col">
                     <p className="text-base font-semibold text-gray-800">
@@ -212,30 +218,13 @@ const SellerDashboard = () => {
                   </div>
                 </div>
 
-                {/* Seller Stats */}
+                {/* Stats */}
                 <div className="mt-3 md:mt-0 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700">
-                  <p>
-                    <span className="font-medium">Total Orders:</span>{" "}
-                    {seller.totalOrders ?? "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Pending:</span>{" "}
-                    {seller.totalPending ?? "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Paid:</span>{" "}
-                    {seller.totalPaid ?? "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Current Balance:</span>{" "}
-                    {seller.currentBalance ?? "N/A"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Last Payment:</span>{" "}
-                    {seller.lastPaymentDate
-                      ? new Date(seller.lastPaymentDate).toLocaleDateString()
-                      : "No payments yet"}
-                  </p>
+                  <p><span className="font-medium">Total Orders:</span> {seller.totalOrders ?? "N/A"}</p>
+                  <p><span className="font-medium">Pending:</span> {seller.totalPending ?? "N/A"}</p>
+                  <p><span className="font-medium">Paid:</span> {seller.totalPaid ?? "N/A"}</p>
+                  <p><span className="font-medium">Current Balance:</span> {seller.currentBalance ?? "N/A"}</p>
+                  <p><span className="font-medium">Last Payment:</span> {seller.lastPaymentDate ? new Date(seller.lastPaymentDate).toLocaleDateString() : "No payments yet"}</p>
                 </div>
 
                 {/* Action Menu */}
@@ -243,7 +232,9 @@ const SellerDashboard = () => {
                   <button
                     onClick={() =>
                       setOpenActionMenu(
-                        openActionMenu === seller._id ? null : seller._id
+                        openActionMenu === seller.businessSellerId
+                          ? null
+                          : seller.businessSellerId
                       )
                     }
                     className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs flex items-center justify-between w-28"
@@ -251,7 +242,9 @@ const SellerDashboard = () => {
                     Actions
                     <span
                       className={`ml-1 transition-transform duration-300 ${
-                        openActionMenu === seller._id ? "rotate-180" : ""
+                        openActionMenu === seller.businessSellerId
+                          ? "rotate-180"
+                          : ""
                       }`}
                     >
                       ▼
@@ -259,7 +252,7 @@ const SellerDashboard = () => {
                   </button>
 
                   <AnimatePresence>
-                    {openActionMenu === seller._id && (
+                    {openActionMenu === seller.businessSellerId && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -268,7 +261,7 @@ const SellerDashboard = () => {
                         className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
                       >
                         <button
-                          onClick={() => openPayModal(seller._id)}
+                          onClick={() => openPayModal(seller.businessSellerId)}
                           className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
                         >
                           Pay Seller

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog } from "@headlessui/react";
-import { Send, User, Calendar, Clock, ChevronDown } from "lucide-react";
+import { Send, User, Calendar, Clock, DollarSign, ChevronDown } from "lucide-react";
 import Sidebar from "../../components/Sidebar.jsx";
 import api from "../../api/axios.js";
 
@@ -253,6 +253,21 @@ const AccountStatementsDashboard = () => {
                   </div>
                 </div>
 
+                {/* Amount */}
+                <div className="flex items-center mb-4">
+                  <div className="p-2 bg-green-100 rounded-full mr-3">
+                    <DollarSign size={18} className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Total Amount</p>
+                    <p className="text-gray-800 text-sm capitalize">
+                      {st.totalAmount || "0.00"}
+                    </p>
+                  </div>
+                </div>
+
+
+
                 {/* Actions */}
                 <div className="border-t pt-3 mt-3 flex justify-between items-center">
                   <button
@@ -274,32 +289,6 @@ const AccountStatementsDashboard = () => {
                       Actions <ChevronDown size={14} />
                     </button>
 
-                    <AnimatePresence>
-                      {openActionMenu === st._id && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
-                        >
-                          <button
-                            onClick={() => openSendModal(st)}
-                            className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                          >
-                            Send Statement
-                          </button>
-                          <button
-                            onClick={() =>
-                              alert("🧮 Breakup feature coming soon.")
-                            }
-                            className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                          >
-                            View Breakup
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
                 </div>
               </motion.div>
