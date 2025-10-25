@@ -460,7 +460,7 @@ export const createOrderWithTransaction = async (req, res) => {
 
       // --- Buyer Breakup ---
       const buyerLines = realLines.filter(l =>
-        ["principal", "tax", "expense", "deduction"].includes(l.category)
+        ["base", "tax", "expense", "deduction"].includes(l.category)
       );
 
       const [buyerBreakup] = await BreakupFileModel.create(
