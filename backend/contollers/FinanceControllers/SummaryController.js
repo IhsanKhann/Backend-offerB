@@ -321,29 +321,57 @@ export const deleteSummary = async (req, res) => {
   }
 };
 
-// Create Definition + Instance
+// ✅ Create Instance (with Definition handling)
 export const createFieldLine = async (req, res) => {
   try {
-    const { summaryId, name, fieldLineNumericId } = req.body;
+    const { summaryId, name, fieldLineNumericId, definitionId } = req.body;
+
     if (!summaryId || !name || !fieldLineNumericId) {
-      return res.status(400).json({ error: "Provide summaryId, name, and numeric ID" });
+      return res.status(400).json({ error: "Provide summaryId, name, and fieldLineNumericId" });
     }
 
-    // Create definition
-    const definition = await SummaryFieldLineDefinition.create({ name, fieldLineNumericId });
+    let definition;
 
-    // Create instance in the selected summary
-    await SummaryFieldLineInstance.create({
+    if (definitionId) {
+      // ✅ If definition selected from dropdown — use existing one
+      definition = await SummaryFieldLineDefinition.findById(definitionId);
+      if (!definition) {
+        return res.status(404).json({ error: "Selected definition not found" });
+      }
+    } else {
+      // ✅ No definition selected → create new definition (only if not exists)
+      definition = await SummaryFieldLineDefinition.findOne({ fieldLineNumericId });
+      if (!definition) {
+        definition = await SummaryFieldLineDefinition.create({ name, fieldLineNumericId });
+      }
+    }
+
+    // ✅ Check if instance already exists for this summary + definition
+    const existingInstance = await SummaryFieldLineInstance.findOne({
+      summaryId,
+      definitionId: definition._id,
+    });
+
+    if (existingInstance) {
+      return res.status(400).json({ error: "Instance for this definition already exists in this summary" });
+    }
+
+    // ✅ Create new instance (only if definition exists)
+    const instance = await SummaryFieldLineInstance.create({
       name,
       summaryId,
       definitionId: definition._id,
-      fieldLineNumericId,
+      fieldLineNumericId: definition.fieldLineNumericId,
       balance: 0,
     });
 
-    res.json({ message: "Field line definition + instance created ✅" });
+    res.json({
+      message: "Field line instance created successfully ✅",
+      definition,
+      instance,
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Error creating field line:", err);
     res.status(500).json({ error: "Failed to create field line" });
   }
 };
