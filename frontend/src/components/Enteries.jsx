@@ -5,13 +5,15 @@ export default function FieldLineManager({ summaries, fetchAll }) {
   const [definitions, setDefinitions] = useState([]);
   const [selectedDefinition, setSelectedDefinition] = useState("");
   const [selectedSummary, setSelectedSummary] = useState("");
-  const [fieldLineName, setFieldLineName] = useState("");
-  const [fieldLineNumericId, setFieldLineNumericId] = useState("");
+  const [defName, setDefName] = useState("");
+  const [defNumericId, setDefNumericId] = useState("");
+  const [defAccountNumber, setDefAccountNumber] = useState("");
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingDef, setLoadingDef] = useState(false);
+  const [loadingInst, setLoadingInst] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
-  // ✅ Fetch all definitions for dropdown
+  // ✅ Fetch all definitions
   const fetchDefinitions = async () => {
     try {
       const res = await api.get("/summaries/fieldlines/definitions");
@@ -25,52 +27,81 @@ export default function FieldLineManager({ summaries, fetchAll }) {
     fetchDefinitions();
   }, []);
 
-  // ✅ Auto-fill name and numeric ID when definition is selected
-  useEffect(() => {
-    if (selectedDefinition) {
-      const def = definitions.find((d) => d._id === selectedDefinition);
-      if (def) {
-        setFieldLineName(def.name);
-        setFieldLineNumericId(def.fieldLineNumericId);
-      }
-    } else {
-      setFieldLineName("");
-      setFieldLineNumericId("");
-    }
-  }, [selectedDefinition]);
+  // ✅ Create new Definition only
+  const handleCreateDefinition = async () => {
+    if (!defName || !defNumericId)
+      return alert("Provide a name and numeric ID for the definition");
 
-  // ✅ Handle create
-  const handleCreateFieldLine = async () => {
-    if (!selectedSummary) return alert("Select a summary first");
-    if (!fieldLineName || !fieldLineNumericId) return alert("Provide name and numeric ID");
+    setLoadingDef(true);
+    setMessage("");
 
-    setLoading(true);
     try {
       const payload = {
-        summaryId: selectedSummary,
-        name: fieldLineName,
-        fieldLineNumericId: Number(fieldLineNumericId),
-        definitionId: selectedDefinition || undefined,
+        name: defName.trim(),
+        fieldLineNumericId: Number(defNumericId),
+        accountNumber: defAccountNumber.trim(),
       };
 
-      const res = await api.post("/summaries/createFieldLines", payload);
-      setMessage(res.data.message || "Field line created ✅");
+      // 🟢 Use the correct controller for definition creation
+      const res = await api.post("/summaries/create-definitions", payload);
 
-      setSelectedDefinition("");
-      setFieldLineName("");
-      setFieldLineNumericId("");
-      fetchDefinitions(); // refresh dropdown
-      fetchAll(); // refresh summaries
+      setMessage(res.data.message || "✅ Definition created successfully");
+      setDefName("");
+      setDefNumericId("");
+      setDefAccountNumber("");
+      await fetchDefinitions();
+      await fetchAll();
     } catch (err) {
       console.error(err);
-      setMessage("Error creating field line: " + (err.response?.data?.error || err.message));
+      setMessage(
+        "❌ Error creating definition: " +
+          (err.response?.data?.message || err.message)
+      );
     } finally {
-      setLoading(false);
+      setLoadingDef(false);
+    }
+  };
+
+  // ✅ Create Instance for selected Definition
+  const handleCreateInstance = async () => {
+    if (!selectedSummary) return alert("Select a summary first");
+    if (!selectedDefinition) return alert("Select a definition first");
+
+    setLoadingInst(true);
+    setMessage("");
+
+    try {
+      const definition = definitions.find((d) => d._id === selectedDefinition);
+      if (!definition) return alert("Invalid definition selected");
+
+      const payload = {
+        summaryId: selectedSummary,
+        name: definition.name,
+        fieldLineNumericId: definition.fieldLineNumericId,
+        definitionId: definition._id,
+      };
+
+      // 🟣 Use the correct controller for instance creation
+      const res = await api.post("/summaries/createFieldLines", payload);
+
+      setMessage(res.data.message || "✅ Instance created successfully");
+      setSelectedDefinition("");
+      setSelectedSummary("");
+      await fetchAll();
+    } catch (err) {
+      console.error(err);
+      setMessage(
+        "❌ Error creating instance: " +
+          (err.response?.data?.message || err.message)
+      );
+    } finally {
+      setLoadingInst(false);
     }
   };
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 relative">
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">Manage Field Lines</h2>
         <button
@@ -81,88 +112,110 @@ export default function FieldLineManager({ summaries, fetchAll }) {
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 mb-3">
-        {/* Select Summary */}
-        <select
-          value={selectedSummary}
-          onChange={(e) => setSelectedSummary(e.target.value)}
-          className="border p-2 rounded w-full md:w-60"
-        >
-          <option value="">-- Select Summary --</option>
-          {summaries.map((s) => (
-            <option key={s._id} value={s._id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-
-        {/* Select Definition */}
-        <select
-          value={selectedDefinition}
-          onChange={(e) => setSelectedDefinition(e.target.value)}
-          className="border p-2 rounded w-full md:w-60"
-        >
-          <option value="">-- Select Existing Definition (optional) --</option>
-          {definitions.map((d) => (
-            <option key={d._id} value={d._id}>
-              {d.name} (#{d.fieldLineNumericId})
-            </option>
-          ))}
-        </select>
-
-        {/* Field Line Name */}
-        <input
-          type="text"
-          placeholder="Field Line Name"
-          value={fieldLineName}
-          onChange={(e) => setFieldLineName(e.target.value)}
-          disabled={!!selectedDefinition}
-          className="border p-2 rounded w-full md:w-60"
-        />
-
-        {/* Numeric ID */}
-        <input
-          type="number"
-          placeholder="Numeric ID"
-          value={fieldLineNumericId}
-          onChange={(e) => setFieldLineNumericId(e.target.value)}
-          disabled={!!selectedDefinition}
-          className="border p-2 rounded w-full md:w-40"
-        />
+      {/* 🟢 Create Definition Section */}
+      <div className="border p-4 rounded-lg mb-4 bg-gray-50">
+        <h3 className="font-semibold text-gray-800 mb-2">
+          ➕ Create New Definition
+        </h3>
+        <div className="flex flex-col md:flex-row gap-3">
+          <input
+            type="text"
+            placeholder="Definition Name"
+            value={defName}
+            onChange={(e) => setDefName(e.target.value)}
+            className="border p-2 rounded w-full md:w-60"
+          />
+          <input
+            type="number"
+            placeholder="Numeric ID"
+            value={defNumericId}
+            onChange={(e) => setDefNumericId(e.target.value)}
+            className="border p-2 rounded w-full md:w-40"
+          />
+          <input
+            type="text"
+            placeholder="Account Number (optional)"
+            value={defAccountNumber}
+            onChange={(e) => setDefAccountNumber(e.target.value)}
+            className="border p-2 rounded w-full md:w-40"
+          />
+          <button
+            onClick={handleCreateDefinition}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold"
+            disabled={loadingDef}
+          >
+            {loadingDef ? "Creating..." : "Create Definition"}
+          </button>
+        </div>
       </div>
 
-      <button
-        onClick={handleCreateFieldLine}
-        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold"
-        disabled={loading}
-      >
-        {loading ? "Creating..." : "Create Field Line"}
-      </button>
+      {/* 🟣 Create Instance Section */}
+      <div className="border p-4 rounded-lg bg-gray-50">
+        <h3 className="font-semibold text-gray-800 mb-2">
+          📄 Create Instance for Definition
+        </h3>
+        <div className="flex flex-col md:flex-row gap-3">
+          <select
+            value={selectedSummary}
+            onChange={(e) => setSelectedSummary(e.target.value)}
+            className="border p-2 rounded w-full md:w-60"
+          >
+            <option value="">-- Select Summary --</option>
+            {summaries.map((s) => (
+              <option key={s._id} value={s._id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
 
-      {message && <div className="text-sm text-gray-700 mt-2">{message}</div>}
+          <select
+            value={selectedDefinition}
+            onChange={(e) => setSelectedDefinition(e.target.value)}
+            className="border p-2 rounded w-full md:w-60"
+          >
+            <option value="">-- Select Definition --</option>
+            {definitions.map((d) => (
+              <option key={d._id} value={d._id}>
+                {d.name} (#{d.fieldLineNumericId})
+              </option>
+            ))}
+          </select>
 
-      {/* ℹ️ Modal */}
+          <button
+            onClick={handleCreateInstance}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold"
+            disabled={loadingInst}
+          >
+            {loadingInst ? "Creating..." : "Create Instance"}
+          </button>
+        </div>
+      </div>
+
+      {/* 🗨️ Message Output */}
+      {message && (
+        <div className="text-sm text-gray-700 mt-4 border-t pt-2">{message}</div>
+      )}
+
+      {/* ℹ️ Info Modal */}
       {showInfoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-lg w-96">
             <h3 className="text-lg font-bold mb-2">How Field Lines Work</h3>
             <p className="text-gray-700 text-sm mb-3">
-              A <strong>Field Line Definition</strong> acts as a template shared across multiple summaries.
-              <br /><br />
-              To create an instance:
-              <ul className="list-disc ml-5 mt-2">
+              <strong>Definitions</strong> act as reusable templates shared
+              across multiple summaries.
+              <ul className="list-disc ml-5 mt-2 space-y-1">
                 <li>
-                  Select a <strong>Definition</strong> from the dropdown to make an instance of it.
+                  Use the <strong>first section</strong> to create new
+                  definitions (no summary required).
                 </li>
                 <li>
-                  If you leave the definition unselected, a <strong>new Definition</strong> will be created
-                  first, and then an instance will be added for it.
+                  Use the <strong>second section</strong> to create instances for
+                  existing definitions (requires summary).
                 </li>
                 <li>
-                  Instances belong to a <strong>Summary</strong> and inherit the Definition’s name & numeric ID.
-                </li>
-                <li>
-                  Duplicates (same summary + definition) are automatically prevented.
+                  Instances automatically link to their selected definition and
+                  summary.
                 </li>
               </ul>
             </p>

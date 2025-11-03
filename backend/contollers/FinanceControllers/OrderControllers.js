@@ -8,11 +8,12 @@ dotenv.config();
 import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
 import SummaryFieldLineInstance from "../../models/FinanceModals/FieldLineInstanceModel.js";
+import SummaryFieldLineDefinition from "../../models/FinanceModals/FieldLineDefinitionModel.js"; // <-- added
 import BreakupFileModel from "../../models/FinanceModals/BreakupFiles.js";
 import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 import Order from "../../models/FinanceModals/OrdersModel.js";
 import api from "../../../frontend/src/api/axios.js";
-import {ensureSellerExists} from "../../contollers/FinanceControllers/SellerController.js";
+import { ensureSellerExists } from "../../contollers/FinanceControllers/SellerController.js";
 
 // -------------------------------
 // Helpers
@@ -62,19 +63,15 @@ const adjustForPeriodicity = (value, periodicity) => {
 export const computeValue = (orderAmount, split) => {
   let value = 0;
 
-  // Guard: always work with numbers
   const fixed = Number(split.fixedAmount) || 0;
   const percentage = Number(split.percentage) || 0;
 
   if (split.perTransaction) {
-    // ✅ Per-transaction means: apply fixed + percentage ONCE per transaction
     value += fixed + (percentage / 100) * orderAmount;
-
     console.log(
       `[DEBUG] computeValue | component=${split.componentName} | perTransaction=YES | fixed=${fixed} | percentage=${percentage}% of ${orderAmount} | total=${value}`
     );
   } else {
-    // ✅ Standard: add fixed and percentage separately
     if (fixed > 0) {
       value += fixed;
       console.log(
@@ -97,41 +94,69 @@ export const computeValue = (orderAmount, split) => {
   return value;
 };
 
-// Resolve or create instance (non-duplicating)
-const resolveOrCreateInstance = async (split, session) => {
-  const summaryId = safeToObjectId(split.summaryId);
-  const definitionId = safeToObjectId(split.definitionId);
+// -------------------------------
+// New helper: get or create definition by numeric id
+// -------------------------------
+const getOrCreateDefinitionByNumericId = async (numericId, name = "Auto Definition", session = null) => {
+  if (numericId === null || numericId === undefined) return null;
 
-  // ✅ First check by explicit instanceId
+  const q = SummaryFieldLineDefinition.findOne({ fieldLineNumericId: numericId });
+  if (session) q.session(session);
+  let def = await q;
+  if (def) return def;
+
+  // create definition if not existing
+  const doc = {
+    fieldLineNumericId: numericId,
+    name: name || `Def ${numericId}`,
+    accountNumber: "",
+  };
+
+  const created = await SummaryFieldLineDefinition.create([doc], { session });
+  return created[0];
+};
+
+// Resolve or create instance (non-duplicating) — now ensures definition existence too
+const resolveOrCreateInstance = async (split, session) => {
+  // Resolve provided summary & definition object ids (if any)
+  const summaryObj = safeToObjectId(split.summaryId);
+  let definitionObj = safeToObjectId(split.definitionId);
+
+  // If definition missing but numeric field id is passed, ensure definition exists (create if needed)
+  const numericFieldId = split.fieldLineId ?? split.fieldLineNumericId ?? null;
+  if (!definitionObj && numericFieldId) {
+    const defDoc = await getOrCreateDefinitionByNumericId(numericFieldId, split.componentName ?? "Auto Definition", session);
+    definitionObj = defDoc ? defDoc._id : null;
+  }
+
+  // If instanceId explicitly provided and valid, try returning it
   if (split.instanceId && safeToObjectId(split.instanceId)) {
-    const inst = await SummaryFieldLineInstance.findById(
-      safeToObjectId(split.instanceId)
-    ).session(session);
+    const inst = await SummaryFieldLineInstance.findById(safeToObjectId(split.instanceId)).session(session);
     if (inst) return inst;
   }
 
-  // ✅ Next, check if an instance already exists for this summary+definition+fieldLine
-  let instance = await SummaryFieldLineInstance.findOne({
-    summaryId,
-    definitionId,
-    fieldLineNumericId: split.fieldLineId ?? split.fieldLineNumericId ?? null,
-  }).session(session);
+  // Try to find existing instance by combination of summary + definition + numeric field id
+  const findQuery = {};
+  if (summaryObj) findQuery.summaryId = summaryObj;
+  if (definitionObj) findQuery.definitionId = definitionObj;
+  if (numericFieldId !== null && numericFieldId !== undefined) findQuery.fieldLineNumericId = numericFieldId;
 
-  if (instance) {
-    // ⚡ reuse existing, do not duplicate
-    return instance;
+  let instance = null;
+  // Only run a query if we have at least something to search by
+  if (Object.keys(findQuery).length > 0) {
+    const q = SummaryFieldLineInstance.findOne(findQuery);
+    if (session) q.session(session);
+    instance = await q;
+    if (instance) return instance; // reuse
   }
 
-  // ✅ Otherwise, create new
+  // If not found, create an instance (with optional provided instanceId or new ObjectId)
   const doc = {
-    _id:
-      split.instanceId && safeToObjectId(split.instanceId)
-        ? safeToObjectId(split.instanceId)
-        : new ObjectId(),
+    _id: split.instanceId && safeToObjectId(split.instanceId) ? safeToObjectId(split.instanceId) : new ObjectId(),
     name: split.componentName ?? "Auto Instance",
-    summaryId,
-    definitionId,
-    fieldLineNumericId: split.fieldLineId ?? split.fieldLineNumericId ?? null,
+    summaryId: summaryObj,
+    definitionId: definitionObj,
+    fieldLineNumericId: numericFieldId,
     balance: 0,
     startingBalance: 0,
     endingBalance: 0,
@@ -162,28 +187,17 @@ export const updateBalance = async (instance, value, debitOrCredit, session) => 
 
   // ========== Update the Parent Summary ==========
   if (instance.summaryId) {
-    const summary = await SummaryModel.findById(instance.summaryId).session(
-      session
-    );
+    const summary = await SummaryModel.findById(instance.summaryId).session(session);
     if (summary) {
       summary.startingBalance ??= summary.endingBalance ?? 0;
-      if (typeof summary.endingBalance !== "number")
-        summary.endingBalance = summary.startingBalance;
+      if (typeof summary.endingBalance !== "number") summary.endingBalance = summary.startingBalance;
 
-      if (debitOrCredit === "debit") {
-        summary.endingBalance += numericValue;
-      } else {
-        summary.endingBalance -= numericValue;
-      }
+      if (debitOrCredit === "debit") summary.endingBalance += numericValue;
+      else summary.endingBalance -= numericValue;
 
-      // keep a running "currentBalance" if needed
-      if (typeof summary.currentBalance !== "number")
-        summary.currentBalance = summary.startingBalance;
-      if (debitOrCredit === "debit") {
-        summary.currentBalance += numericValue;
-      } else {
-        summary.currentBalance -= numericValue;
-      }
+      if (typeof summary.currentBalance !== "number") summary.currentBalance = summary.startingBalance;
+      if (debitOrCredit === "debit") summary.currentBalance += numericValue;
+      else summary.currentBalance -= numericValue;
 
       await summary.save({ session });
     }
@@ -191,8 +205,7 @@ export const updateBalance = async (instance, value, debitOrCredit, session) => 
 };
 
 // -------------------------------
-// Helper: Update Summary Balance (when you need to update a summary that is
-// referenced directly by summaryId (numeric or ObjectId) rather than via instance)
+// Helper: Update Summary Balance (when updating a summary directly)
 // -------------------------------
 const updateSummaryBalance = async (summaryIdentifier, value, debitOrCredit, session) => {
   if (!summaryIdentifier) return;
@@ -202,60 +215,39 @@ const updateSummaryBalance = async (summaryIdentifier, value, debitOrCredit, ses
   // Resolve the summary doc:
   let summaryDoc = null;
 
-  // If numeric (actual number or numeric string) -> resolve by summaryId field
   const asNumber = Number(summaryIdentifier);
   if (!isNaN(asNumber) && typeof summaryIdentifier !== "object") {
-    // treat as numeric summaryId (e.g., 1500)
-    summaryDoc = await SummaryModel.findOne({ summaryId: asNumber }).session(
-      session
-    );
+    summaryDoc = await SummaryModel.findOne({ summaryId: asNumber }).session(session);
   } else {
-    // try as ObjectId
     const objId = safeToObjectId(summaryIdentifier);
     if (objId) {
       summaryDoc = await SummaryModel.findById(objId).session(session);
     } else if (summaryIdentifier && typeof summaryIdentifier === "object") {
-      // maybe the caller passed the whole doc or an object with _id
       const maybeId = safeToObjectId(summaryIdentifier._id);
       if (maybeId) {
         summaryDoc = await SummaryModel.findById(maybeId).session(session);
       } else {
-        // maybe object contains numeric summaryId
         const sNum = Number(summaryIdentifier.summaryId);
         if (!isNaN(sNum)) {
-          summaryDoc = await SummaryModel.findOne({ summaryId: sNum }).session(
-            session
-          );
+          summaryDoc = await SummaryModel.findOne({ summaryId: sNum }).session(session);
         }
       }
     }
   }
 
   if (!summaryDoc) {
-    // Not fatal — log and return (the instance updates still occurred)
-    console.warn(
-      `[WARN] updateSummaryBalance: summary not found for identifier: ${JSON.stringify(
-        summaryIdentifier
-      )}`
-    );
+    console.warn(`[WARN] updateSummaryBalance: summary not found for identifier: ${JSON.stringify(summaryIdentifier)}`);
     return;
   }
 
   summaryDoc.startingBalance ??= summaryDoc.endingBalance ?? 0;
-  if (typeof summaryDoc.endingBalance !== "number")
-    summaryDoc.endingBalance = summaryDoc.startingBalance;
+  if (typeof summaryDoc.endingBalance !== "number") summaryDoc.endingBalance = summaryDoc.startingBalance;
 
-  if (debitOrCredit === "debit") {
-    summaryDoc.endingBalance = (summaryDoc.endingBalance || 0) + numericValue;
-  } else if (debitOrCredit === "credit") {
-    summaryDoc.endingBalance = (summaryDoc.endingBalance || 0) - numericValue;
-  } else {
-    throw new Error(`Invalid debitOrCredit: ${debitOrCredit}`);
-  }
+  if (debitOrCredit === "debit") summaryDoc.endingBalance = (summaryDoc.endingBalance || 0) + numericValue;
+  else if (debitOrCredit === "credit") summaryDoc.endingBalance = (summaryDoc.endingBalance || 0) - numericValue;
+  else throw new Error(`Invalid debitOrCredit: ${debitOrCredit}`);
 
-  // optional currentBalance
-  if (typeof summaryDoc.currentBalance !== "number")
-    summaryDoc.currentBalance = summaryDoc.startingBalance;
+  if (typeof summaryDoc.currentBalance !== "number") summaryDoc.currentBalance = summaryDoc.startingBalance;
   if (debitOrCredit === "debit") summaryDoc.currentBalance += numericValue;
   else summaryDoc.currentBalance -= numericValue;
 
@@ -271,8 +263,7 @@ export const createOrderWithTransaction = async (req, res) => {
   try {
     await session.withTransaction(async () => {
       const { orderAmount, orderType, buyerId, sellerId, orderId } = req.body;
-      if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId)
-        throw new Error("Missing required fields");
+      if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId) throw new Error("Missing required fields");
 
       console.log(`🚀 [ORDER] Processing Order: ${orderId} | Seller: ${sellerId}`);
 
@@ -280,28 +271,19 @@ export const createOrderWithTransaction = async (req, res) => {
       const seller = await ensureSellerExists(sellerId);
 
       // --- Determine rule set ---
-      const ruleTypes =
-        orderType === "auction"
-          ? ["auction", "auctionTax", "auctionDeposit"]
-          : [orderType, `${orderType}Tax`];
+      const ruleTypes = orderType === "auction"
+        ? ["auction", "auctionTax", "auctionDeposit"]
+        : [orderType, `${orderType}Tax`];
 
-      const rules = await BreakupRuleModel.find({
-        transactionType: { $in: ruleTypes },
-      })
-        .session(session)
-        .lean();
-
-      if (!rules?.length)
-        throw new Error(`No BreakupRules found for type ${orderType}`);
+      const rules = await BreakupRuleModel.find({ transactionType: { $in: ruleTypes } }).session(session).lean();
+      if (!rules?.length) throw new Error(`No BreakupRules found for type ${orderType}`);
 
       console.log(`📘 [RULES] Loaded ${rules.length} breakup rules`);
 
       const allLines = [];
       const postingLines = [];
 
-      // =============================
-      //  PROCESS EACH RULE + SPLIT
-      // =============================
+      // PROCESS EACH RULE + SPLIT
       for (const rule of rules) {
         for (const split of rule.splits || []) {
           const baseValue = computeValue(orderAmount, split);
@@ -329,9 +311,7 @@ export const createOrderWithTransaction = async (req, res) => {
 
           const mirrorSet = split.mirrors || [];
 
-          // =============================
-          //  PROCESS MIRRORS (BALANCING)
-          // =============================
+          // PROCESS MIRRORS (BALANCING)
           let splitDebit = mainLine.debitOrCredit === "debit" ? baseValue : 0;
           let splitCredit = mainLine.debitOrCredit === "credit" ? baseValue : 0;
 
@@ -351,26 +331,22 @@ export const createOrderWithTransaction = async (req, res) => {
               _isMirror: true,
             };
 
-            // Reflection-only mirrors are logical links only
             if (!mirror.isReflectOnly) {
               await updateBalance(mirrorInstance, baseValue, mirror.debitOrCredit, session);
               await updateSummaryBalance(mirror.summaryId, baseValue, mirror.debitOrCredit, session);
               postingLines.push(mirrorLine);
             }
 
-            // 🪞 DO NOT push mirrors into allLines (we skip storing them)
             if (!mirror.isReflectOnly) {
               if (mirror.debitOrCredit === "debit") splitDebit += baseValue;
               if (mirror.debitOrCredit === "credit") splitCredit += baseValue;
             }
           }
 
-          // --- Validate this split group ---
+          // Validate this split group
           const diff = Math.abs(splitDebit - splitCredit);
           if (diff > 0.01) {
-            console.error(
-              `❌ [SPLIT IMBALANCE] Component "${split.componentName}" not balanced. Debit: ${splitDebit} | Credit: ${splitCredit} | Diff: ${diff}`
-            );
+            console.error(`❌ [SPLIT IMBALANCE] Component "${split.componentName}" not balanced. Debit: ${splitDebit} | Credit: ${splitCredit} | Diff: ${diff}`);
             throw new Error(`Component ${split.componentName} imbalance (diff=${diff})`);
           } else {
             console.log(`✅ [SPLIT BALANCED] ${split.componentName} balanced successfully.`);
@@ -378,144 +354,84 @@ export const createOrderWithTransaction = async (req, res) => {
         }
       }
 
-      // =============================
-      //  GLOBAL VALIDATION (POSTED ONLY)
-      // =============================
-      const postingTotals = postingLines.reduce(
-        (acc, l) => {
-          if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
-          else if (l.debitOrCredit === "credit") acc.credit += safeNumber(l.amount);
-          return acc;
-        },
-        { debit: 0, credit: 0 }
-      );
+      // GLOBAL VALIDATION (POSTED ONLY)
+      const postingTotals = postingLines.reduce((acc, l) => {
+        if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
+        else if (l.debitOrCredit === "credit") acc.credit += safeNumber(l.amount);
+        return acc;
+      }, { debit: 0, credit: 0 });
 
       const postingImbalance = Math.abs(postingTotals.debit - postingTotals.credit);
-
       if (postingImbalance > 0.01) {
-        console.warn(
-          `⚠️ [POSTING IMBALANCE] Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit} | Diff: ${postingImbalance}`
-        );
+        console.warn(`⚠️ [POSTING IMBALANCE] Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit} | Diff: ${postingImbalance}`);
       } else {
-        console.log(
-          `💰 [POSTING] Overall ledger balanced. Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit}`
-        );
+        console.log(`💰 [POSTING] Overall ledger balanced. Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit}`);
       }
 
-      // =============================
-      //  CREATE BREAKUP DOCUMENTS
-      // =============================
-
-      // Remove mirrors from stored breakups
+      // CREATE BREAKUP DOCUMENTS
       const realLines = allLines.filter(l => !l._isMirror);
 
-      // --- Parent Breakup (Full Ledger) ---
-      const [parentBreakup] = await BreakupFileModel.create(
-        [
-          {
-            orderId,
-            orderType,
-            orderAmount,
-            actualAmount: orderAmount,
-            buyerId,
-            sellerId,
-            breakupType: "parent",
-            parentBreakupId: null,
-            lines: realLines,
-            totalDebit: postingTotals.debit,
-            totalCredit: postingTotals.credit,
-          },
-        ],
-        { session }
-      );
+      const [parentBreakup] = await BreakupFileModel.create([{
+        orderId,
+        orderType,
+        orderAmount,
+        actualAmount: orderAmount,
+        buyerId,
+        sellerId,
+        breakupType: "parent",
+        parentBreakupId: null,
+        lines: realLines,
+        totalDebit: postingTotals.debit,
+        totalCredit: postingTotals.credit,
+      }], { session });
 
-      // --- Seller Breakup ---
-      const sellerLines = realLines.filter(l =>
-        ["receivable", "commission", "income", "tax"].includes(l.category)
-      );
+      const sellerLines = realLines.filter(l => ["receivable", "commission", "income", "tax"].includes(l.category));
+      const [sellerBreakup] = await BreakupFileModel.create([{
+        orderId,
+        orderType,
+        orderAmount,
+        buyerId,
+        sellerId,
+        breakupType: "seller",
+        parentBreakupId: parentBreakup._id,
+        lines: sellerLines,
+        totalDebit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0), 0),
+        totalCredit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0), 0),
+      }], { session });
 
-      const [sellerBreakup] = await BreakupFileModel.create(
-        [
-          {
-            orderId,
-            orderType,
-            orderAmount,
-            buyerId,
-            sellerId,
-            breakupType: "seller",
-            parentBreakupId: parentBreakup._id,
-            lines: sellerLines,
-            totalDebit: sellerLines.reduce(
-              (sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0),
-              0
-            ),
-            totalCredit: sellerLines.reduce(
-              (sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0),
-              0
-            ),
-          },
-        ],
-        { session }
-      );
-
-      // --- Buyer Breakup ---
-      const buyerLines = realLines.filter(l =>
-        ["base", "tax", "expense", "deduction"].includes(l.category)
-      );
-
-      const [buyerBreakup] = await BreakupFileModel.create(
-        [
-          {
-            orderId,
-            orderType,
-            orderAmount,
-            buyerId,
-            sellerId,
-            breakupType: "buyer",
-            parentBreakupId: parentBreakup._id,
-            lines: buyerLines,
-            totalDebit: buyerLines.reduce(
-              (sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0),
-              0
-            ),
-            totalCredit: buyerLines.reduce(
-              (sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0),
-              0
-            ),
-          },
-        ],
-        { session }
-      );
+      const buyerLines = realLines.filter(l => ["base", "tax", "expense", "deduction"].includes(l.category));
+      const [buyerBreakup] = await BreakupFileModel.create([{
+        orderId,
+        orderType,
+        orderAmount,
+        buyerId,
+        sellerId,
+        breakupType: "buyer",
+        parentBreakupId: parentBreakup._id,
+        lines: buyerLines,
+        totalDebit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0), 0),
+        totalCredit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0), 0),
+      }], { session });
 
       console.log(`🧾 [BREAKUP] Parent, Seller, Buyer breakups created successfully.`);
 
-      // =============================
-      //  RECORD TRANSACTION
-      // =============================
+      // RECORD TRANSACTION
       const transactionAmount = postingTotals.credit - postingTotals.debit;
-
-      await TransactionModel.create(
-        [
-          {
-            description: `Transaction for Order ID: ${orderId}`,
-            amount: transactionAmount,
-            lines: postingLines.map(l => ({
-              instanceId: l.instanceId,
-              summaryId: l.summaryId,
-              definitionId: l.definitionId,
-              debitOrCredit: l.debitOrCredit,
-              amount: l.amount,
-            })),
-          },
-        ],
-        { session }
-      );
+      await TransactionModel.create([{
+        description: `Transaction for Order ID: ${orderId}`,
+        amount: transactionAmount,
+        lines: postingLines.map(l => ({
+          instanceId: l.instanceId,
+          summaryId: l.summaryId,
+          definitionId: l.definitionId,
+          debitOrCredit: l.debitOrCredit,
+          amount: l.amount,
+        })),
+      }], { session });
 
       console.log(`📒 [TRANSACTION] Recorded transaction of ${transactionAmount}`);
 
-      // =============================
-      //  UPDATE SELLER FINANCIALS
-      // =============================
+      // UPDATE SELLER FINANCIALS
       seller.totalOrders += 1;
       seller.totalPending += orderAmount;
       seller.currentBalance = seller.totalPending - (seller.totalPaid || 0);
@@ -529,7 +445,7 @@ export const createOrderWithTransaction = async (req, res) => {
         message: "Order transaction processed successfully",
         data: { parentBreakup, sellerBreakup, buyerBreakup },
       });
-    });
+    }); // end transaction
   } catch (err) {
     console.error("❌ [ORDER ERROR]:", err);
     res.status(500).json({
@@ -542,7 +458,7 @@ export const createOrderWithTransaction = async (req, res) => {
   }
 };
 
-// ----------------- RETURN ORDER -----------------
+// ----------------- RETURN ORDER ----------------- (unchanged)
 export const returnOrderWithTransaction = async (req, res) => {
   const session = await mongoose.startSession();
   try {
@@ -550,42 +466,29 @@ export const returnOrderWithTransaction = async (req, res) => {
       const { orderId } = req.body;
       if (!orderId) throw new Error("orderId is required for return");
 
-      // 🔎 Fetch original parent breakup
-      const originalBreakup = await BreakupFileModel.findOne({
-        orderId,
-        breakupType: "parent",
-      })
+      // Fetch original parent breakup
+      const originalBreakup = await BreakupFileModel.findOne({ orderId, breakupType: "parent" })
         .session(session)
         .lean();
 
       if (!originalBreakup) throw new Error("Original order not found");
 
-      const { orderAmount, orderType, buyerId, sellerId, lines: originalLines } =
-        originalBreakup;
-
+      const { orderAmount, orderType, buyerId, sellerId, lines: originalLines } = originalBreakup;
       const reversedLines = [];
 
       for (const originalLine of originalLines) {
         const value = Number(originalLine.value) || 0;
-        const reversedDebitOrCredit =
-          originalLine.debitOrCredit === "debit" ? "credit" : "debit";
+        const reversedDebitOrCredit = originalLine.debitOrCredit === "debit" ? "credit" : "debit";
 
-        // --- main instance ---
-        const splitInstance = await SummaryFieldLineInstance.findById(
-          safeToObjectId(originalLine.instanceId)
-        ).session(session);
-
-        if (!splitInstance)
-          throw new Error(`Instance not found: ${originalLine.instanceId}`);
+        const splitInstance = await SummaryFieldLineInstance.findById(safeToObjectId(originalLine.instanceId)).session(session);
+        if (!splitInstance) throw new Error(`Instance not found: ${originalLine.instanceId}`);
 
         await updateBalance(splitInstance, value, reversedDebitOrCredit, session);
 
         // Conditional parent summary update
         try {
           const providedSummaryObj = safeToObjectId(originalLine.summaryId);
-          const instanceSummaryStr = splitInstance?.summaryId
-            ? splitInstance.summaryId.toString()
-            : null;
+          const instanceSummaryStr = splitInstance?.summaryId ? splitInstance.summaryId.toString() : null;
 
           if (!instanceSummaryStr) {
             await updateSummaryBalance(originalLine.summaryId, value, reversedDebitOrCredit, session);
@@ -596,49 +499,26 @@ export const returnOrderWithTransaction = async (req, res) => {
           console.warn("Error in conditional summary update (return):", e);
         }
 
-        // --- mirrors ---
+        // mirrors
         const reversedMirrors = [];
         for (const originalMirror of originalLine.mirrors || []) {
           const mirrorValue = Number(originalMirror.value) || 0;
-          const reversedMirror =
-            originalMirror.debitOrCredit === "debit" ? "credit" : "debit";
+          const reversedMirror = originalMirror.debitOrCredit === "debit" ? "credit" : "debit";
+          const mirrorInstance = await SummaryFieldLineInstance.findById(safeToObjectId(originalMirror.instanceId)).session(session);
 
-          const mirrorInstance = await SummaryFieldLineInstance.findById(
-            safeToObjectId(originalMirror.instanceId)
-          ).session(session);
+          if (!mirrorInstance) throw new Error(`Mirror instance not found: ${originalMirror.instanceId}`);
 
-          if (!mirrorInstance)
-            throw new Error(`Mirror instance not found: ${originalMirror.instanceId}`);
-
-          // ✅ Skip mirror if same as main split to avoid double reversal
           if (mirrorInstance._id.toString() !== splitInstance._id.toString()) {
             await updateBalance(mirrorInstance, mirrorValue, reversedMirror, session);
 
             try {
-              const providedMirrorSummaryObj = safeToObjectId(
-                originalMirror.summaryId
-              );
-              const mirrorInstanceSummaryStr = mirrorInstance?.summaryId
-                ? mirrorInstance.summaryId.toString()
-                : null;
+              const providedMirrorSummaryObj = safeToObjectId(originalMirror.summaryId);
+              const mirrorInstanceSummaryStr = mirrorInstance?.summaryId ? mirrorInstance.summaryId.toString() : null;
 
               if (!mirrorInstanceSummaryStr) {
-                await updateSummaryBalance(
-                  originalMirror.summaryId,
-                  mirrorValue,
-                  reversedMirror,
-                  session
-                );
-              } else if (
-                providedMirrorSummaryObj &&
-                mirrorInstanceSummaryStr !== providedMirrorSummaryObj.toString()
-              ) {
-                await updateSummaryBalance(
-                  providedMirrorSummaryObj,
-                  mirrorValue,
-                  reversedMirror,
-                  session
-                );
+                await updateSummaryBalance(originalMirror.summaryId, mirrorValue, reversedMirror, session);
+              } else if (providedMirrorSummaryObj && mirrorInstanceSummaryStr !== providedMirrorSummaryObj.toString()) {
+                await updateSummaryBalance(providedMirrorSummaryObj, mirrorValue, reversedMirror, session);
               }
             } catch (e) {
               console.warn("Error in conditional mirror summary update (return):", e);
@@ -672,39 +552,31 @@ export const returnOrderWithTransaction = async (req, res) => {
         console.log(`[DEBUG] Reversed line: ${originalLine.componentName} | value=${value} | debitOrCredit=${reversedDebitOrCredit}`);
       }
 
-      // --- totals ---
-      const totals = reversedLines.reduce(
-        (acc, l) => {
-          if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.value);
-          else acc.credit += safeNumber(l.value);
-          return acc;
-        },
-        { debit: 0, credit: 0 }
-      );
+      // totals
+      const totals = reversedLines.reduce((acc, l) => {
+        if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.value);
+        else acc.credit += safeNumber(l.value);
+        return acc;
+      }, { debit: 0, credit: 0 });
 
-      // --- save return breakup ---
-      const [returnBreakup] = await BreakupFileModel.create(
-        [
-          {
-            orderId,
-            orderType,
-            orderAmount: -Math.abs(orderAmount),
-            actualAmount: -Math.abs(orderAmount),
-            buyerId,
-            sellerId,
-            breakupType: "return",
-            parentBreakupId: originalBreakup._id,
-            lines: reversedLines,
-            totalDebit: totals.debit,
-            totalCredit: totals.credit,
-            returnDate: new Date(),
-            isReturn: true,
-          },
-        ],
-        { session }
-      );
+      // save return breakup
+      const [returnBreakup] = await BreakupFileModel.create([{
+        orderId,
+        orderType,
+        orderAmount: -Math.abs(orderAmount),
+        actualAmount: -Math.abs(orderAmount),
+        buyerId,
+        sellerId,
+        breakupType: "return",
+        parentBreakupId: originalBreakup._id,
+        lines: reversedLines,
+        totalDebit: totals.debit,
+        totalCredit: totals.credit,
+        returnDate: new Date(),
+        isReturn: true,
+      }], { session });
 
-      // --- save transaction ---
+      // save transaction
       const transactionLines = [];
       reversedLines.forEach((l) => {
         transactionLines.push({
@@ -715,39 +587,28 @@ export const returnOrderWithTransaction = async (req, res) => {
           amount: l.value,
           isReturn: true,
         });
-        l.mirrors.forEach((m) =>
-          transactionLines.push({
-            instanceId: m.instanceId,
-            summaryId: m.summaryId,
-            definitionId: m.definitionId,
-            debitOrCredit: m.debitOrCredit,
-            amount: m.value,
-            isReturn: true,
-          })
-        );
+        l.mirrors.forEach((m) => transactionLines.push({
+          instanceId: m.instanceId,
+          summaryId: m.summaryId,
+          definitionId: m.definitionId,
+          debitOrCredit: m.debitOrCredit,
+          amount: m.value,
+          isReturn: true,
+        }));
       });
 
       console.log("[DEBUG] Total return transaction amount:", transactionLines.reduce((acc, t) => acc + t.amount, 0));
 
-      await TransactionModel.create(
-        [
-          {
-            description: `Return for Order: ${orderId}`,
-            amount: transactionLines.reduce((acc, t) => acc + t.amount, 0),
-            lines: transactionLines,
-            isReturn: true,
-            originalOrderId: orderId,
-            returnDate: new Date(),
-          },
-        ],
-        { session }
-      );
+      await TransactionModel.create([{
+        description: `Return for Order: ${orderId}`,
+        amount: transactionLines.reduce((acc, t) => acc + t.amount, 0),
+        lines: transactionLines,
+        isReturn: true,
+        originalOrderId: orderId,
+        returnDate: new Date(),
+      }], { session });
 
-      res.json({
-        success: true,
-        message: "Return processed successfully - balances fully reversed",
-        returnBreakup,
-      });
+      res.json({ success: true, message: "Return processed successfully - balances fully reversed", returnBreakup });
     });
   } catch (err) {
     console.error("❌ Return processing error:", err);
@@ -763,14 +624,9 @@ export const getNetBalances = async (req, res) => {
     const { instanceId } = req.params;
 
     const instance = await SummaryFieldLineInstance.findById(instanceId);
-    if (!instance) {
-      return res.status(404).json({ error: "Instance not found" });
-    }
+    if (!instance) return res.status(404).json({ error: "Instance not found" });
 
-    // Get all transactions for this instance
-    const transactions = await TransactionModel.find({
-      "lines.instanceId": instanceId,
-    });
+    const transactions = await TransactionModel.find({ "lines.instanceId": instanceId });
 
     let originalAmount = 0;
     let returnAmount = 0;
@@ -778,30 +634,19 @@ export const getNetBalances = async (req, res) => {
     transactions.forEach((transaction) => {
       transaction.lines.forEach((line) => {
         if (line.instanceId.toString() === instanceId) {
-          if (transaction.isReturn) {
-            returnAmount += line.amount;
-          } else {
-            originalAmount += line.amount;
-          }
+          if (transaction.isReturn) returnAmount += line.amount;
+          else originalAmount += line.amount;
         }
       });
     });
 
-    const netBalance = originalAmount + returnAmount; // Returns are negative
+    const netBalance = originalAmount + returnAmount;
 
-    res.json({
-      instanceId,
-      instanceName: instance.name,
-      originalAmount,
-      returnAmount,
-      netBalance,
-      transactionsCount: transactions.length,
-    });
+    res.json({ instanceId, instanceName: instance.name, originalAmount, returnAmount, netBalance, transactionsCount: transactions.length });
   } catch (err) {
     console.error("Error getting net balances:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// Helper: ensures string is always valid
 const safeString = (val) => (val ? String(val) : "");

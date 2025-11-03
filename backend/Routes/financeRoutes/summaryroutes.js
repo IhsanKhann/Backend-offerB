@@ -5,15 +5,12 @@ import RuleModel from "../../models/FinanceModals/TablesModel.js";
 import {
   getBreakupRules,
   getBreakupRuleById,
-
   createBusinessBreakupRule,
   updateBreakupRule,
   deleteBreakupRule,
-  
   addSplit,
   updateSplit,
   deleteSplit,
-  
   addMirror,
   updateMirror,
   deleteMirror,
@@ -21,27 +18,21 @@ import {
 
 import {
   getAllSummaries,
-  
   summariesGetWithFieldLines,
   summariesGetAllFieldLines,
-  
   getSummaryById,
   summariesCreateDefinition,
-  
   summariesReset,
   summariesInitCapitalCash,
-  
   createSummary,
   deleteSummary,
-  
   createFieldLine,
   deleteFieldLine,
 } from "../../contollers/FinanceControllers/SummaryController.js";
 
 import {
   fetchRulesForFrontend,
-  getAllFieldLineDefinitions,  // working on this.....
-  
+  getAllFieldLineDefinitions,
   createRule,
   updateRule,
   deleteRule,
@@ -62,21 +53,79 @@ import {
 } from "../../contollers/FinanceControllers/TablesControllers.js";
 
 import { authenticate } from "../../middlewares/authMiddlewares.js";
+
 const router = express.Router();
 
-// Apply authentication to all routes
+// ✅ Apply authentication to all routes
 router.use(authenticate);
 
-// ---------------------- Static Routes (Most Specific First) --------------------
-// ---------------------- Rules --------------------
+// -------------------------------------------------------------------
+// 🧩 RULES SECTION (Static First)
+// -------------------------------------------------------------------
 router.get("/rulesInstances", fetchRulesForFrontend);
-router.get("/fieldlines/definitions", getAllFieldLineDefinitions); // working on this.....
+router.get("/fieldlines/definitions", getAllFieldLineDefinitions);
 
 router.post("/rules", createRule);
 router.put("/rules/:ruleId", updateRule);
 router.delete("/rules/:ruleId", deleteRule);
 
-// Split / Mirror operations
+// -------------------------------------------------------------------
+// 💰 SALARY ROUTES
+// -------------------------------------------------------------------
+router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
+router.get("/salary/role/:roleName", getSingleSalaryRole);
+router.post("/salary/breakup/:employeeId", createBreakupFile);
+router.get("/salary/breakup/:employeeId", getBreakupFile);
+
+// -------------------------------------------------------------------
+// 💵 SALARY RULES TABLE
+// -------------------------------------------------------------------
+router.get("/salarytable/all", getAllSalaryRules);
+router.get("/salarytable/:roleId", getSalaryRulesByRole);
+router.put("/salarytable/:roleId", updateSalaryRules);
+router.post("/salarytable", createRoleWithSalaryRules);
+
+// -------------------------------------------------------------------
+// 📊 BREAKUP RULES
+// -------------------------------------------------------------------
+router.get("/breakupRules", getBreakupRules);
+router.get("/breakupRules/:id", getBreakupRuleById);
+router.post("/breakupRules", createBusinessBreakupRule);
+router.put("/breakupRules/:id", updateBreakupRule);
+router.delete("/breakupRules/:id", deleteBreakupRule);
+
+// 🧩 Split / Mirror Operations
+router.post("/breakupRules/:id/splits", addSplit);
+router.put("/breakupRules/:id/splits/:splitId", updateSplit);
+router.delete("/breakupRules/:id/splits/:splitId", deleteSplit);
+
+router.post("/breakupRules/:id/splits/:splitId/mirrors", addMirror);
+router.put("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", updateMirror);
+router.delete("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", deleteMirror);
+
+// -------------------------------------------------------------------
+// 📘 SUMMARIES SECTION
+// -------------------------------------------------------------------
+
+// ✅ Static routes first (exact paths)
+router.get("/with-fieldlines", summariesGetWithFieldLines);
+router.get("/fieldlines", summariesGetAllFieldLines);
+router.post("/create-definitions", summariesCreateDefinition);
+
+router.post("/create", createSummary);
+router.post("/delete", deleteSummary);
+router.post("/createFieldLines", createFieldLine);
+router.post("/deleteFieldLines", deleteFieldLine);
+router.post("/reset", summariesReset);
+router.post("/init-capital-cash", summariesInitCapitalCash);
+
+// ✅ Dynamic routes last
+router.get("/", getAllSummaries);
+router.get("/:summaryId", getSummaryById);
+
+// -------------------------------------------------------------------
+// ✅ RULE SPLITS & MIRRORS (for dynamic rules) — kept at end
+// -------------------------------------------------------------------
 router.post("/rules/:ruleId/splits", async (req, res) => {
   const { ruleId } = req.params;
   const splitData = req.body;
@@ -149,51 +198,5 @@ router.delete("/rules/:ruleId/splits/:splitIdx/mirrors/:mirrorIdx", async (req, 
     res.status(500).json({ message: "Error deleting mirror" });
   }
 });
-
-// ---------------------- Salary Routes --------------------
-router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
-router.get("/salary/role/:roleName", getSingleSalaryRole);
-router.post("/salary/breakup/:employeeId", createBreakupFile);
-router.get("/salary/breakup/:employeeId", getBreakupFile);
-
-// ---------------------- Salary Rules Table --------------------
-router.get("/salarytable/all", getAllSalaryRules);
-router.get("/salarytable/:roleId", getSalaryRulesByRole);
-router.put("/salarytable/:roleId", updateSalaryRules);
-router.post("/salarytable", createRoleWithSalaryRules);
-
-// ---------------------- Breakup Rules --------------------
-router.get("/breakupRules", getBreakupRules);
-router.get("/breakupRules/:id", getBreakupRuleById);
-router.post("/breakupRules", createBusinessBreakupRule);
-router.put("/breakupRules/:id", updateBreakupRule);
-router.delete("/breakupRules/:id", deleteBreakupRule);
-
-// ---------------------- Splits --------------------
-router.post("/breakupRules/:id/splits", addSplit);
-router.put("/breakupRules/:id/splits/:splitId", updateSplit);
-router.delete("/breakupRules/:id/splits/:splitId", deleteSplit);
-
-// ---------------------- Mirrors --------------------
-router.post("/breakupRules/:id/splits/:splitId/mirrors", addMirror);
-router.put("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", updateMirror);
-router.delete("/breakupRules/:id/splits/:splitId/mirrors/:mirrorId", deleteMirror);
-
-// ---------------------- Summaries --------------------
-
-router.post("/create", createSummary);
-router.post("/delete", deleteSummary);
-router.post("/createFieldLines", createFieldLine);
-router.post("/deleteFieldLines", deleteFieldLine);
-router.post("/reset", summariesReset);
-router.post("/init-capital-cash", summariesInitCapitalCash);
-
-router.get("/definitions", summariesCreateDefinition);
-router.get("/with-fieldlines", summariesGetWithFieldLines);
-router.get("/fieldlines", summariesGetAllFieldLines);
-
-router.get("/", getAllSummaries);
-
-router.get("/:summaryId", getSummaryById);
 
 export default router;

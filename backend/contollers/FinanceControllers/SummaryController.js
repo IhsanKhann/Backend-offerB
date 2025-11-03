@@ -49,6 +49,7 @@ export const summariesReset = async (req, res) => {
 /**
  * Initialize capital & cash summaries
  */
+
 export const summariesInitCapitalCash = async (req, res) => {
   try {
     console.log("[summariesInitCapitalCash] Body:", req.body);
@@ -85,7 +86,8 @@ export const summariesInitCapitalCash = async (req, res) => {
 
 /**
  * Get a single summary by ID
- */
+*/
+
 export const getSummaryById = async (req, res) => {
   try {
     const { summaryId } = req.params;
@@ -166,36 +168,6 @@ export const summariesGetAllFieldLines = async (req, res) => {
   } catch (err) {
     console.error("[summariesGetAllFieldLines] Error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-/**
- * Create a new field line definition
- */
-export const summariesCreateDefinition = async (req, res) => {
-  try {
-    const { fieldLineNumericId, name, accountNumber } = req.body;
-
-    if (!fieldLineNumericId || !name || !accountNumber) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
-    }
-
-    const fieldDefinition = new SummaryFieldLineDefinition({
-      fieldLineNumericId,
-      name,
-      accountNumber,
-    });
-
-    await fieldDefinition.save();
-
-    return res.status(201).json({
-      success: true,
-      message: "Field definition created successfully",
-      data: fieldDefinition,
-    });
-  } catch (err) {
-    console.error("[summariesCreateDefinition] Error:", err);
-    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -321,42 +293,56 @@ export const deleteSummary = async (req, res) => {
   }
 };
 
-// ✅ Create Instance (with Definition handling)
+// ✅ Create Instance (with Definition Handling)
 export const createFieldLine = async (req, res) => {
   try {
     const { summaryId, name, fieldLineNumericId, definitionId } = req.body;
 
+    // ✅ Validate required fields
     if (!summaryId || !name || !fieldLineNumericId) {
-      return res.status(400).json({ error: "Provide summaryId, name, and fieldLineNumericId" });
+      return res.status(400).json({
+        success: false,
+        message: "summaryId, name, and fieldLineNumericId are required",
+      });
     }
 
     let definition;
 
+    // ✅ If definitionId is provided, use that
     if (definitionId) {
-      // ✅ If definition selected from dropdown — use existing one
       definition = await SummaryFieldLineDefinition.findById(definitionId);
       if (!definition) {
-        return res.status(404).json({ error: "Selected definition not found" });
+        return res.status(404).json({
+          success: false,
+          message: "Definition not found with the provided ID",
+        });
       }
     } else {
-      // ✅ No definition selected → create new definition (only if not exists)
+      // ✅ Try to find an existing definition by numeric ID
       definition = await SummaryFieldLineDefinition.findOne({ fieldLineNumericId });
       if (!definition) {
-        definition = await SummaryFieldLineDefinition.create({ name, fieldLineNumericId });
+        // ✅ Create definition if not found
+        definition = await SummaryFieldLineDefinition.create({
+          name,
+          fieldLineNumericId,
+        });
       }
     }
 
-    // ✅ Check if instance already exists for this summary + definition
+    // ✅ Check if instance already exists in this summary
     const existingInstance = await SummaryFieldLineInstance.findOne({
       summaryId,
       definitionId: definition._id,
     });
 
     if (existingInstance) {
-      return res.status(400).json({ error: "Instance for this definition already exists in this summary" });
+      return res.status(400).json({
+        success: false,
+        message: "Instance for this definition already exists in this summary",
+      });
     }
 
-    // ✅ Create new instance (only if definition exists)
+    // ✅ Create instance
     const instance = await SummaryFieldLineInstance.create({
       name,
       summaryId,
@@ -365,14 +351,61 @@ export const createFieldLine = async (req, res) => {
       balance: 0,
     });
 
-    res.json({
-      message: "Field line instance created successfully ✅",
-      definition,
-      instance,
+    return res.status(201).json({
+      success: true,
+      message: "Field line instance created successfully",
+      data: {
+        definition,
+        instance,
+      },
     });
   } catch (err) {
-    console.error("Error creating field line:", err);
-    res.status(500).json({ error: "Failed to create field line" });
+    console.error("[createFieldLine] Error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ✅ Create Definition Only
+export const summariesCreateDefinition = async (req, res) => {
+  try {
+    const { fieldLineNumericId, name, accountNumber } = req.body;
+
+    // ✅ Validate required fields
+    if (!fieldLineNumericId || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "Both 'name' and 'fieldLineNumericId' are required",
+      });
+    }
+
+    // ✅ Check if definition already exists
+    let existingDefinition = await SummaryFieldLineDefinition.findOne({
+      fieldLineNumericId,
+    });
+
+    if (existingDefinition) {
+      return res.status(200).json({
+        success: true,
+        message: "Definition already exists",
+        data: existingDefinition,
+      });
+    }
+
+    // ✅ Create new definition
+    const definition = await SummaryFieldLineDefinition.create({
+      fieldLineNumericId,
+      name,
+      accountNumber,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Field definition created successfully",
+      data: definition,
+    });
+  } catch (err) {
+    console.error("[summariesCreateDefinition] Error:", err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
