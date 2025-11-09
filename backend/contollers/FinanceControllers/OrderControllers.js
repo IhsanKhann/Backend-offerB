@@ -166,39 +166,29 @@ const resolveOrCreateInstance = async (split, session) => {
   return created[0];
 };
 
-export const updateBalance = async (instance, value, debitOrCredit, session) => {
-  if (!instance) return;
+export const updateBalance = async (instance, amount, type, session) => {
+  if (!instance) throw new Error("Instance not found for balance update.");
 
-  const numericValue = Number(value) || 0;
-
-  // ========== Update the Instance ==========
-  instance.startingBalance ??= instance.balance ?? 0;
-
-  if (debitOrCredit === "debit") {
-    instance.balance = (instance.balance ?? 0) + numericValue;
-  } else if (debitOrCredit === "credit") {
-    instance.balance = (instance.balance ?? 0) - numericValue;
+  // 1️⃣ Update instance balance
+  let updatedBalance = instance.balance || 0;
+  if (type === "debit") {
+    updatedBalance += amount;
+  } else if (type === "credit") {
+    updatedBalance -= amount;
   } else {
-    throw new Error(`Invalid debitOrCredit: ${debitOrCredit}`);
+    throw new Error("Invalid type: must be 'debit' or 'credit'");
   }
 
-  instance.endingBalance = instance.balance;
+  instance.balance = updatedBalance;
   await instance.save({ session });
 
-  // ========== Update the Parent Summary ==========
+  // 2️⃣ Update parent summary only once (if summaryId exists)
   if (instance.summaryId) {
     const summary = await SummaryModel.findById(instance.summaryId).session(session);
     if (summary) {
-      summary.startingBalance ??= summary.endingBalance ?? 0;
-      if (typeof summary.endingBalance !== "number") summary.endingBalance = summary.startingBalance;
-
-      if (debitOrCredit === "debit") summary.endingBalance += numericValue;
-      else summary.endingBalance -= numericValue;
-
-      if (typeof summary.currentBalance !== "number") summary.currentBalance = summary.startingBalance;
-      if (debitOrCredit === "debit") summary.currentBalance += numericValue;
-      else summary.currentBalance -= numericValue;
-
+      let summaryBalance = summary.balance || 0;
+      summaryBalance += type === "debit" ? amount : -amount;
+      summary.balance = summaryBalance;
       await summary.save({ session });
     }
   }
