@@ -13,6 +13,7 @@ import BreakupFileModel from "../../models/FinanceModals/BreakupFiles.js";
 import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 import Order from "../../models/FinanceModals/OrdersModel.js";
 import api from "../../../frontend/src/api/axios.js";
+import Seller from "../../models/FinanceModals/SellersModel.js";
 import { ensureSellerExists } from "../../contollers/FinanceControllers/SellerController.js";
 
 // -------------------------------
@@ -253,7 +254,9 @@ export const createOrderWithTransaction = async (req, res) => {
   try {
     await session.withTransaction(async () => {
       const { orderAmount, orderType, buyerId, sellerId, orderId } = req.body;
-      if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId) throw new Error("Missing required fields");
+      if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId) {
+        throw new Error("Missing required fields");
+      }
 
       console.log(`🚀 [ORDER] Processing Order: ${orderId} | Seller: ${sellerId}`);
 
@@ -261,12 +264,19 @@ export const createOrderWithTransaction = async (req, res) => {
       const seller = await ensureSellerExists(sellerId);
 
       // --- Determine rule set ---
-      const ruleTypes = orderType === "auction"
-        ? ["auction", "auctionTax", "auctionDeposit"]
-        : [orderType, `${orderType}Tax`];
+      const ruleTypes =
+        orderType === "auction"
+          ? ["auction", "auctionTax", "auctionDeposit"]
+          : [orderType, `${orderType}Tax`];
 
-      const rules = await BreakupRuleModel.find({ transactionType: { $in: ruleTypes } }).session(session).lean();
-      if (!rules?.length) throw new Error(`No BreakupRules found for type ${orderType}`);
+      const rules = await BreakupRuleModel.find({
+        transactionType: { $in: ruleTypes },
+      })
+        .session(session)
+        .lean();
+
+      if (!rules?.length)
+        throw new Error(`No BreakupRules found for type ${orderType}`);
 
       console.log(`📘 [RULES] Loaded ${rules.length} breakup rules`);
 
@@ -301,7 +311,7 @@ export const createOrderWithTransaction = async (req, res) => {
 
           const mirrorSet = split.mirrors || [];
 
-          // PROCESS MIRRORS (BALANCING)
+          // --- PROCESS MIRRORS (BALANCING) ---
           let splitDebit = mainLine.debitOrCredit === "debit" ? baseValue : 0;
           let splitCredit = mainLine.debitOrCredit === "credit" ? baseValue : 0;
 
@@ -333,10 +343,10 @@ export const createOrderWithTransaction = async (req, res) => {
             }
           }
 
-          // Validate this split group
+          // --- Validate this split group ---
           const diff = Math.abs(splitDebit - splitCredit);
           if (diff > 0.01) {
-            console.error(`❌ [SPLIT IMBALANCE] Component "${split.componentName}" not balanced. Debit: ${splitDebit} | Credit: ${splitCredit} | Diff: ${diff}`);
+            console.error(`❌ [SPLIT IMBALANCE] Component "${split.componentName}" not balanced. Diff: ${diff}`);
             throw new Error(`Component ${split.componentName} imbalance (diff=${diff})`);
           } else {
             console.log(`✅ [SPLIT BALANCED] ${split.componentName} balanced successfully.`);
@@ -344,98 +354,145 @@ export const createOrderWithTransaction = async (req, res) => {
         }
       }
 
-      // GLOBAL VALIDATION (POSTED ONLY)
-      const postingTotals = postingLines.reduce((acc, l) => {
-        if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
-        else if (l.debitOrCredit === "credit") acc.credit += safeNumber(l.amount);
-        return acc;
-      }, { debit: 0, credit: 0 });
+      // --- GLOBAL VALIDATION (POSTED ONLY) ---
+      const postingTotals = postingLines.reduce(
+        (acc, l) => {
+          if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
+          else if (l.debitOrCredit === "credit") acc.credit += safeNumber(l.amount);
+          return acc;
+        },
+        { debit: 0, credit: 0 }
+      );
 
       const postingImbalance = Math.abs(postingTotals.debit - postingTotals.credit);
       if (postingImbalance > 0.01) {
-        console.warn(`⚠️ [POSTING IMBALANCE] Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit} | Diff: ${postingImbalance}`);
+        console.warn(
+          `⚠️ [POSTING IMBALANCE] Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit} | Diff: ${postingImbalance}`
+        );
       } else {
-        console.log(`💰 [POSTING] Overall ledger balanced. Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit}`);
+        console.log(
+          `💰 [POSTING] Overall ledger balanced. Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit}`
+        );
       }
 
-      // CREATE BREAKUP DOCUMENTS
-      const realLines = allLines.filter(l => !l._isMirror);
+      // --- CREATE BREAKUP DOCUMENTS ---
+      const realLines = allLines.filter((l) => !l._isMirror);
 
-      const [parentBreakup] = await BreakupFileModel.create([{
-        orderId,
-        orderType,
-        orderAmount,
-        actualAmount: orderAmount,
-        buyerId,
-        sellerId,
-        breakupType: "parent",
-        parentBreakupId: null,
-        lines: realLines,
-        totalDebit: postingTotals.debit,
-        totalCredit: postingTotals.credit,
-      }], { session });
+      const [parentBreakup] = await BreakupFileModel.create(
+        [
+          {
+            orderId,
+            orderType,
+            orderAmount,
+            actualAmount: orderAmount,
+            buyerId,
+            sellerId,
+            breakupType: "parent",
+            parentBreakupId: null,
+            lines: realLines,
+            totalDebit: postingTotals.debit,
+            totalCredit: postingTotals.credit,
+          },
+        ],
+        { session }
+      );
 
-      const sellerLines = realLines.filter(l => ["receivable", "commission", "income", "tax"].includes(l.category));
-      const [sellerBreakup] = await BreakupFileModel.create([{
-        orderId,
-        orderType,
-        orderAmount,
-        buyerId,
-        sellerId,
-        breakupType: "seller",
-        parentBreakupId: parentBreakup._id,
-        lines: sellerLines,
-        totalDebit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0), 0),
-        totalCredit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0), 0),
-      }], { session });
+      const sellerLines = realLines.filter((l) =>
+        ["receivable", "commission", "income", "tax"].includes(l.category)
+      );
 
-      const buyerLines = realLines.filter(l => ["base", "tax", "expense", "deduction"].includes(l.category));
-      const [buyerBreakup] = await BreakupFileModel.create([{
-        orderId,
-        orderType,
-        orderAmount,
-        buyerId,
-        sellerId,
-        breakupType: "buyer",
-        parentBreakupId: parentBreakup._id,
-        lines: buyerLines,
-        totalDebit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0), 0),
-        totalCredit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0), 0),
-      }], { session });
+      const [sellerBreakup] = await BreakupFileModel.create(
+        [
+          {
+            orderId,
+            orderType,
+            orderAmount,
+            buyerId,
+            sellerId,
+            breakupType: "seller",
+            parentBreakupId: parentBreakup._id,
+            lines: sellerLines,
+            totalDebit: sellerLines.reduce(
+              (sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0),
+              0
+            ),
+            totalCredit: sellerLines.reduce(
+              (sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0),
+              0
+            ),
+          },
+        ],
+        { session }
+      );
+
+      const buyerLines = realLines.filter((l) =>
+        ["base", "tax", "expense", "deduction"].includes(l.category)
+      );
+
+      const [buyerBreakup] = await BreakupFileModel.create(
+        [
+          {
+            orderId,
+            orderType,
+            orderAmount,
+            buyerId,
+            sellerId,
+            breakupType: "buyer",
+            parentBreakupId: parentBreakup._id,
+            lines: buyerLines,
+            totalDebit: buyerLines.reduce(
+              (sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0),
+              0
+            ),
+            totalCredit: buyerLines.reduce(
+              (sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0),
+              0
+            ),
+          },
+        ],
+        { session }
+      );
 
       console.log(`🧾 [BREAKUP] Parent, Seller, Buyer breakups created successfully.`);
 
-      // RECORD TRANSACTION
+      // --- RECORD TRANSACTION ---
       const transactionAmount = postingTotals.credit - postingTotals.debit;
-      await TransactionModel.create([{
-        description: `Transaction for Order ID: ${orderId}`,
-        amount: transactionAmount,
-        lines: postingLines.map(l => ({
-          instanceId: l.instanceId,
-          summaryId: l.summaryId,
-          definitionId: l.definitionId,
-          debitOrCredit: l.debitOrCredit,
-          amount: l.amount,
-        })),
-      }], { session });
+      await TransactionModel.create(
+        [
+          {
+            description: `Transaction for Order ID: ${orderId}`,
+            amount: transactionAmount,
+            lines: postingLines.map((l) => ({
+              instanceId: l.instanceId,
+              summaryId: l.summaryId,
+              definitionId: l.definitionId,
+              debitOrCredit: l.debitOrCredit,
+              amount: l.amount,
+            })),
+          },
+        ],
+        { session }
+      );
 
       console.log(`📒 [TRANSACTION] Recorded transaction of ${transactionAmount}`);
 
-      // UPDATE SELLER FINANCIALS
-      seller.totalOrders += 1;
-      seller.totalPending += orderAmount;
-      seller.currentBalance = seller.totalPending - (seller.totalPaid || 0);
-      seller.lastUpdated = new Date();
-      await seller.save({ session });
+      // --- CALCULATE SELLER NET RECEIVABLE ---
+      const sellerNetReceivable = realLines
+        .filter((l) => l.category === "receivable")
+        .reduce((sum, l) => sum + (l.amount || 0), 0);
+
+      // --- UPDATE SELLER FINANCIALS (using helper) ---
+      await updateSellerFinancials(sellerId, sellerNetReceivable, { type: "new" }, session);
 
       console.log(`🏦 [SELLER] Updated financials for ${seller.name ?? sellerId}`);
 
+      // --- RESPONSE ---
       res.status(200).json({
         success: true,
         message: "Order transaction processed successfully",
         data: { parentBreakup, sellerBreakup, buyerBreakup },
       });
-    }); // end transaction
+    });
   } catch (err) {
     console.error("❌ [ORDER ERROR]:", err);
     res.status(500).json({
@@ -640,3 +697,34 @@ export const getNetBalances = async (req, res) => {
 };
 
 const safeString = (val) => (val ? String(val) : "");
+
+export const updateSellerFinancials = async (sellerId, sellerNetReceivable, options = {}, session = null) => {
+  const seller = await Seller.findOne({ businessSellerId: sellerId }).session(session);
+  if (!seller) throw new Error(`Seller with ID ${sellerId} not found`);
+
+  const { type } = options;
+  const amount = Number(sellerNetReceivable) || 0;
+
+  if (type === "new") {
+    seller.totalOrders += 1;
+    seller.pendingOrders += 1;
+    seller.totalReceivableAmount += amount;
+    seller.remainingReceivableAmount += amount;
+  }
+
+  if (type === "paid") {
+    seller.pendingOrders = Math.max(seller.pendingOrders - 1, 0);
+    seller.paidOrders += 1;
+    seller.paidReceivableAmount += amount;
+    seller.remainingReceivableAmount = Math.max(seller.remainingReceivableAmount - amount, 0);
+  }
+
+  // Recalculate balance
+  seller.currentBalance = seller.remainingReceivableAmount;
+  seller.lastUpdated = new Date();
+
+  await seller.save({ session });
+  console.log(`🏦 [SELLER] Financials updated for seller ${seller.name} (${sellerId})`);
+
+  return seller;
+};
