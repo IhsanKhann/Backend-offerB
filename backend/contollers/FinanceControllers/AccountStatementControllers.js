@@ -11,24 +11,70 @@ const parseDate = (date) => {
   return d;
 };
 
-// 🧩 Helper: Calculate totals for one seller within range
-const calculateSellerBreakups = async (sellerId, start, end) => {
+// 🧩 Helper: Calculate seller receivables and order stats
+const calculateSellerReceivables = async (sellerId, start, end) => {
+  console.log("🔍 [calculateSellerReceivables] Fetching parent breakups for seller:", sellerId);
+
+  // Extend end date to 23:59:59.999 to include today’s latest breakups
+  const endOfDay = new Date(new Date(end).setHours(23, 59, 59, 999));
+
+  // ONLY fetch parent breakups
   const breakups = await BreakupFile.find({
-    sellerId,
-    createdAt: { $gte: start, $lte: end },
+    $or: [{ sellerId }, { sellerId: sellerId.toString() }],
+    breakupType: "parent", // <-- parent only
+    createdAt: { $gte: start, $lte: endOfDay },
   });
 
-  const totalAmount = breakups.reduce((sum, b) => sum + (b.amount || 0), 0);
-  const orderCount = breakups.length;
+  console.log(`📦 Found ${breakups.length} parent breakup(s) for seller ${sellerId} between ${start.toISOString()} - ${endOfDay.toISOString()}`);
 
-  return { totalAmount, orderCount, breakups };
+  if (breakups.length === 0) {
+    const sample = await BreakupFile.findOne().sort({ createdAt: -1 });
+    console.log("🧾 Sample breakup from DB:", {
+      id: sample?._id,
+      sellerId: sample?.sellerId,
+      type: typeof sample?.sellerId,
+      breakupType: sample?.breakupType,
+      createdAt: sample?.createdAt,
+    });
+  }
+
+  let sellerNetReceivable = 0;
+  let paidOrders = 0;
+  let pendingOrders = 0;
+
+  for (const breakup of breakups) {
+    console.log(`🧾 Breakup ID: ${breakup._id}, sellerId: ${breakup.sellerId}, Lines: ${breakup.lines?.length || 0}`);
+
+    for (const line of breakup.lines || []) {
+      if (line.category === "receivable") {
+        console.log(`➡️ Adding receivable line amount: ${line.amount}`);
+        sellerNetReceivable += Number(line.amount) || 0;
+      }
+    }
+
+    if (breakup.status === "paid") paidOrders++;
+    else pendingOrders++;
+  }
+
+  const totalOrders = breakups.length;
+  console.log(`💰 Seller ${sellerId} receivable total (parent only): ${sellerNetReceivable}`);
+  console.log(`📊 Orders (parent only): total=${totalOrders}, paid=${paidOrders}, pending=${pendingOrders}`);
+
+  return {
+    sellerNetReceivable,
+    totalOrders,
+    paidOrders,
+    pendingOrders,
+    breakups,
+  };
 };
 
-// Create Statement for ONE Seller
+// 1️⃣ createAccountStatementForSeller
 export const createAccountStatementForSeller = async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
     const sellerId = Number(req.params.sellerId);
+    console.log(`\n🚀 Creating statement for seller ${sellerId}`);
 
     if (isNaN(sellerId)) return res.status(400).json({ message: "Invalid sellerId" });
 
@@ -38,78 +84,109 @@ export const createAccountStatementForSeller = async (req, res) => {
     const seller = await Seller.findOne({ businessSellerId: sellerId });
     if (!seller) return res.status(404).json({ message: "Seller not found" });
 
-    const { totalAmount, orderCount, breakups } = await calculateSellerBreakups(sellerId, start, end);
+    const { sellerNetReceivable, totalOrders, paidOrders, pendingOrders, breakups } =
+      await calculateSellerReceivables(sellerId, start, end);
+
+    console.log("🧮 Calculated totals, creating AccountStatement...");
 
     const statement = new AccountStatementSeller({
       sellerId,
       sellerName: seller.name,
+      totalAmount: sellerNetReceivable,
       periodStart: start,
       periodEnd: end,
-      totalAmount,
-      orderCount,
-      breakups,
+      orderCount: totalOrders,
+      paidOrders,
+      pendingOrders,
+      breakupIds: breakups.map((b) => b._id),
+      orders: breakups.map((b) => ({
+        breakupId: b._id,
+        orderId: b.orderId,
+        amount: b.lines
+          .filter((l) => l.category === "receivable")
+          .reduce((sum, l) => sum + (l.amount || 0), 0),
+      })),
       status: "pending",
-      createdAt: new Date(),
+      generatedAt: new Date(),
     });
 
+    console.log(`✅ Statement prepared for ${seller.name} | Breakups attached: ${statement.orders.length}`);
     await statement.save();
+    console.log("💾 Statement saved successfully.");
+
     res.status(201).json({ success: true, data: statement });
   } catch (error) {
-    console.error("Error creating statement:", error);
+    console.error("❌ Error creating statement for seller:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// Create Statements for SELECTED Sellers
+// 2️⃣ createAccountStatementsForSelected
 export const createAccountStatementsForSelected = async (req, res) => {
   try {
     const { sellerIds, startDate, endDate } = req.body;
+    const start = parseDate(startDate);
+    const end = parseDate(endDate);
 
     if (!Array.isArray(sellerIds) || sellerIds.length === 0)
       return res.status(400).json({ message: "No sellerIds provided" });
 
-    const start = parseDate(startDate);
-    const end = parseDate(endDate);
     const results = [];
 
     for (const id of sellerIds) {
       const sellerId = Number(id);
-      if (isNaN(sellerId)) continue;
+      console.log(`\n🚀 Processing seller ${sellerId}`);
 
       const seller = await Seller.findOne({ businessSellerId: sellerId });
-      if (!seller) continue;
+      if (!seller) {
+        console.warn(`⚠️ Seller ${sellerId} not found, skipping.`);
+        continue;
+      }
 
-      const { totalAmount, orderCount, breakups } = await calculateSellerBreakups(sellerId, start, end);
+      const { sellerNetReceivable, totalOrders, paidOrders, pendingOrders, breakups } =
+        await calculateSellerReceivables(sellerId, start, end);
 
       const statement = new AccountStatementSeller({
         sellerId,
         sellerName: seller.name,
+        totalAmount: sellerNetReceivable,
         periodStart: start,
         periodEnd: end,
-        totalAmount,
-        orderCount,
-        breakups,
+        orderCount: totalOrders,
+        paidOrders,
+        pendingOrders,
+        breakupIds: breakups.map((b) => b._id),
+        orders: breakups.map((b) => ({
+          breakupId: b._id,
+          orderId: b.orderId,
+          amount: b.lines
+            .filter((l) => l.category === "receivable")
+            .reduce((sum, l) => sum + (l.amount || 0), 0),
+        })),
         status: "pending",
-        createdAt: new Date(),
+        generatedAt: new Date(),
       });
 
+      console.log(`✅ Statement ready for ${seller.name} | Orders attached: ${statement.orders.length}`);
       await statement.save();
       results.push(statement);
     }
 
     res.status(201).json({ success: true, data: results });
   } catch (error) {
-    console.error("Error creating selected sellers statements:", error);
+    console.error("❌ Error creating statements for selected sellers:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-// Create Statements for ALL Sellers
+// 3️⃣ createAccountStatementsForAll
 export const createAccountStatementsForAll = async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
     const start = parseDate(startDate);
     const end = parseDate(endDate);
+
+    console.log(`\n🌍 Generating statements for all sellers between ${start} - ${end}`);
 
     const sellers = await Seller.find();
     const results = [];
@@ -118,27 +195,40 @@ export const createAccountStatementsForAll = async (req, res) => {
       const sellerId = Number(seller.businessSellerId);
       if (isNaN(sellerId)) continue;
 
-      const { totalAmount, orderCount, breakups } = await calculateSellerBreakups(sellerId, start, end);
+      console.log(`🚀 Processing seller ${sellerId} (${seller.name})`);
+
+      const { sellerNetReceivable, totalOrders, paidOrders, pendingOrders, breakups } =
+        await calculateSellerReceivables(sellerId, start, end);
 
       const statement = new AccountStatementSeller({
         sellerId,
         sellerName: seller.name,
+        totalAmount: sellerNetReceivable,
         periodStart: start,
         periodEnd: end,
-        totalAmount,
-        orderCount,
-        breakups,
+        orderCount: totalOrders,
+        paidOrders,
+        pendingOrders,
+        breakupIds: breakups.map((b) => b._id),
+        orders: breakups.map((b) => ({
+          breakupId: b._id,
+          orderId: b.orderId,
+          amount: b.lines
+            .filter((l) => l.category === "receivable")
+            .reduce((sum, l) => sum + (l.amount || 0), 0),
+        })),
         status: "pending",
-        createdAt: new Date(),
+        generatedAt: new Date(),
       });
 
+      console.log(`✅ Statement created for ${seller.name} | ${statement.orders.length} parent orders`);
       await statement.save();
       results.push(statement);
     }
 
     res.status(201).json({ success: true, data: results });
   } catch (error) {
-    console.error("Error creating all sellers statements:", error);
+    console.error("❌ Error creating statements for all sellers:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };

@@ -218,14 +218,41 @@ const SellerDashboard = () => {
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="mt-3 md:mt-0 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700">
-                  <p><span className="font-medium">Total Orders:</span> {seller.totalOrders ?? "N/A"}</p>
-                  <p><span className="font-medium">Pending:</span> {seller.totalPending ?? "N/A"}</p>
-                  <p><span className="font-medium">Paid:</span> {seller.totalPaid ?? "N/A"}</p>
-                  <p><span className="font-medium">Current Balance:</span> {seller.currentBalance ?? "N/A"}</p>
-                  <p><span className="font-medium">Last Payment:</span> {seller.lastPaymentDate ? new Date(seller.lastPaymentDate).toLocaleDateString() : "No payments yet"}</p>
+               {/* Stats */}
+                <div className="mt-3 md:mt-0 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700 w-full md:w-auto">
+                  <p>
+                    <span className="font-medium">Total Orders:</span> {seller.totalOrders ?? 0}
+                  </p>
+                  <p>
+                    <span className="font-medium">Pending Orders:</span> {seller.pendingOrders ?? 0}
+                  </p>
+                  <p>
+                    <span className="font-medium">Paid Orders:</span> {seller.paidOrders ?? 0}
+                  </p>
+                  <p>
+                    <span className="font-medium">Current Balance:</span> ₨
+                    {seller.currentBalance?.toLocaleString() ?? 0}
+                  </p>
+                  <p>
+                    <span className="font-medium">Total Receivable:</span> ₨
+                    {seller.totalReceivableAmount?.toLocaleString() ?? 0}
+                  </p>
+                  <p>
+                    <span className="font-medium">Paid Receivable:</span> ₨
+                    {seller.paidReceivableAmount?.toLocaleString() ?? 0}
+                  </p>
+                  <p>
+                    <span className="font-medium">Remaining Receivable:</span> ₨
+                    {seller.remainingReceivableAmount?.toLocaleString() ?? 0}
+                  </p>
+                  <p>
+                    <span className="font-medium">Last Payment:</span>{" "}
+                    {seller.lastPaymentDate
+                      ? new Date(seller.lastPaymentDate).toLocaleDateString()
+                      : "No payments yet"}
+                  </p>
                 </div>
+
 
                 {/* Action Menu */}
                 <div className="mt-3 md:mt-0 relative">
