@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
 
 const accountStatementSchema = new mongoose.Schema({
-  sellerId: { type: Number, required: true }, 
+ businessSellerId: {
+  type: Number,
+  required: true,
+  index: true,
+},
   sellerName: { type: String, required: true },
   periodStart: { type: Date, required: true },
   periodEnd: { type: Date, required: true },

@@ -73,24 +73,43 @@ const calculateSellerReceivables = async (sellerId, start, end) => {
 export const createAccountStatementForSeller = async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
-    const sellerId = Number(req.params.sellerId);
-    console.log(`\n🚀 Creating statement for seller ${sellerId}`);
+    const businessSellerId = Number(req.params.sellerId);
+    console.log(`\n🚀 Creating statement for seller ${businessSellerId}`);
 
-    if (isNaN(sellerId)) return res.status(400).json({ message: "Invalid sellerId" });
+    if (isNaN(businessSellerId))
+      return res.status(400).json({ message: "Invalid sellerId" });
 
     const start = parseDate(startDate);
     const end = parseDate(endDate);
 
-    const seller = await Seller.findOne({ businessSellerId: sellerId });
-    if (!seller) return res.status(404).json({ message: "Seller not found" });
+    const seller = await Seller.findOne({ businessSellerId });
+    if (!seller)
+      return res.status(404).json({ message: "Seller not found" });
 
-    const { sellerNetReceivable, totalOrders, paidOrders, pendingOrders, breakups } =
-      await calculateSellerReceivables(sellerId, start, end);
+    // Fetch and filter breakups
+    const {
+      sellerNetReceivable,
+      totalOrders,
+      paidOrders,
+      pendingOrders,
+      breakups,
+    } = await calculateSellerReceivables(businessSellerId, start, end);
 
-    console.log("🧮 Calculated totals, creating AccountStatement...");
+    // Filter out paid ones
+    const unpaidBreakups = breakups.filter((b) => b.paymentStatus !== "paid");
+    const alreadyPaidBreakups = breakups.filter((b) => b.paymentStatus === "paid");
+
+    if (alreadyPaidBreakups.length > 0) {
+      console.warn(`⚠️ ${alreadyPaidBreakups.length} orders already paid`);
+      return res.status(409).json({
+        success: false,
+        message: "Some orders were already paid.",
+        alreadyPaidOrders: alreadyPaidBreakups.map((b) => b.orderId),
+      });
+    }
 
     const statement = new AccountStatementSeller({
-      sellerId,
+      businessSellerId,
       sellerName: seller.name,
       totalAmount: sellerNetReceivable,
       periodStart: start,
@@ -98,8 +117,8 @@ export const createAccountStatementForSeller = async (req, res) => {
       orderCount: totalOrders,
       paidOrders,
       pendingOrders,
-      breakupIds: breakups.map((b) => b._id),
-      orders: breakups.map((b) => ({
+      breakupIds: unpaidBreakups.map((b) => b._id),
+      orders: unpaidBreakups.map((b) => ({
         breakupId: b._id,
         orderId: b.orderId,
         amount: b.lines
@@ -110,9 +129,13 @@ export const createAccountStatementForSeller = async (req, res) => {
       generatedAt: new Date(),
     });
 
-    console.log(`✅ Statement prepared for ${seller.name} | Breakups attached: ${statement.orders.length}`);
     await statement.save();
-    console.log("💾 Statement saved successfully.");
+
+    // Mark breakups as processing
+    await BreakupFile.updateMany(
+      { _id: { $in: unpaidBreakups.map((b) => b._id) } },
+      { $set: { paymentStatus: "processing", linkedStatementId: statement._id } }
+    );
 
     res.status(201).json({ success: true, data: statement });
   } catch (error) {
@@ -134,20 +157,28 @@ export const createAccountStatementsForSelected = async (req, res) => {
     const results = [];
 
     for (const id of sellerIds) {
-      const sellerId = Number(id);
-      console.log(`\n🚀 Processing seller ${sellerId}`);
+      const businessSellerId = Number(id);
+      const seller = await Seller.findOne({ businessSellerId });
+      if (!seller) continue;
 
-      const seller = await Seller.findOne({ businessSellerId: sellerId });
-      if (!seller) {
-        console.warn(`⚠️ Seller ${sellerId} not found, skipping.`);
+      const {
+        sellerNetReceivable,
+        totalOrders,
+        paidOrders,
+        pendingOrders,
+        breakups,
+      } = await calculateSellerReceivables(businessSellerId, start, end);
+
+      const unpaidBreakups = breakups.filter((b) => b.paymentStatus !== "paid");
+      const alreadyPaidBreakups = breakups.filter((b) => b.paymentStatus === "paid");
+
+      if (alreadyPaidBreakups.length > 0) {
+        console.warn(`⚠️ Skipping ${alreadyPaidBreakups.length} paid orders for seller ${seller.name}`);
         continue;
       }
 
-      const { sellerNetReceivable, totalOrders, paidOrders, pendingOrders, breakups } =
-        await calculateSellerReceivables(sellerId, start, end);
-
       const statement = new AccountStatementSeller({
-        sellerId,
+        businessSellerId,
         sellerName: seller.name,
         totalAmount: sellerNetReceivable,
         periodStart: start,
@@ -155,8 +186,8 @@ export const createAccountStatementsForSelected = async (req, res) => {
         orderCount: totalOrders,
         paidOrders,
         pendingOrders,
-        breakupIds: breakups.map((b) => b._id),
-        orders: breakups.map((b) => ({
+        breakupIds: unpaidBreakups.map((b) => b._id),
+        orders: unpaidBreakups.map((b) => ({
           breakupId: b._id,
           orderId: b.orderId,
           amount: b.lines
@@ -167,8 +198,13 @@ export const createAccountStatementsForSelected = async (req, res) => {
         generatedAt: new Date(),
       });
 
-      console.log(`✅ Statement ready for ${seller.name} | Orders attached: ${statement.orders.length}`);
       await statement.save();
+
+      await BreakupFile.updateMany(
+        { _id: { $in: unpaidBreakups.map((b) => b._id) } },
+        { $set: { paymentStatus: "processing", linkedStatementId: statement._id } }
+      );
+
       results.push(statement);
     }
 
@@ -179,29 +215,34 @@ export const createAccountStatementsForSelected = async (req, res) => {
   }
 };
 
-// 3️⃣ createAccountStatementsForAll
+
+// ✅ 3️⃣ createAccountStatementsForAll
 export const createAccountStatementsForAll = async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
     const start = parseDate(startDate);
     const end = parseDate(endDate);
 
-    console.log(`\n🌍 Generating statements for all sellers between ${start} - ${end}`);
-
     const sellers = await Seller.find();
     const results = [];
 
     for (const seller of sellers) {
-      const sellerId = Number(seller.businessSellerId);
-      if (isNaN(sellerId)) continue;
+      const businessSellerId = Number(seller.businessSellerId);
+      if (isNaN(businessSellerId)) continue;
 
-      console.log(`🚀 Processing seller ${sellerId} (${seller.name})`);
+      const {
+        sellerNetReceivable,
+        totalOrders,
+        paidOrders,
+        pendingOrders,
+        breakups,
+      } = await calculateSellerReceivables(businessSellerId, start, end);
 
-      const { sellerNetReceivable, totalOrders, paidOrders, pendingOrders, breakups } =
-        await calculateSellerReceivables(sellerId, start, end);
+      const unpaidBreakups = breakups.filter((b) => b.paymentStatus !== "paid");
+      if (!unpaidBreakups.length) continue;
 
       const statement = new AccountStatementSeller({
-        sellerId,
+        businessSellerId,
         sellerName: seller.name,
         totalAmount: sellerNetReceivable,
         periodStart: start,
@@ -209,8 +250,8 @@ export const createAccountStatementsForAll = async (req, res) => {
         orderCount: totalOrders,
         paidOrders,
         pendingOrders,
-        breakupIds: breakups.map((b) => b._id),
-        orders: breakups.map((b) => ({
+        breakupIds: unpaidBreakups.map((b) => b._id),
+        orders: unpaidBreakups.map((b) => ({
           breakupId: b._id,
           orderId: b.orderId,
           amount: b.lines
@@ -221,8 +262,12 @@ export const createAccountStatementsForAll = async (req, res) => {
         generatedAt: new Date(),
       });
 
-      console.log(`✅ Statement created for ${seller.name} | ${statement.orders.length} parent orders`);
       await statement.save();
+      await BreakupFile.updateMany(
+        { _id: { $in: unpaidBreakups.map((b) => b._id) } },
+        { $set: { paymentStatus: "processing", linkedStatementId: statement._id } }
+      );
+
       results.push(statement);
     }
 
@@ -303,31 +348,26 @@ export const getAccountStatementsByStatus = async (req, res) => {
   }
 };
 
-// send account Statements..
+// send statements:
 export const sendAccountStatementsToBusiness = async (req, res) => {
   try {
-    const { sellerId, sellerIds, all } = req.body;
+    const { businessSellerId, businessSellerIds, all } = req.body;
 
-    let filter = { status: "pending" };
-
-    if (sellerId) {
-      filter.sellerId = sellerId;
-    } else if (sellerIds && Array.isArray(sellerIds) && sellerIds.length > 0) {
-      filter.sellerId = { $in: sellerIds };
-    } else if (!all) {
+    if (!all && !businessSellerId && (!businessSellerIds || businessSellerIds.length === 0)) {
       return res.status(400).json({
         success: false,
-        message: "Provide either sellerId, sellerIds[], or set all=true.",
+        message: "Provide either businessSellerId, businessSellerIds[], or set all=true.",
       });
     }
 
+    const filter = { status: "pending" };
+    if (businessSellerId) filter.businessSellerId = businessSellerId;
+    else if (Array.isArray(businessSellerIds) && businessSellerIds.length > 0)
+      filter.businessSellerId = { $in: businessSellerIds };
+
     const statements = await AccountStatementSeller.find(filter);
-    if (!statements.length) {
-      return res.status(404).json({
-        success: false,
-        message: "No pending account statements found.",
-      });
-    }
+    if (!statements.length)
+      return res.status(404).json({ success: false, message: "No pending account statements found." });
 
     const results = [];
     const failedSellers = [];
@@ -335,7 +375,7 @@ export const sendAccountStatementsToBusiness = async (req, res) => {
     for (const st of statements) {
       try {
         const payload = {
-          sellerId: st.sellerId,
+          businessSellerId: st.businessSellerId,
           sellerName: st.sellerName,
           periodStart: st.periodStart,
           periodEnd: st.periodEnd,
@@ -344,67 +384,62 @@ export const sendAccountStatementsToBusiness = async (req, res) => {
           generatedAt: st.generatedAt,
         };
 
-        // actual Endpoint..
-        // const response = await axios.post(
-        //   `${process.env.BUSINESS_API_BASE}/payments/account-statement`,
-        //   payload
-        // );
-
-        // ✅ Fake req/res for internal call
         const fakeReq = { body: { accountStatements: [payload] } };
-        const fakeRes = {
-          status: (code) => ({
-            json: (data) => console.log(`Response (${code}):`, data),
-          }),
-          json: (data) => console.log("Response:", data),
-        };
-
+        const fakeRes = { status: (code) => ({ json: (data) => console.log(`Response (${code}):`, data) }) };
         await receiveAccountStatements(fakeReq, fakeRes);
 
-        const referenceId = `BUS-${Date.now()}`;
+        await Seller.findOneAndUpdate(
+          { businessSellerId: st.businessSellerId },
+          {
+            $inc: { paidReceivableAmount: st.totalAmount, paidOrders: st.orders.length },
+            $set: { lastPaymentDate: new Date(), lastUpdated: new Date() },
+          },
+          { new: true, upsert: true }
+        );
 
+        const referenceId = `BUS-${Date.now()}`;
         await AccountStatementSeller.findByIdAndUpdate(st._id, {
           status: "paid",
           referenceId,
           paidAt: new Date(),
         });
 
+        // ✅ Mark linked breakups as fully paid
+        await BreakupFile.updateMany(
+          { linkedStatementId: st._id },
+          { $set: { paymentStatus: "paid", paymentClearedDate: new Date() } }
+        );
+
         results.push({
           id: st._id,
-          sellerId: st.sellerId,
+          businessSellerId: st.businessSellerId,
           sellerName: st.sellerName,
           status: "paid",
           referenceId,
         });
       } catch (err) {
-        console.error("Failed for seller:", st.sellerId, err.message);
+        console.error("Failed for seller:", st.businessSellerId, err.message);
         failedSellers.push({
-          sellerId: st.sellerId,
+          businessSellerId: st.businessSellerId,
           sellerName: st.sellerName,
+          error: err.message,
         });
       }
     }
 
-    const paidCount = results.length;
-    const failedCount = failedSellers.length;
-
     res.status(200).json({
       success: true,
-      message: `✅ Sent ${paidCount} statement(s). ${failedCount} failed.`,
+      message: `✅ Sent ${results.length} statement(s). ${failedSellers.length} failed.`,
       results,
       failedSellers,
     });
   } catch (error) {
     console.error("❌ Error sending statements:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error while sending account statements.",
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: "Server error while sending account statements.", error: error.message });
   }
 };
 
-// ✅ Receiver
+// Receiver:
 export const receiveAccountStatements = async (req, res) => {
   try {
     const { accountStatements } = req.body;

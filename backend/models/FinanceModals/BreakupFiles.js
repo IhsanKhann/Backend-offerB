@@ -20,7 +20,7 @@ const BreakupLineSchema = new mongoose.Schema(
       required: true,
     },
 
-    amount: { type: Number, required: true, default: 0 }, // ✅ changed from 'value' to 'amount'
+    amount: { type: Number, required: true, default: 0 },
 
     debitOrCredit: {
       type: String,
@@ -28,18 +28,9 @@ const BreakupLineSchema = new mongoose.Schema(
       required: true,
     },
 
-    summaryId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Summary",
-    },
-    instanceId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "SummaryFieldLineInstance",
-    },
-    definitionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "SummaryFieldLineDefinition",
-    },
+    summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary" },
+    instanceId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineInstance" },
+    definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition" },
   },
   { _id: false }
 );
@@ -50,14 +41,7 @@ const BreakupFileSchema = new mongoose.Schema(
 
     orderType: {
       type: String,
-      enum: [
-        "retail",
-        "wholesale",
-        "auction",
-        "service",
-        "auctionDeposit",
-        "return",
-      ],
+      enum: ["retail", "wholesale", "auction", "service", "auctionDeposit", "return"],
       required: true,
     },
 
@@ -67,10 +51,7 @@ const BreakupFileSchema = new mongoose.Schema(
     buyerId: { type: String, required: true },
     sellerId: { type: Number, required: true },
 
-    parentBreakupId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "BreakupFile",
-    },
+    parentBreakupId: { type: mongoose.Schema.Types.ObjectId, ref: "BreakupFile" },
 
     breakupType: {
       type: String,
@@ -82,6 +63,24 @@ const BreakupFileSchema = new mongoose.Schema(
     lines: { type: [BreakupLineSchema], default: [] },
     totalDebit: { type: Number, default: 0 },
     totalCredit: { type: Number, default: 0 },
+
+    // ✅ Payment control fields
+    paymentStatus: {
+      type: String,
+      enum: ["unpaid", "processing", "paid"],
+      default: "unpaid",
+    },
+
+    paymentClearedDate: {
+      type: Date,
+      default: null,
+    },
+
+    linkedStatementId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AccountStatementSeller",
+      default: null,
+    },
   },
   { timestamps: true }
 );
