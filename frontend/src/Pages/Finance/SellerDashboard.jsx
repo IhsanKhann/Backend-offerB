@@ -15,15 +15,22 @@ const SellerDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [selectedSellers, setSelectedSellers] = useState([]);
   const [openActionMenu, setOpenActionMenu] = useState(null);
+  
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
+  
   const [cycles, setCycles] = useState([]);
   const [selectedCycle, setSelectedCycle] = useState(null);
   const [showCycleManager, setShowCycleManager] = useState(false);
+  
   const [cycleForm, setCycleForm] = useState({ name: "", startDate: "", endDate: "", description: "" });
   const [editingCycleId, setEditingCycleId] = useState(null);
+  
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [orderStatus, setOrderStatus] = useState({ paid: [], unpaid: [], processing: [] });
 
   // Fetch sellers
   const fetchSellers = async () => {
@@ -155,6 +162,24 @@ const SellerDashboard = () => {
     }
   };
 
+  const openOrderStatusModal = async (seller) => {
+  try {
+    setSelectedSeller(seller);
+    setShowOrdersModal(true);
+
+    const res = await api.get(`/statements/${seller.businessSellerId}/orderstatus`);
+
+    setOrderStatus({
+      paid: res.data.paid || [],
+      processing: res.data.processing || [],
+      unpaid: res.data.unpaid || [],
+    });
+  } catch (err) {
+    console.error("Error loading order status:", err);
+    alert("Failed to load order status.");
+  }
+  };
+
   const navItems = [
     { name: "Sellers Dashboard", path: "/sellers" },
     { name: "Pay Sellers", path: "/sellerDashboard" },
@@ -239,15 +264,40 @@ const SellerDashboard = () => {
           </p>
         </div>
 
-        {/* Action Menu */}
+       {/* Action Menu */}
         <div className="mt-3 md:mt-0 relative">
           <button
-            onClick={() => openPayModal(seller)}
+            onClick={() => setOpenActionMenu(openActionMenu === seller.businessSellerId ? null : seller.businessSellerId)}
             className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs"
           >
-            Pay Seller
+            Actions ▾
           </button>
+
+          {openActionMenu === seller.businessSellerId && (
+            <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-md z-20">
+              <button
+                onClick={() => {
+                  openPayModal(seller);
+                  setOpenActionMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100"
+              >
+                Pay Seller
+              </button>
+
+              <button
+                onClick={() => {
+                  openOrderStatusModal(seller);
+                  setOpenActionMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100"
+              >
+                View Orders
+              </button>
+            </div>
+          )}
         </div>
+
       </div>
     ))}
   </div>
@@ -280,19 +330,28 @@ const SellerDashboard = () => {
                 ))}
               </select>
 
-              <label className="text-sm font-medium mt-2">Or Enter Dates Manually</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="border p-2 rounded"
-              />
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="border p-2 rounded"
-              />
+             <label className="text-sm font-medium mt-2">Or Enter Dates Manually</label>
+              <div className="flex flex-col gap-1">
+                <div>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                  {startDate && <p className="text-xs text-gray-400">From: {startDate} 00:00:00</p>}
+                </div>
+                <div>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="border p-2 rounded w-full"
+                  />
+                  {endDate && <p className="text-xs text-gray-400">To: {endDate} 23:59:59</p>}
+                </div>
+              </div>
+
 
               <div className="flex justify-between mt-2">
                 <button
@@ -346,6 +405,8 @@ const SellerDashboard = () => {
                 onChange={handleCycleFormChange}
                 className="border p-2 rounded w-full"
               />
+              {cycleForm.startDate && <p className="text-xs text-gray-400">From: {cycleForm.startDate} 00:00:00</p>}
+
               <input
                 type="date"
                 name="endDate"
@@ -353,6 +414,8 @@ const SellerDashboard = () => {
                 onChange={handleCycleFormChange}
                 className="border p-2 rounded w-full"
               />
+              {cycleForm.endDate && <p className="text-xs text-gray-400">To: {cycleForm.endDate} 23:59:59</p>}
+
               <input
                 type="text"
                 name="description"
@@ -403,6 +466,116 @@ const SellerDashboard = () => {
             </div>
           </Dialog>
         )}
+
+        {/* Orders Status Modal */}
+        {showOrdersModal && (
+          <Dialog
+            open={showOrdersModal}
+            onClose={() => setShowOrdersModal(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          >
+            <div className="bg-white w-[95vw] max-w-[1200px] h-[90vh] overflow-y-auto p-8 rounded-xl shadow-2xl space-y-6">
+
+              {/* Header */}
+              <h2 className="text-3xl font-bold text-center mb-4">
+                Order Status – {selectedSeller?.name}
+              </h2>
+
+              {/* 3-Column Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {/* Paid Orders */}
+                <div className="border rounded-xl p-4 bg-green-50 shadow-sm">
+                  <h3 className="text-lg font-semibold text-green-700 mb-3">
+                    Paid Orders ({orderStatus.paid.length})
+                  </h3>
+
+                  <div className="space-y-2 text-sm">
+                    {orderStatus.paid.length === 0 && (
+                      <p className="text-gray-500 text-xs">No paid orders.</p>
+                    )}
+
+                    {orderStatus.paid.map((o) => (
+                      <div
+                        key={o.breakupId}
+                        className="p-2 border rounded-lg bg-white shadow-sm"
+                      >
+                        <p><span className="font-medium">Order ID:</span> {o.orderId}</p>
+                        <p><span className="font-medium">Amount:</span> ₨{o.actualAmount?.toLocaleString()}</p>
+                        <p>
+                          <span className="font-medium">Paid At:</span>{" "}
+                          {o.paymentClearedDate
+                            ? new Date(o.paymentClearedDate).toLocaleString()
+                            : "N/A"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Processing Orders */}
+                <div className="border rounded-xl p-4 bg-yellow-50 shadow-sm">
+                  <h3 className="text-lg font-semibold text-yellow-700 mb-3">
+                    Processing Orders ({orderStatus.processing.length})
+                  </h3>
+
+                  <div className="space-y-2 text-sm">
+                    {orderStatus.processing.length === 0 && (
+                      <p className="text-gray-500 text-xs">No processing orders.</p>
+                    )}
+
+                    {orderStatus.processing.map((o) => (
+                      <div
+                        key={o.breakupId}
+                        className="p-2 border rounded-lg bg-white shadow-sm"
+                      >
+                        <p><span className="font-medium">Order ID:</span> {o.orderId}</p>
+                        <p><span className="font-medium">Amount:</span> ₨{o.actualAmount?.toLocaleString()}</p>
+                        <p><span className="font-medium">Created:</span> {new Date(o.createdAt).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Unpaid Orders */}
+                <div className="border rounded-xl p-4 bg-red-50 shadow-sm">
+                  <h3 className="text-lg font-semibold text-red-700 mb-3">
+                    Unpaid Orders ({orderStatus.unpaid.length})
+                  </h3>
+
+                  <div className="space-y-2 text-sm">
+                    {orderStatus.unpaid.length === 0 && (
+                      <p className="text-gray-500 text-xs">No unpaid orders.</p>
+                    )}
+
+                    {orderStatus.unpaid.map((o) => (
+                      <div
+                        key={o.breakupId}
+                        className="p-2 border rounded-lg bg-white shadow-sm"
+                      >
+                        <p><span className="font-medium">Order ID:</span> {o.orderId}</p>
+                        <p><span className="font-medium">Amount:</span> ₨{o.actualAmount?.toLocaleString()}</p>
+                        <p><span className="font-medium">Created:</span> {new Date(o.createdAt).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Close Button */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowOrdersModal(false)}
+                  className="px-6 py-2 mt-4 bg-gray-300 hover:bg-gray-400 rounded-md"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </Dialog>
+        )}
+
       </div>
     </div>
   );

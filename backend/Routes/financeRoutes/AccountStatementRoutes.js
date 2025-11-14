@@ -11,6 +11,8 @@ import {
     getAccountStatementsByStatus,
     receiveAccountStatements,
 
+    getSellerOrdersStatus,
+
 } from "../../contollers/FinanceControllers/AccountStatementControllers.js";
 
 import express from "express";
@@ -32,6 +34,7 @@ router.delete("/delete/:id", deleteAccountStatement);
 router.get("/", getAllAccountStatements);
 router.get("/:id", getSingleAccountStatement);
 router.patch("/:id/status", updateAccountStatementStatus);
+router.get("/:sellerId/orderstatus", getSellerOrdersStatus); // working here..
 router.get("/", getAccountStatementsByStatus);
 router.post("/receive", receiveAccountStatements);
 

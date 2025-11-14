@@ -177,43 +177,33 @@ export const createAccountStatementForSeller = async (req, res) => {
     const seller = await Seller.findOne({ businessSellerId });
     if (!seller) return res.status(404).json({ message: "Seller not found" });
 
-    const calc = await calculateSellerReceivables(businessSellerId, start, end);
-    const { breakups } = calc;
+    // Get all breakups in range
+    const allBreakups = await BreakupFile.find({
+      $or: [{ sellerId: businessSellerId }, { sellerId: businessSellerId.toString() }],
+      breakupType: "parent",
+      createdAt: { $gte: start, $lte: end },
+    }).sort({ createdAt: 1 });
 
-    // Exclude breakups already marked 'paid' (they should not be included again).
-    // If caller wants to include paid in selection (for visibility), it's OK — but they won't be added to statement.
-    const unpaidBreakups = breakups.filter((b) => b.paymentStatus !== "paid");
+    // Include only unpaid & unlinked breakups
+    const unpaidBreakups = allBreakups.filter(
+      (b) => b.paymentStatus !== "paid" && !b.linkedStatementId
+    );
 
-    // Duplicate/overlap prevention (no statement should overlap for same seller)
-    const overlapping = await AccountStatementSeller.findOne({
-      businessSellerId,
-      $or: [
-        {
-          periodStart: { $lte: end },
-          periodEnd: { $gte: start },
-        },
-      ],
-    });
-
-    if (overlapping) {
-      return res.status(409).json({
-        success: false,
-        message: `Duplicate/overlap: seller already has a statement in ${overlapping.periodStart.toISOString()} - ${overlapping.periodEnd.toISOString()}`,
-      });
+    if (!unpaidBreakups.length) {
+      return res.status(400).json({ message: "No unpaid breakups in this range" });
     }
 
-    // Build orders array only from unpaidBreakups (so we don't re-pay already-paid orders)
+    // Create statement
     const orders = unpaidBreakups.map((b) => ({
       breakupId: b._id,
       orderId: b.orderId,
       sellerNetReceivable: b.lines
         .filter((l) => l.category === "receivable")
-        .reduce((s, l) => s + (Number(l.amount) || 0), 0),
+        .reduce((sum, l) => sum + Number(l.amount || 0), 0),
       orderDate: b.createdAt,
     }));
 
-    // totalAmount should be computed from the unpaidBreakups (amount to be paid now)
-    const totalAmount = orders.reduce((s, o) => s + (Number(o.sellerNetReceivable) || 0), 0);
+    const totalAmount = orders.reduce((sum, o) => sum + Number(o.sellerNetReceivable), 0);
 
     const statement = new AccountStatementSeller({
       businessSellerId,
@@ -232,12 +222,11 @@ export const createAccountStatementForSeller = async (req, res) => {
 
     await statement.save();
 
-    // Mark those breakups as linked -> 'processing'
-    if (unpaidBreakups.length)
-      await BreakupFile.updateMany(
-        { _id: { $in: unpaidBreakups.map((b) => b._id) } },
-        { $set: { paymentStatus: "processing", linkedStatementId: statement._id } }
-      );
+    // Mark only included breakups as processing
+    await BreakupFile.updateMany(
+      { _id: { $in: unpaidBreakups.map((b) => b._id) } },
+      { $set: { paymentStatus: "processing", linkedStatementId: statement._id } }
+    );
 
     return res.status(201).json({ success: true, data: statement });
   } catch (err) {
@@ -256,8 +245,6 @@ export const createAccountStatementsForSelected = async (req, res) => {
     const { start, end } = parseNormalizeRange(startDate, endDate);
 
     const results = [];
-
-    // We'll collect conflicts and created separately
     const conflicts = [];
 
     for (const id of sellerIds) {
@@ -273,31 +260,19 @@ export const createAccountStatementsForSelected = async (req, res) => {
         continue;
       }
 
-      const calc = await calculateSellerReceivables(businessSellerId, start, end);
-      const unpaidBreakups = calc.breakups.filter((b) => b.paymentStatus !== "paid");
+      const allBreakups = await BreakupFile.find({
+        $or: [{ sellerId: businessSellerId }, { sellerId: businessSellerId.toString() }],
+        breakupType: "parent",
+        createdAt: { $gte: start, $lte: end },
+      }).sort({ createdAt: 1 });
+
+      // Only unpaid & unlinked
+      const unpaidBreakups = allBreakups.filter(
+        (b) => b.paymentStatus !== "paid" && !b.linkedStatementId
+      );
 
       if (!unpaidBreakups.length) {
-        // nothing new to create for this seller
         conflicts.push({ businessSellerId, reason: "no unpaid breakups in range" });
-        continue;
-      }
-
-      // overlap check
-      const overlapping = await AccountStatementSeller.findOne({
-        businessSellerId,
-        $or: [
-          {
-            periodStart: { $lte: end },
-            periodEnd: { $gte: start },
-          },
-        ],
-      });
-
-      if (overlapping) {
-        conflicts.push({
-          businessSellerId,
-          reason: `overlap with ${overlapping.periodStart.toISOString()} - ${overlapping.periodEnd.toISOString()}`,
-        });
         continue;
       }
 
@@ -306,7 +281,7 @@ export const createAccountStatementsForSelected = async (req, res) => {
         orderId: b.orderId,
         sellerNetReceivable: b.lines
           .filter((l) => l.category === "receivable")
-          .reduce((s, l) => s + (Number(l.amount) || 0), 0),
+          .reduce((s, l) => s + Number(l.amount || 0), 0),
         orderDate: b.createdAt,
       }));
 
@@ -361,44 +336,36 @@ export const createAccountStatementsForAll = async (req, res) => {
         continue;
       }
 
-      const calc = await calculateSellerReceivables(businessSellerId, start, end);
-      const unpaidBreakups = calc.breakups.filter((b) => b.paymentStatus !== "paid");
+      // Get all breakups in the period
+      const allBreakups = await BreakupFile.find({
+        $or: [{ sellerId: businessSellerId }, { sellerId: businessSellerId.toString() }],
+        breakupType: "parent",
+        createdAt: { $gte: start, $lte: end },
+      }).sort({ createdAt: 1 });
+
+      // Only include unpaid & unlinked breakups
+      const unpaidBreakups = allBreakups.filter(
+        (b) => b.paymentStatus !== "paid" && !b.linkedStatementId
+      );
 
       if (!unpaidBreakups.length) {
-        skipped.push({ businessSellerId, reason: "no unpaid breakups" });
+        skipped.push({ businessSellerId, reason: "no unpaid breakups in range" });
         continue;
       }
 
-      // Overlap check
-      const overlapping = await AccountStatementSeller.findOne({
-        businessSellerId,
-        $or: [
-          {
-            periodStart: { $lte: end },
-            periodEnd: { $gte: start },
-          },
-        ],
-      });
-
-      if (overlapping) {
-        skipped.push({
-          businessSellerId,
-          reason: `overlap with ${overlapping.periodStart.toISOString()} - ${overlapping.periodEnd.toISOString()}`,
-        });
-        continue;
-      }
-
+      // Build orders
       const orders = unpaidBreakups.map((b) => ({
         breakupId: b._id,
         orderId: b.orderId,
         sellerNetReceivable: b.lines
           .filter((l) => l.category === "receivable")
-          .reduce((s, l) => s + (Number(l.amount) || 0), 0),
+          .reduce((sum, l) => sum + Number(l.amount || 0), 0),
         orderDate: b.createdAt,
       }));
 
-      const totalAmount = orders.reduce((s, o) => s + Number(o.sellerNetReceivable || 0), 0);
+      const totalAmount = orders.reduce((sum, o) => sum + Number(o.sellerNetReceivable), 0);
 
+      // Create statement
       const statement = new AccountStatementSeller({
         businessSellerId,
         sellerName: seller.name,
@@ -415,6 +382,8 @@ export const createAccountStatementsForAll = async (req, res) => {
       });
 
       await statement.save();
+
+      // Mark only included breakups as processing
       await BreakupFile.updateMany(
         { _id: { $in: unpaidBreakups.map((b) => b._id) } },
         { $set: { paymentStatus: "processing", linkedStatementId: statement._id } }
@@ -520,8 +489,6 @@ export const sendAccountStatementsToBusiness = async (req, res) => {
   }
 };
 
-// ---------- Reverse + Delete ----------
-
 // Reverse operation: unmark breakups and rollback seller financials (safe non-negative)
 export const reverseAccountStatement = async (statement) => {
   try {
@@ -587,5 +554,66 @@ export const deleteAccountStatement = async (req, res) => {
   } catch (err) {
     console.error("deleteAccountStatement error:", err);
     return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Controller to get orders grouped by payment status
+export const getSellerOrdersStatus = async (req, res) => {
+  try {
+    const businessSellerId = Number(req.params.sellerId);
+    if (isNaN(businessSellerId)) {
+      return res.status(400).json({ success: false, message: "Invalid sellerId" });
+    }
+
+    // Fetch ONLY parent-type breakups for this seller
+    const breakups = await BreakupFile.find({
+      sellerId: businessSellerId,
+      breakupType: "parent"       // <-- IMPORTANT
+    }).sort({ createdAt: -1 });
+
+    const paid = [];
+    const unpaid = [];
+    const processing = [];
+
+    breakups.forEach((b) => {
+      const orderObj = {
+        breakupId: b._id,
+        orderId: b.orderId,
+        orderType: b.orderType,
+        orderAmount: b.orderAmount,
+        actualAmount: b.actualAmount,
+        buyerId: b.buyerId,
+        sellerId: b.sellerId,
+        breakupType: b.breakupType,  // always "parent"
+        lines: b.lines,
+        totalDebit: b.totalDebit,
+        totalCredit: b.totalCredit,
+        paymentStatus: b.paymentStatus,
+        paymentClearedDate: b.paymentClearedDate,
+        linkedStatementId: b.linkedStatementId,
+        createdAt: b.createdAt,
+        updatedAt: b.updatedAt,
+      };
+
+      if (b.paymentStatus === "paid") {
+        paid.push(orderObj);
+      } else if (b.paymentStatus === "processing") {
+        processing.push(orderObj);
+      } else {
+        // unpaid
+        unpaid.push(orderObj);
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      sellerId: businessSellerId,
+      paid,
+      processing,
+      unpaid,
+    });
+  } catch (err) {
+    console.error("getSellerOrdersStatus error:", err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };

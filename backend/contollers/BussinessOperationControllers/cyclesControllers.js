@@ -10,12 +10,19 @@ export const createCycle = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
+    // Adjust dates
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0); // 00:00:00.000
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // 23:59:59.999
+
     const newCycle = new Cycle({
       name,
-      startDate,
-      endDate,
+      startDate: start,
+      endDate: end,
       description: description || "",
-      type: type || "custom"
+      type: type || "custom",
     });
 
     await newCycle.save();
@@ -69,12 +76,19 @@ export const updateCycle = async (req, res) => {
   try {
     const { name, startDate, endDate, description, type } = req.body;
 
+    // Adjust dates
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
     const updatedCycle = await Cycle.findByIdAndUpdate(
       req.params.id,
       {
         name,
-        startDate,
-        endDate,
+        startDate: start,
+        endDate: end,
         description,
         type,
       },
