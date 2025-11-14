@@ -10,7 +10,6 @@ const Loader = () => (
   </div>
 );
 
-// 💰 Sellers Payment Dashboard
 const SellerDashboard = () => {
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,15 +19,17 @@ const SellerDashboard = () => {
   const [endDate, setEndDate] = useState("");
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [cycles, setCycles] = useState([]);
+  const [selectedCycle, setSelectedCycle] = useState(null);
+  const [showCycleManager, setShowCycleManager] = useState(false);
+  const [cycleForm, setCycleForm] = useState({ name: "", startDate: "", endDate: "", description: "" });
+  const [editingCycleId, setEditingCycleId] = useState(null);
 
-  // ✅ Fetch Sellers (from Node or PHP)
+  // Fetch sellers
   const fetchSellers = async () => {
     try {
       setLoading(true);
-      const res =
-        (await api.get("/sellers/all")) ||
-        (await axios.get("https://offersberries.com/api/v2/sellers/all_sellers"));
-
+      const res = await api.get("/sellers/all");
       const fetched = res.data?.sellers || res.data?.data || [];
       setSellers(fetched);
     } catch (error) {
@@ -39,11 +40,22 @@ const SellerDashboard = () => {
     }
   };
 
+  // Fetch cycles
+  const fetchCycles = async () => {
+    try {
+      const res = await api.get("/cycles/all");
+      setCycles(res.data?.cycles || []);
+    } catch (error) {
+      console.error("Error fetching cycles:", error);
+      alert("Failed to fetch cycles.");
+    }
+  };
+
   useEffect(() => {
     fetchSellers();
+    fetchCycles();
   }, []);
 
-  // ✅ Toggle seller selection by businessSellerId (numeric)
   const toggleSelectSeller = (businessSellerId) => {
     setSelectedSellers((prev) =>
       prev.includes(businessSellerId)
@@ -52,85 +64,94 @@ const SellerDashboard = () => {
     );
   };
 
-  // ✅ Pay a single seller
-  const paySeller = async (seller) => {
+  // Open Pay Modal
+  const openPayModal = (seller = null, bulk = false) => {
+    setSelectedSeller(seller);
+    setShowPayModal(true);
+    setSelectedCycle(null);
+    setStartDate("");
+    setEndDate("");
+  };
+
+  // Cycle select
+  const handleCycleChange = (cycleId) => {
+    const cycle = cycles.find((c) => c._id === cycleId);
+    if (!cycle) return;
+    setSelectedCycle(cycle);
+    setStartDate(cycle.startDate);
+    setEndDate(cycle.endDate);
+  };
+
+  // Pay seller or bulk
+  const handlePay = async () => {
     if (!startDate || !endDate) return alert("Select both start and end dates.");
 
     try {
-      await api.post(`/statements/create/seller/${seller.businessSellerId}`, {
-        startDate,
-        endDate,
-      });
-      alert(`✅ Statement created for ${seller.name}`);
-    } catch (error) {
-      console.error("Error paying seller:", error);
-      alert("❌ Failed to create statement for seller.");
-    }
-  };
+      if (selectedSeller) {
+        // Single seller
+        await api.post(`/statements/create/seller/${selectedSeller.businessSellerId}`, { startDate, endDate });
+        alert(`✅ Seller ${selectedSeller.name} paid successfully!`);
+      } else if (selectedSellers.length > 0) {
+        // Selected sellers
+        await api.post("/statements/create/selected", {
+          sellerIds: selectedSellers,
+          startDate,
+          endDate,
+        });
+        alert("✅ Statements created for selected sellers.");
+        setSelectedSellers([]);
+      } else {
+        // All sellers
+        await api.post("/statements/create/all", { startDate, endDate });
+        alert("✅ Account statements created for all sellers.");
+      }
 
-  // ✅ Pay multiple selected sellers
-  const paySelectedSellers = async () => {
-    if (selectedSellers.length === 0)
-      return alert("Please select at least one seller.");
-
-    if (!startDate || !endDate)
-      return alert("Select both start and end dates.");
-
-    try {
-      await api.post("/statements/create/selected", {
-        sellerIds: selectedSellers,
-        startDate,
-        endDate,
-      });
-      alert("✅ Statements created for selected sellers.");
-      setSelectedSellers([]);
-    } catch (error) {
-      console.error("Error paying selected sellers:", error);
-      alert("❌ Failed to create statements for selected sellers.");
-    }
-  };
-
-  // ✅ Pay all sellers
-  const payAllSellers = async () => {
-    if (!startDate || !endDate)
-      return alert("Select both start and end dates.");
-
-    try {
-      await api.post("/statements/create/all", { startDate, endDate });
-      alert("✅ Account statements created for all sellers.");
-    } catch (error) {
-      console.error("Error paying all sellers:", error);
-      alert("❌ Failed to process all sellers.");
-    }
-  };
-
-  // ✅ Open Pay Modal
-  const openPayModal = async (businessSellerId) => {
-    try {
-      const seller = sellers.find((s) => s.businessSellerId === businessSellerId);
-      if (!seller) return alert("Seller not found.");
-      setSelectedSeller(seller);
-      setShowPayModal(true);
-    } catch {
-      alert("❌ Failed to load seller details.");
-    }
-  };
-
-  // ✅ Confirm Pay in Modal
-  const handlePaySeller = async () => {
-    if (!startDate || !endDate)
-      return alert("Select both start and end dates.");
-
-    try {
-      await api.post(`/statements/create/seller/${selectedSeller.businessSellerId}`, {
-        startDate,
-        endDate,
-      });
-      alert(`✅ Seller ${selectedSeller.name} paid successfully!`);
       setShowPayModal(false);
+      setSelectedCycle(null);
+      setStartDate("");
+      setEndDate("");
     } catch (error) {
       console.error("Payment failed:", error);
       alert("❌ Payment failed.");
+    }
+  };
+
+  // Cycle Manager Handlers
+  const handleCycleFormChange = (e) => setCycleForm({ ...cycleForm, [e.target.name]: e.target.value });
+  const openEditCycle = (cycle) => {
+    setEditingCycleId(cycle._id);
+    setCycleForm({ name: cycle.name, startDate: cycle.startDate, endDate: cycle.endDate, description: cycle.description });
+    setShowCycleManager(true);
+  };
+
+  const createOrUpdateCycle = async () => {
+    try {
+      if (editingCycleId) {
+        await api.put(`/cycles/update/${editingCycleId}`, cycleForm);
+        alert("Cycle updated successfully!");
+      } else {
+        await api.post("/cycles/create", cycleForm);
+        alert("Cycle created successfully!");
+      }
+      fetchCycles();
+      setCycleForm({ name: "", startDate: "", endDate: "", description: "" });
+      setEditingCycleId(null);
+      setShowCycleManager(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save cycle.");
+    }
+  };
+
+  const deleteCycle = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this cycle?")) return;
+    try {
+      await api.delete(`/cycles/delete/${id}`);
+      fetchCycles();
+      alert("Cycle deleted successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete cycle.");
     }
   };
 
@@ -145,170 +166,93 @@ const SellerDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
       <div className="sticky top-0 h-screen">
         <Sidebar navItems={navItems} title="Seller Dashboard" />
       </div>
 
-      {/* Main */}
       <div className="flex-1 p-4 md:p-6 space-y-4">
         {/* Header */}
         <div className="flex flex-wrap justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Sellers Payment Dashboard</h1>
-
           <div className="flex gap-2 items-center">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="border p-1 rounded"
-            />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="border p-1 rounded"
-            />
-
             <button
-              onClick={payAllSellers}
+              onClick={() => openPayModal(null)}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
-              Pay All Sellers
+              Pay All / Selected Sellers
             </button>
-
-            {selectedSellers.length > 0 && (
-              <button
-                onClick={paySelectedSellers}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-              >
-                Pay Selected ({selectedSellers.length})
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Seller Cards */}
-        {sellers.length === 0 ? (
-          <p className="text-gray-500">No sellers found.</p>
-        ) : (
-          <div className="space-y-3">
-            {sellers.map((seller) => (
-              <div
-                key={seller.businessSellerId}
-                className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition-all border border-gray-200"
-              >
-                {/* Seller Info */}
-                <div className="flex items-center space-x-3 md:w-1/3">
-                  <input
-                    type="checkbox"
-                    checked={selectedSellers.includes(seller.businessSellerId)}
-                    onChange={() => toggleSelectSeller(seller.businessSellerId)}
-                  />
-                  <div className="flex flex-col">
-                    <p className="text-base font-semibold text-gray-800">
-                      {seller.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {seller.email || "No email"}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Business ID: {seller.businessSellerId || "N/A"}
-                    </p>
-                  </div>
-                </div>
-
-               {/* Stats */}
-                <div className="mt-3 md:mt-0 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700 w-full md:w-auto">
-                  <p>
-                    <span className="font-medium">Total Orders:</span> {seller.totalOrders ?? 0}
-                  </p>
-                  <p>
-                    <span className="font-medium">Pending Orders:</span> {seller.pendingOrders ?? 0}
-                  </p>
-                  <p>
-                    <span className="font-medium">Paid Orders:</span> {seller.paidOrders ?? 0}
-                  </p>
-                  <p>
-                    <span className="font-medium">Current Balance:</span> ₨
-                    {seller.currentBalance?.toLocaleString() ?? 0}
-                  </p>
-                  <p>
-                    <span className="font-medium">Total Receivable:</span> ₨
-                    {seller.totalReceivableAmount?.toLocaleString() ?? 0}
-                  </p>
-                  <p>
-                    <span className="font-medium">Paid Receivable:</span> ₨
-                    {seller.paidReceivableAmount?.toLocaleString() ?? 0}
-                  </p>
-                  <p>
-                    <span className="font-medium">Remaining Receivable:</span> ₨
-                    {seller.remainingReceivableAmount?.toLocaleString() ?? 0}
-                  </p>
-                  <p>
-                    <span className="font-medium">Last Payment:</span>{" "}
-                    {seller.lastPaymentDate
-                      ? new Date(seller.lastPaymentDate).toLocaleDateString()
-                      : "No payments yet"}
-                  </p>
-                </div>
-
-
-                {/* Action Menu */}
-                <div className="mt-3 md:mt-0 relative">
-                  <button
-                    onClick={() =>
-                      setOpenActionMenu(
-                        openActionMenu === seller.businessSellerId
-                          ? null
-                          : seller.businessSellerId
-                      )
-                    }
-                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs flex items-center justify-between w-28"
-                  >
-                    Actions
-                    <span
-                      className={`ml-1 transition-transform duration-300 ${
-                        openActionMenu === seller.businessSellerId
-                          ? "rotate-180"
-                          : ""
-                      }`}
-                    >
-                      ▼
-                    </span>
-                  </button>
-
-                  <AnimatePresence>
-                    {openActionMenu === seller.businessSellerId && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col overflow-hidden z-50"
-                      >
-                        <button
-                          onClick={() => openPayModal(seller.businessSellerId)}
-                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        >
-                          Pay Seller
-                        </button>
-                        <button
-                          onClick={() =>
-                            alert(`Breakup for ${seller.name} coming soon`)
-                          }
-                          className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
-                        >
-                          View Breakup
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            ))}
+     {/* Seller Cards */}
+{sellers.length === 0 ? (
+  <p className="text-gray-500">No sellers found.</p>
+) : (
+  <div className="space-y-3">
+    {sellers.map((seller) => (
+      <div
+        key={seller.businessSellerId}
+        className="bg-white rounded-xl shadow-md p-4 flex flex-col md:flex-row justify-between items-start md:items-center hover:shadow-lg transition-all border border-gray-200"
+      >
+        {/* Checkbox + Basic Info */}
+        <div className="flex items-center space-x-3 md:w-1/3">
+          <input
+            type="checkbox"
+            checked={selectedSellers.includes(seller.businessSellerId)}
+            onChange={() => toggleSelectSeller(seller.businessSellerId)}
+          />
+          <div className="flex flex-col">
+            <p className="text-base font-semibold text-gray-800">{seller.name}</p>
+            <p className="text-xs text-gray-500">{seller.email || "No email"}</p>
+            <p className="text-xs text-gray-400">
+              Business ID: {seller.businessSellerId || "N/A"}
+            </p>
           </div>
-        )}
+        </div>
+
+        {/* Stats */}
+        <div className="mt-3 md:mt-0 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-700 w-full md:w-auto">
+          <p>
+            <span className="font-medium">Total Orders:</span> {seller.totalOrders ?? 0}
+          </p>
+          <p>
+            <span className="font-medium">Pending Orders:</span> {seller.pendingOrders ?? 0}
+          </p>
+          <p>
+            <span className="font-medium">Paid Orders:</span> {seller.paidOrders ?? 0}
+          </p>
+          <p>
+            <span className="font-medium">Current Balance:</span> ₨{seller.currentBalance?.toLocaleString() ?? 0}
+          </p>
+          <p>
+            <span className="font-medium">Total Receivable:</span> ₨{seller.totalReceivableAmount?.toLocaleString() ?? 0}
+          </p>
+          <p>
+            <span className="font-medium">Paid Receivable:</span> ₨{seller.paidReceivableAmount?.toLocaleString() ?? 0}
+          </p>
+          <p>
+            <span className="font-medium">Remaining Receivable:</span> ₨{seller.remainingReceivableAmount?.toLocaleString() ?? 0}
+          </p>
+          <p>
+            <span className="font-medium">Last Payment:</span>{" "}
+            {seller.lastPaymentDate ? new Date(seller.lastPaymentDate).toLocaleDateString() : "No payments yet"}
+          </p>
+        </div>
+
+        {/* Action Menu */}
+        <div className="mt-3 md:mt-0 relative">
+          <button
+            onClick={() => openPayModal(seller)}
+            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full shadow text-xs"
+          >
+            Pay Seller
+          </button>
+        </div>
+      </div>
+    ))}
+  </div>
+)}
+
 
         {/* Pay Modal */}
         {showPayModal && (
@@ -318,23 +262,45 @@ const SellerDashboard = () => {
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           >
             <div className="bg-white p-6 rounded-lg w-96 space-y-3">
-              <h2 className="text-xl font-bold">Pay Seller</h2>
-              <p className="text-sm text-gray-600">{selectedSeller?.name}</p>
-              <p className="text-xs text-gray-500">{selectedSeller?.email}</p>
+              <h2 className="text-xl font-bold">
+                {selectedSeller ? `Pay ${selectedSeller.name}` : "Pay Sellers"}
+              </h2>
 
-              <div className="flex flex-col gap-2">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="border p-2 rounded"
-                />
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="border p-2 rounded"
-                />
+              <label className="text-sm font-medium">Select Cycle</label>
+              <select
+                className="border p-2 rounded w-full"
+                value={selectedCycle?._id || ""}
+                onChange={(e) => handleCycleChange(e.target.value)}
+              >
+                <option value="">-- Choose Cycle --</option>
+                {cycles.map((cycle) => (
+                  <option key={cycle._id} value={cycle._id}>
+                    {cycle.name} ({cycle.startDate} → {cycle.endDate})
+                  </option>
+                ))}
+              </select>
+
+              <label className="text-sm font-medium mt-2">Or Enter Dates Manually</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="border p-2 rounded"
+              />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="border p-2 rounded"
+              />
+
+              <div className="flex justify-between mt-2">
+                <button
+                  onClick={() => setShowCycleManager(true)}
+                  className="px-3 py-1 bg-gray-200 rounded"
+                >
+                  Manage Cycles
+                </button>
               </div>
 
               <div className="flex justify-end gap-2 mt-4">
@@ -345,11 +311,94 @@ const SellerDashboard = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={handlePaySeller}
+                  onClick={handlePay}
                   className="bg-blue-600 text-white px-4 py-2 rounded-md"
                 >
                   Confirm Pay
                 </button>
+              </div>
+            </div>
+          </Dialog>
+        )}
+
+        {/* Cycle Manager Modal */}
+        {showCycleManager && (
+          <Dialog
+            open={showCycleManager}
+            onClose={() => setShowCycleManager(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          >
+            <div className="bg-white p-6 rounded-lg w-96 space-y-3">
+              <h2 className="text-xl font-bold">Cycle Manager</h2>
+
+              <input
+                type="text"
+                name="name"
+                placeholder="Cycle Name"
+                value={cycleForm.name}
+                onChange={handleCycleFormChange}
+                className="border p-2 rounded w-full"
+              />
+              <input
+                type="date"
+                name="startDate"
+                value={cycleForm.startDate}
+                onChange={handleCycleFormChange}
+                className="border p-2 rounded w-full"
+              />
+              <input
+                type="date"
+                name="endDate"
+                value={cycleForm.endDate}
+                onChange={handleCycleFormChange}
+                className="border p-2 rounded w-full"
+              />
+              <input
+                type="text"
+                name="description"
+                placeholder="Description"
+                value={cycleForm.description}
+                onChange={handleCycleFormChange}
+                className="border p-2 rounded w-full"
+              />
+
+              <div className="flex justify-between gap-2 mt-4">
+                {editingCycleId && (
+                  <button
+                    onClick={() => deleteCycle(editingCycleId)}
+                    className="px-4 py-2 bg-red-600 text-white rounded"
+                  >
+                    Delete
+                  </button>
+                )}
+                <button
+                  onClick={createOrUpdateCycle}
+                  className="px-4 py-2 bg-green-600 text-white rounded"
+                >
+                  {editingCycleId ? "Update Cycle" : "Create Cycle"}
+                </button>
+              </div>
+
+              <div className="mt-3">
+                <h3 className="font-semibold text-sm mb-1">Existing Cycles</h3>
+                <ul className="space-y-1 max-h-32 overflow-y-auto">
+                  {cycles.map((c) => (
+                    <li
+                      key={c._id}
+                      className="flex justify-between items-center bg-gray-100 px-2 py-1 rounded"
+                    >
+                      <span>
+                        {c.name} ({c.startDate} → {c.endDate})
+                      </span>
+                      <button
+                        onClick={() => openEditCycle(c)}
+                        className="text-blue-600 text-sm"
+                      >
+                        Edit
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </Dialog>

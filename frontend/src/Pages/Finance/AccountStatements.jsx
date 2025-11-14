@@ -130,6 +130,35 @@ const AccountStatementsDashboard = () => {
     }
   };
 
+  // confirmation // delete // fetchAgain // reload.
+  const handleDelete = async (id) => {
+      const confirmDelete = window.confirm("⚠️ Are you sure you want to delete this statement?");
+      if (!confirmDelete) return;
+
+      try {
+        setLoading(true);
+        console.log(`🗑️ Deleting statement: ${id}`);
+
+        // Use DELETE request instead of POST for proper REST convention
+        const response = await api.delete(`/statements/delete/${id}`);
+
+        if (response.data.success) {
+          alert("🗑️ Account statement deleted successfully!");
+        } else {
+          alert("⚠️ Failed to delete statement. Please try again.");
+        }
+
+        // Refresh the list after deletion
+        fetchStatements();
+      } catch (error) {
+        console.error("❌ Error deleting account statement:", error);
+        alert("Failed to delete account statement. Check console for details.");
+      } finally {
+        setLoading(false);
+        setOpenActionMenu(null);
+      }
+  };
+
   const openSendModal = (statement) => {
     setSelectedStatement(statement);
     setShowSendModal(true);
@@ -271,18 +300,34 @@ const AccountStatementsDashboard = () => {
                     <Send size={12} /> Send
                   </button>
 
-                  <div className="relative">
+                 <div className="relative">
+                <button
+                  onClick={() =>
+                    setOpenActionMenu(openActionMenu === st._id ? null : st._id)
+                  }
+                  className="text-gray-600 text-xs flex items-center gap-1 hover:text-gray-800 transition-all"
+                >
+                  Actions <ChevronDown size={12} />
+                </button>
+
+                {openActionMenu === st._id && (
+                  <div className="absolute right-0 mt-1 w-28 bg-white border rounded-md shadow-md z-10">
                     <button
-                      onClick={() =>
-                        setOpenActionMenu(
-                          openActionMenu === st._id ? null : st._id
-                        )
-                      }
-                      className="text-gray-600 text-xs flex items-center gap-1 hover:text-gray-800 transition-all"
+                      onClick={() => openSendModal(st)}
+                      className="block w-full text-left px-3 py-1 text-xs hover:bg-gray-100"
                     >
-                      Actions <ChevronDown size={12} />
+                      Send
+                    </button>
+                    <button
+                      onClick={() => handleDelete(st._id)} // working here..
+                      className="block w-full text-left px-3 py-1 text-xs text-red-600 hover:bg-red-50"
+                    >
+                      Delete
                     </button>
                   </div>
+                )}
+              </div>
+
                 </div>
               </motion.div>
             ))}
