@@ -1,0 +1,483 @@
+{
+  "transactionType": "Salary",
+  "incrementType": "both",
+  "splits": [
+    {
+      "componentName": "Base Salary",
+      "type": "base",
+      "instanceId": "68c4f1370c44d253dc1e0946",
+      "summaryId": "68bbbb6d7d078c821a3c5995",
+      "definitionId": "68c417f90c44d253dc1e0774",
+      "debitOrCredit": "debit",
+      "fixedAmount": 0,
+      "percentage": 100,
+      "mirrors": [
+        {
+          "instanceId": "68c4f2550c44d253dc1e09c4",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e0774",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e098b",
+          "summaryId": "68bbbb6d7d078c821a3c5994",
+          "definitionId": "68c417f90c44d253dc1e078d",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0947",
+          "summaryId": "68bbbb6d7d078c821a3c599a",
+          "definitionId": "68c417f90c44d253dc1e0774",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "House Rent",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e099c",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e0796",
+      "debitOrCredit": "debit",
+      "percentage": 40,
+      "fixedAmount": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e095b",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e077d",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e095c",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e095d",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Medical Allowance",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e099e",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e0797",
+      "debitOrCredit": "debit",
+      "percentage": 10,
+      "fixedAmount": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e095e",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e077e",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e095f",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0960",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Medicine Allowance",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09a0",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e0798",
+      "debitOrCredit": "debit",
+      "fixedAmount": 3000,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e0961",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e077f",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0962",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0963",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Fuel Expenses",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09a2",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e0799",
+      "debitOrCredit": "debit",
+      "fixedAmount": 5000,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e0964",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e0780",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0965",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0966",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Training Allowance Expenses",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09a8",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e079c",
+      "debitOrCredit": "debit",
+      "fixedAmount": 2000,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e0976",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e0786",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0977",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0978",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Hospitalization",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09aa",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e079d",
+      "debitOrCredit": "debit",
+      "fixedAmount": 2500,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e0970",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e0784",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0971",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0972",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Utility Expenses",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09ac",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e079e",
+      "debitOrCredit": "debit",
+      "fixedAmount": 4000,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e096d",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e0783",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e096e",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e096f",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Special Allowance",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09ae",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e079f",
+      "debitOrCredit": "debit",
+      "fixedAmount": 3000,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e0973",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e0785",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0974",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0975",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Servant",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09b2",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e07a1",
+      "debitOrCredit": "debit",
+      "fixedAmount": 6000,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e097c",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e0788",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e097d",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e097e",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Telephone",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09b4",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e07a2",
+      "debitOrCredit": "debit",
+      "fixedAmount": 1500,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e097f",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e0789",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0980",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0981",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Car Maintenance",
+      "type": "allowance",
+      "instanceId": "68c4f1370c44d253dc1e09b6",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e07a3",
+      "debitOrCredit": "debit",
+      "fixedAmount": 5000,
+      "percentage": 0,
+      "mirrors": [
+        {
+          "instanceId": "68c4f1370c44d253dc1e0982",
+          "summaryId": "68bbbb6d7d078c821a3c5995",
+          "definitionId": "68c417f90c44d253dc1e078a",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0983",
+          "summaryId": "68bbbb6d7d078c821a3c5996",
+          "definitionId": "68c417f90c44d253dc1e078c",
+          "debitOrCredit": "debit",
+          "fallback": "none"
+        },
+        {
+          "instanceId": "68c4f1370c44d253dc1e0984",
+          "summaryId": "68bbbb6d7d078c821a3c599d",
+          "definitionId": "68c417f90c44d253dc1e0776",
+          "debitOrCredit": "debit",
+          "fallback": "capital"
+        }
+      ]
+    },
+    {
+      "componentName": "Income Tax",
+      "type": "deduction",
+      "instanceId": "68c4f1370c44d253dc1e0996",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e0793",
+      "debitOrCredit": "credit",
+      "percentage": 10,
+      "fixedAmount": 0,
+      "mirrors": [
+      ]
+    },
+    {
+      "componentName": "EOBI",
+      "type": "deduction",
+      "instanceId": "68c4f1370c44d253dc1e0998",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e0794",
+      "debitOrCredit": "credit",
+      "fixedAmount": 2000,
+      "percentage": 0,
+      "mirrors": [
+      ]
+    },
+    {
+      "componentName": "Cost of Funds",
+      "type": "deduction",
+      "instanceId": "68c4f1370c44d253dc1e09b0",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e07a0",
+      "debitOrCredit": "credit",
+      "percentage": 2,
+      "fixedAmount": 0,
+      "mirrors": [
+      ]
+    },
+    {
+      "componentName": "Gratuity Deduction",
+      "type": "deduction",
+      "instanceId": "68c4f1370c44d253dc1e09a4",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e079a",
+      "debitOrCredit": "credit",
+      "percentage": 5,
+      "fixedAmount": 0,
+      "mirrors": [
+      ]
+    },
+    {
+      "componentName": "Provident Fund Deduction",
+      "type": "deduction",
+      "instanceId": "68c4f1370c44d253dc1e09a6",
+      "summaryId": "68bbbb6d7d078c821a3c5994",
+      "definitionId": "68c417f90c44d253dc1e079b",
+      "debitOrCredit": "credit",
+      "percentage": 8,
+      "fixedAmount": 0,
+      "mirrors": [
+      ]
+    },
+    {
+      "componentName": "Cash",
+      "type": "cash",
+      "instanceId": "68c4f1370c44d253dc1e09bc",
+      "summaryId": "68bbbb6d7d078c821a3c5998",
+      "definitionId": "68c417f90c44d253dc1e07c1",
+      "debitOrCredit": "credit",
+      "fixedAmount": 0,
+      "percentage": 0,
+      "mirrors": []
+    },
+    {
+      "componentName": "Net Salary",
+      "instanceId": "68c9350c9f6641a93acc79aa",
+      "summaryId": "68bbbb6d7d078c821a3c5998",
+      "definitionId": "68c934339f6641a93acc79a2",
+      "debitOrCredit": "credit",
+      "fixedAmount": 0,
+      "percentage": 0,
+      "mirrors": []
+    }
+  ]
+}

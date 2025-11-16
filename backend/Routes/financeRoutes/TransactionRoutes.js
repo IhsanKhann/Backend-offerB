@@ -1,6 +1,7 @@
 // routes/financeRoutes.js
 import express from "express";
-import { authenticate, authorize } from "../../middlewares/authMiddlewares.js";
+import { authenticate, authorize, verifyPartner } from "../../middlewares/authMiddlewares.js";
+
 
 import {
   ExpenseTransactionController,
@@ -35,10 +36,10 @@ router.post("/transaction/salary/:employeeId", SalaryTransactionController);
 // --------------------
 
 // Create + process order with breakups & transaction
-router.post("/order-process", createOrderWithTransaction);
+router.post("/order-process", verifyPartner,createOrderWithTransaction);
 
 // the transaction for - order return..
-router.post("/return-process", returnOrderWithTransaction);
+router.post("/return-process", verifyPartner,returnOrderWithTransaction);
 
 
 export default router;

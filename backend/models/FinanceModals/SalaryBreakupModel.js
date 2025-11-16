@@ -19,7 +19,6 @@ const CalculatedBreakupSchema = new mongoose.Schema({
 
 const ComponentSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  category: { type: String, enum: ["allowance", "deduction"], required: true },
   type: { type: String, enum: ["fixed", "percentage"], required: true },
   value: { type: Number, required: true },
 }, { _id: false });
@@ -27,7 +26,11 @@ const ComponentSchema = new mongoose.Schema({
 const SalaryRulesSchema = new mongoose.Schema({
   baseSalary: { type: Number, required: true },
   salaryType: { type: String, enum: ["monthly", "hourly"], default: "monthly" },
-  components: { type: [ComponentSchema], default: [] },
+
+  // NEW ARRAYS
+  allowances: { type: [ComponentSchema], default: [] },
+  deductions: { type: [ComponentSchema], default: [] },
+  terminalBenefits: { type: [ComponentSchema], default: [] },
 }, { _id: false });
 
 const BreakupFileSchema = new mongoose.Schema({
@@ -37,4 +40,4 @@ const BreakupFileSchema = new mongoose.Schema({
   calculatedBreakup: { type: CalculatedBreakupSchema, default: {} },
 }, { timestamps: true });
 
-export default mongoose.models.BreakupFile || mongoose.model("SalaryBreakupfiles", BreakupFileSchema);
+export default mongoose.models.SalaryBreakupfiles || mongoose.model("SalaryBreakupfiles", BreakupFileSchema);

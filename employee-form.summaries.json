@@ -1,0 +1,180 @@
+[{
+  "_id": {
+    "$oid": "68bbbb6d7d078c821a3c5998"
+  },
+  "summaryId": 1500,
+  "name": "Cash",
+  "accountType": "asset",
+  "startingBalance": 1000000,
+  "endingBalance": 752500
+},
+{
+  "_id": {
+    "$oid": "68bbbb6d7d078c821a3c5995"
+  },
+  "summaryId": 1200,
+  "name": "Expenses",
+  "accountType": "expense",
+  "startingBalance": 0,
+  "endingBalance": 289000
+},
+{
+  "_id": {
+    "$oid": "68bbbb6d7d078c821a3c5996"
+  },
+  "summaryId": 1300,
+  "name": "Taxes",
+  "accountType": "asset",
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68bbbb6d7d078c821a3c5997"
+  },
+  "summaryId": 1400,
+  "name": "Salaries",
+  "accountType": "expense",
+  "startingBalance": 0,
+  "endingBalance": 150000
+},
+{
+  "_id": {
+    "$oid": "68bbbb6d7d078c821a3c5999"
+  },
+  "summaryId": 1600,
+  "name": "Capital",
+  "accountType": "equity",
+  "startingBalance": 1000000,
+  "endingBalance": 1041500
+},
+{
+  "_id": {
+    "$oid": "68bbbb6d7d078c821a3c599a"
+  },
+  "summaryId": 1700,
+  "name": "Commission",
+  "accountType": "income",
+  "startingBalance": 0,
+  "endingBalance": 289000
+},
+{
+  "_id": {
+    "$oid": "68bbbb6d7d078c821a3c5994"
+  },
+  "summaryId": 1100,
+  "name": "Allowances",
+  "accountType": "liability",
+  "startingBalance": 0,
+  "endingBalance": 247500
+},
+{
+  "_id": {
+    "$oid": "68c295aa0c44d253dc1e06fe"
+  },
+  "summaryId": 1800,
+  "name": "Wholesale",
+  "accountType": "income",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68c295aa0c44d253dc1e0702"
+  },
+  "summaryId": 2200,
+  "name": "Buyer",
+  "accountType": "asset",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68c295aa0c44d253dc1e06ff"
+  },
+  "summaryId": 1900,
+  "name": "Retail",
+  "accountType": "income",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68c295aa0c44d253dc1e0704"
+  },
+  "summaryId": 2400,
+  "name": "Return Order",
+  "accountType": "expense",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68c295aa0c44d253dc1e0700"
+  },
+  "summaryId": 2000,
+  "name": "Service Provider",
+  "accountType": "income",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68c295aa0c44d253dc1e0701"
+  },
+  "summaryId": 2100,
+  "name": "Order",
+  "accountType": "asset",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68c295aa0c44d253dc1e0703"
+  },
+  "summaryId": 2300,
+  "name": "Seller",
+  "accountType": "liability",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68cc2a0c9f6641a93acc79fa"
+  },
+  "summaryId": 2500,
+  "name": "Cost of Goods",
+  "accountType": "expense",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68cc31509f6641a93acc7a00"
+  },
+  "summaryId": 2600,
+  "name": "Auction",
+  "accountType": "income",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+},
+{
+  "_id": {
+    "$oid": "68cc31509f6641a93acc7a01"
+  },
+  "summaryId": 2700,
+  "name": "Auction Security Deposit",
+  "accountType": "liability",
+  "parentId": null,
+  "startingBalance": 0,
+  "endingBalance": 0
+}]

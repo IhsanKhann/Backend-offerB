@@ -146,3 +146,25 @@ export const authorize = (requiredPermission) => async (req, res, next) => {
   }
 };
 
+export const verifyPartner = (req, res, next) => {
+  try {
+    const apiKey = req.headers["x-api-key"];
+
+    if (!apiKey) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Missing API Key" });
+    }
+
+    if (apiKey !== process.env.PARTNER_API_KEY) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid API Key" });
+    }
+
+    // API Key is valid → continue
+    next();
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
