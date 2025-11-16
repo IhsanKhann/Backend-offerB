@@ -88,29 +88,35 @@ export const getBreakupFile = async (req, res) => {
 // CREATE / UPDATE BREAKUP FILE (MAIN CONTROLLER)
 export const createBreakupFile = async (req, res) => {
   try {
-    const { employeeId, roleId, salaryRules } = req.body;
+    const { employeeId, roleId } = req.body;
 
-    if (!employeeId || !roleId || !salaryRules) {
+    if (!employeeId || !roleId) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields",
+        message: "employeeId and roleId are required",
       });
     }
 
     const empObjectId = safeToObjectId(employeeId);
     const roleObjectId = safeToObjectId(roleId);
 
-    // Validate employee
+    // 1) Validate employee
     const employee = await FinalizedEmployeeModel.findById(empObjectId);
     if (!employee)
       return res.status(404).json({ success: false, message: "Employee not found" });
 
-    // Validate role
+    // 2) Fetch role & salaryRules from DB
     const role = await AllRolesModel.findById(roleObjectId);
-    if (!role)
-      return res.status(404).json({ success: false, message: "Role not found" });
+    if (!role) return res.status(404).json({ success: false, message: "Role not found" });
 
-    // Extract salary rules from frontend
+    const salaryRules = role.salaryRules;
+    if (!salaryRules) {
+      return res.status(400).json({
+        success: false,
+        message: "This role has no salaryRules defined",
+      });
+    }
+
     const {
       baseSalary = 0,
       salaryType = "monthly",
@@ -119,11 +125,8 @@ export const createBreakupFile = async (req, res) => {
       terminalBenefits = [],
     } = salaryRules;
 
+    // 3) Build breakup lines
     const breakdown = [];
-
-    // ------------------------------------------------------------
-    // BASE SALARY
-    // ------------------------------------------------------------
     breakdown.push({
       name: "Base Salary",
       category: "base",
@@ -135,88 +138,64 @@ export const createBreakupFile = async (req, res) => {
     let totalAllowances = 0;
     let totalDeductions = 0;
 
-    // ------------------------------------------------------------
-    // ALLOWANCES
-    // ------------------------------------------------------------
+    // Allowances
     for (const a of allowances) {
-      let calc = 0;
-
-      if (a.type === "percentage") {
-        calc = Math.round((Number(baseSalary) * Number(a.value)) / 100);
-      } else {
-        calc = Number(a.value);
-      }
-
+      const calc = a.type === "percentage" ? Math.round((baseSalary * a.value) / 100) : Number(a.value);
       breakdown.push({
         name: a.name,
         category: "allowance",
         value: calc,
-        calculation:
-          a.type === "percentage"
-            ? `${a.value}% of base = ${calc}`
-            : `Fixed = ${calc}`,
+        calculation: a.type === "percentage" ? `${a.value}% of base = ${calc}` : `Fixed = ${calc}`,
         excludeFromTotals: false,
       });
-
       totalAllowances += calc;
     }
 
-    // ------------------------------------------------------------
-    // DEDUCTIONS
-    // ------------------------------------------------------------
+    // Deductions
     for (const d of deductions) {
-      let calc = 0;
-
-      if (d.type === "percentage") {
-        calc = Math.round((Number(baseSalary) * Number(d.value)) / 100);
-      } else {
-        calc = Number(d.value);
-      }
-
+      const calc = d.type === "percentage" ? Math.round((baseSalary * d.value) / 100) : Number(d.value);
       breakdown.push({
         name: d.name,
         category: "deduction",
         value: calc,
-        calculation:
-          d.type === "percentage"
-            ? `${d.value}% of base = ${calc}`
-            : `Fixed = ${calc}`,
+        calculation: d.type === "percentage" ? `${d.value}% of base = ${calc}` : `Fixed = ${calc}`,
         excludeFromTotals: false,
       });
-
       totalDeductions += calc;
     }
 
-    // ------------------------------------------------------------
-    // TERMINAL BENEFITS (ADD BUT DO NOT PUT INTO TOTAL ALLOWANCES)
-    // ------------------------------------------------------------
+    // Terminal benefits lines (do not affect totals)
+    // We'll compute per-benefit totals to add to employee record later
+    const terminalBenefitTotals = {}; // { gratuity: 0, eobi: 0, ... , otherBenefits: 0 }
+
     for (const t of terminalBenefits) {
-      let calc = 0;
+      const calc = t.type === "percentage" ? Math.round((baseSalary * t.value) / 100) : Number(t.value);
 
-      if (t.type === "percentage") {
-        calc = Math.round((Number(baseSalary) * Number(t.value)) / 100);
-      } else {
-        calc = Number(t.value);
-      }
-
+      // push into breakdown as terminalBenefit
       breakdown.push({
         name: t.name,
-        category: "allowance",
+        category: "terminalBenefit",
         value: calc,
-        calculation:
-          t.type === "percentage"
-            ? `${t.value}% of base = ${calc}`
-            : `Fixed = ${calc}`,
-        excludeFromTotals: true, // << IMPORTANT
+        calculation: t.type === "percentage" ? `${t.value}% of base = ${calc}` : `Fixed = ${calc}`,
+        excludeFromTotals: true,
       });
+
+      // normalize name into a field we maintain on employee.salary.terminalBenefits
+      const nameKey = (t.name || "").toLowerCase();
+
+      let field = "otherBenefits";
+      if (nameKey.includes("gratuity")) field = "gratuity";
+      else if (nameKey.includes("provident")) field = "providentFund";
+      else if (nameKey.includes("eobi")) field = "eobi";
+      else if (nameKey.includes("cost") || nameKey.includes("cost of funds")) field = "costOfFunds";
+      else if (nameKey.includes("group") || nameKey.includes("insurance")) field = "groupTermInsurance";
+      else field = "otherBenefits";
+
+      terminalBenefitTotals[field] = (terminalBenefitTotals[field] || 0) + calc;
     }
 
-    // ------------------------------------------------------------
-    // NET SALARY
-    // ------------------------------------------------------------
-    const netSalary =
-      Number(baseSalary) + Number(totalAllowances) - Number(totalDeductions);
-
+    // Net salary
+    const netSalary = Number(baseSalary) + totalAllowances - totalDeductions;
     breakdown.push({
       name: "Net Salary",
       category: "net",
@@ -225,19 +204,15 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    // ------------------------------------------------------------
-    // UPSERT INTO DB
-    // ------------------------------------------------------------
+    // 4) UPSERT breakupFile (create or update)
+    const now = new Date();
+
     const breakupFile = await BreakupFile.findOneAndUpdate(
       { employeeId: empObjectId },
       {
         $set: {
           roleId: roleObjectId,
-          salaryRules: {
-            baseSalary,
-            salaryType,
-            components: [...allowances, ...deductions, ...terminalBenefits],
-          },
+          salaryRules, // persist the role's rules used
           calculatedBreakup: {
             breakdown,
             totalAllowances,
@@ -249,10 +224,76 @@ export const createBreakupFile = async (req, res) => {
       { new: true, upsert: true }
     );
 
+    // 5) Accumulate terminal benefits into employee profile — but only once per calendar month
+    // Check if this employee already has a breakup created this calendar month.
+    const existing = await BreakupFile.findOne({ employeeId: empObjectId }).sort({ createdAt: -1 }).lean();
+    let alreadyProcessedThisMonth = false;
+    if (existing && existing.createdAt) {
+      const prev = new Date(existing.createdAt);
+      if (prev.getFullYear() === now.getFullYear() && prev.getMonth() === now.getMonth()) {
+        // if the existing record is same as the one we just upserted (same id), skip accumulation
+        // Note: findOneAndUpdate returned the latest doc; compare _id
+        if (String(existing._id) === String(breakupFile._id)) {
+          // we just created/updated this doc — still need to ensure we only add once per month
+          // if this is the first creation this month then there was no earlier one — but to be safe
+          // check if there was a previous createdAt before this one (hard to determine here).
+          // Simpler policy: if existing.createdAt month === now month AND existing._id !== breakupFile._id,
+          // then someone already processed this month.
+          alreadyProcessedThisMonth = false; // we created/updated the doc; count accumulation below
+        } else {
+          // there exists another breakup in the same month (older or different) — skip accumulation
+          alreadyProcessedThisMonth = true;
+        }
+      }
+    }
+
+    // Better approach: Only accumulate if there was NO breakup BEFORE this current one in the same month.
+    // We'll check if there exists any breakup for this employee with createdAt in this same month and _id !== breakupFile._id.
+    if (!alreadyProcessedThisMonth) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const otherInMonth = await BreakupFile.findOne({
+        employeeId: empObjectId,
+        _id: { $ne: breakupFile._id },
+        createdAt: { $gte: monthStart, $lt: monthEnd },
+      }).lean();
+
+      if (otherInMonth) {
+        // There's another breakup record in the same calendar month => skip accumulation to prevent double-add
+        alreadyProcessedThisMonth = true;
+      } else {
+        alreadyProcessedThisMonth = false;
+      }
+    }
+
+    if (!alreadyProcessedThisMonth) {
+      // Ensure employee.salary.terminalBenefits exists
+      employee.salary = employee.salary || {};
+      employee.salary.terminalBenefits = employee.salary.terminalBenefits || {
+        gratuity: 0,
+        providentFund: 0,
+        eobi: 0,
+        costOfFunds: 0,
+        groupTermInsurance: 0,
+        otherBenefits: 0,
+      };
+
+      // Add each terminal benefit total
+      for (const [field, amount] of Object.entries(terminalBenefitTotals)) {
+        if (!amount || isNaN(amount)) continue;
+        employee.salary.terminalBenefits[field] = (employee.salary.terminalBenefits[field] || 0) + Number(amount);
+      }
+
+      // Save employee
+      await employee.save();
+    }
+
+    // 6) Return result
     return res.status(201).json({
       success: true,
       message: "Salary breakup created/updated successfully",
       data: breakupFile,
+      accumulated: !alreadyProcessedThisMonth,
     });
   } catch (err) {
     console.error("❌ ERROR createBreakupFile:", err);

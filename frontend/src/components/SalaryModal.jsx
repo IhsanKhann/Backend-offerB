@@ -8,7 +8,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
     salaryType: "monthly",
     allowances: [],
     deductions: [],
+    terminalBenefits: [],
   });
+
   const [originalRules, setOriginalRules] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -17,6 +19,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
 
   const navigate = useNavigate();
 
+  // ---------------------------------------------------------
+  // FETCH SALARY RULES BY ROLE
+  // ---------------------------------------------------------
   useEffect(() => {
     if (!isOpen || !employee?._id) return;
 
@@ -41,12 +46,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
         const normalized = {
           baseSalary: salaryRules.baseSalary || 0,
           salaryType: salaryRules.salaryType || "monthly",
-          allowances: Array.isArray(salaryRules.allowances)
-            ? salaryRules.allowances
-            : [],
-          deductions: Array.isArray(salaryRules.deductions)
-            ? salaryRules.deductions
-            : [],
+          allowances: salaryRules.allowances || [],
+          deductions: salaryRules.deductions || [],
+          terminalBenefits: salaryRules.terminalBenefits || [],
         };
 
         setFormData(normalized);
@@ -64,7 +66,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
 
   if (!isOpen) return null;
 
-  // Handlers
+  // ---------------------------------------------------------
+  // UPDATE FORM FIELDS WHEN EDITING
+  // ---------------------------------------------------------
   const handleChange = (e) => {
     if (!isEditing) return;
     const { name, value } = e.target;
@@ -97,57 +101,73 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
     }));
   };
 
-  const handleCreateBreakup = async () => {
-  if (!employee?._id) return alert("Missing employee info");
-  if (!selectedRoleId) return alert("Missing role info");
+  // ---------------------------------------------------------
+  // UPDATE SALARY RULES IN DB
+  // ---------------------------------------------------------
+  const handleSaveRules = async () => {
+    if (!selectedRoleId) return alert("Missing role ID");
 
-  try {
-    // Combine allowances and deductions with category info
-    const combinedComponents = [
-      ...(isEditing ? formData.allowances : originalRules.allowances).map(c => ({
-        ...c,
-        category: "allowance",
-      })),
-      ...(isEditing ? formData.deductions : originalRules.deductions).map(c => ({
-        ...c,
-        category: "deduction",
-      })),
-    ]
-      .filter(c => c.name)
-      .map(c => ({ ...c, value: Number(c.value) || 0 }));
+    try {
+      const payload = {
+        salaryRules: {
+          baseSalary: formData.baseSalary,
+          salaryType: formData.salaryType,
+          allowances: formData.allowances,
+          deductions: formData.deductions,
+          terminalBenefits: formData.terminalBenefits,
+        },
+      };
 
-    const payload = {
-      employeeId: employee._id,
-      roleId: selectedRoleId,
-      salaryRules: {
-        baseSalary: isEditing ? Number(formData.baseSalary) : originalRules.baseSalary,
-        salaryType: isEditing ? formData.salaryType : originalRules.salaryType,
-        components: combinedComponents, // now includes category
-      },
-    };
+      const res = await api.put(
+        `/summaries/salarytable/${selectedRoleId}`,
+        payload
+      );
 
-    const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
-
-    if (res?.status === 201 || res?.data?.success) {
-      alert("Breakup file created/updated successfully!");
-      onClose?.();
-      navigate(`/salary/breakup/${employee._id}`);
-    } else {
-      alert(res?.data?.message || "Failed to create breakup");
+      if (res.data?.success) {
+        alert("Salary rules updated successfully!");
+        setOriginalRules(formData);
+        setIsEditing(false);
+      } else {
+        alert("Failed to update rules");
+      }
+    } catch (err) {
+      console.error("Error updating rules:", err);
+      alert("Error saving rules");
     }
-  } catch (err) {
-    console.error("Error creating breakup:", err);
-    alert("Error creating breakup. Check console for details.");
-  }
-};
+  };
+
+  // ---------------------------------------------------------
+  // CREATE BREAKUP (DB RULES ONLY)
+  // ---------------------------------------------------------
+  const handleCreateBreakup = async () => {
+    try {
+      const payload = {
+        employeeId: employee._id,
+        roleId: selectedRoleId,
+      };
+
+      const res = await api.post(
+        `/summaries/salary/breakup/${employee._id}`,
+        payload
+      );
+
+      if (res.data?.success) {
+        alert("Breakup file created successfully!");
+        onClose?.();
+        navigate(`/salary/breakup/${employee._id}`);
+      } else {
+        alert("Failed to create breakup");
+      }
+    } catch (err) {
+      console.error("Error creating breakup:", err);
+      alert("Error creating breakup");
+    }
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-8 relative max-h-[95vh] overflow-y-auto">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-600 hover:text-red-500 text-2xl"
-        >
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-600 hover:text-red-500 text-2xl">
           ✕
         </button>
 
@@ -174,7 +194,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
           <p className="text-red-600">{error}</p>
         ) : (
           <form className="space-y-6">
-            {/* Base Salary + Type */}
+            {/* BASE SALARY */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block font-medium mb-1">Base Salary</label>
@@ -184,9 +204,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
                   value={formData.baseSalary}
                   onChange={handleChange}
                   readOnly={!isEditing}
-                  className={`w-full border rounded px-3 py-2 ${
-                    !isEditing ? "bg-gray-100" : ""
-                  }`}
+                  className={`w-full border rounded px-3 py-2 ${!isEditing ? "bg-gray-100" : ""}`}
                 />
               </div>
 
@@ -205,7 +223,6 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               </div>
             </div>
 
-            {/* Allowances */}
             <SectionEditor
               title="Allowances"
               section="allowances"
@@ -216,7 +233,6 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               isEditing={isEditing}
             />
 
-            {/* Deductions */}
             <SectionEditor
               title="Deductions"
               section="deductions"
@@ -226,25 +242,42 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               removeItem={removeItem}
               isEditing={isEditing}
             />
+
+            <SectionEditor
+              title="Terminal Benefits"
+              section="terminalBenefits"
+              items={formData.terminalBenefits}
+              handleArrayChange={handleArrayChange}
+              addItem={addItem}
+              removeItem={removeItem}
+              isEditing={isEditing}
+            />
           </form>
         )}
 
+        {/* FOOTER BUTTONS */}
         <div className="flex justify-end mt-8 space-x-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 rounded bg-gray-200 hover:bg-gray-300"
-          >
-            Cancel
+          <button onClick={onClose} className="px-5 py-2 rounded bg-gray-200 hover:bg-gray-300">
+            Close
           </button>
 
-          <button
-            type="button"
-            onClick={handleCreateBreakup}
-            className="px-5 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
-          >
-            Save & Create Breakup
-          </button>
+          {isEditing ? (
+            <button
+              type="button"
+              onClick={handleSaveRules}
+              className="px-5 py-2 rounded bg-green-600 text-white hover:bg-green-700"
+            >
+              Save Rules
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleCreateBreakup}
+              className="px-5 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Create Breakup
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -255,6 +288,7 @@ function SectionEditor({ title, section, items, handleArrayChange, addItem, remo
   return (
     <div className="border rounded-lg p-4 bg-gray-50">
       <h3 className="text-lg font-semibold mb-3">{title}</h3>
+
       {items.length > 0 ? (
         <div className="space-y-2">
           {items.map((item, idx) => (
@@ -278,11 +312,11 @@ function SectionEditor({ title, section, items, handleArrayChange, addItem, remo
                   </select>
                   <input
                     type="number"
-                    placeholder="Value"
                     value={item.value}
                     onChange={(e) => handleArrayChange(section, idx, "value", e.target.value)}
                     className="w-32 border rounded px-2 py-1"
                   />
+
                   <button
                     type="button"
                     onClick={() => removeItem(section, idx)}
@@ -298,7 +332,6 @@ function SectionEditor({ title, section, items, handleArrayChange, addItem, remo
                   <span className="w-32 text-right font-semibold">
                     {item.type === "percentage" ? `${item.value}%` : `PKR ${item.value}`}
                   </span>
-                  <span className="w-8"></span>
                 </>
               )}
             </div>
@@ -307,6 +340,7 @@ function SectionEditor({ title, section, items, handleArrayChange, addItem, remo
       ) : (
         <p className="text-gray-500 italic">No {title.toLowerCase()} defined.</p>
       )}
+
       {isEditing && (
         <button
           type="button"

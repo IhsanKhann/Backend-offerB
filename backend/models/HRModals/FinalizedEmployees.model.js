@@ -40,13 +40,21 @@ const salarySchema = new mongoose.Schema({
     required: true,
   },
   amount: { type: Number, required: true },
-  terminalBenefits: [{ type: String }],
+
+  // Terminal Benefit Tracking (Accumulative)
+  terminalBenefits: {
+    gratuity: { type: Number, default: 0 },              // accumulative
+    providentFund: { type: Number, default: 0 },         // accumulative
+    eobi: { type: Number, default: 0 },                  // accumulative
+    costOfFunds: { type: Number, default: 0 },           // accumulative
+    groupTermInsurance: { type: Number, default: 0 },    // accumulative
+    otherBenefits: { type: Number, default: 0 },         // accumulative
+  },
+
+  // Optional description fields
   terminalBenefitDetails: { type: String },
-  employeeGratuityFund : {type: Number},
-  EOBI: {type: Number},
-  groupTermInsurance: {type: Number},
-  otherBenefits: {type: String},
 });
+
 
 const tenureSchema = new mongoose.Schema({
   joining: { type: Date, required: true },

@@ -28,77 +28,67 @@ const BreakupSummary = () => {
   }, [employeeId]);
 
   const handleSalaryTransaction = async () => {
-  if (!window.confirm("Are you sure you want to process this salary transaction?")) return;
+    if (!window.confirm("Are you sure you want to process this salary transaction?")) return;
 
-  if (!breakup?.calculatedBreakup?.breakdown?.length) {
-    alert("No breakup data available to process salary.");
-    return;
-  }
-
-  setProcessing(true);
-
-  try {
-    const breakdown = breakup.calculatedBreakup.breakdown;
-
-    // Use breakup lines as splits (map categories -> debit/credit)
-    const splits = breakdown
-      // keep all lines (so per-summary postings happen), but DO NOT alter excludeFromTotals here
-      .filter(Boolean)
-      .map((item) => ({
-        name: item.name,
-        value: item.value,
-        // category 'deduction' means employee gets credit reduced (we use "credit" type to match your backend)
-        type: item.category === "deduction" ? "credit" : "debit",
-        summaryId: item.summaryId || null,
-        instanceId: item.instanceId || null,
-        definitionId: item.definitionId || null,
-      }));
-
-    // Append one consolidated cash credit for the net salary (so cash is reduced once)
-    const netSalary = breakup.calculatedBreakup.netSalary;
-    if (typeof netSalary === "number" && netSalary > 0) {
-      // Try to find the Net Salary line for its mapping if exists
-      const netLine = breakdown.find(b => (b.name || "").toLowerCase() === "net salary");
-
-      // fallback constants (replace these with your environment values if different)
-      const FALLBACK_CASH_SUMMARY = "68bbbb6d7d078c821a3c5998"; // Cash summary id (string form)
-      const FALLBACK_CASH_INSTANCE = "68c9350c9f6641a93acc79aa"; // instance to use for "Net Salary" in cash
-      const FALLBACK_CASH_DEFINITION = "68c934339f6641a93acc79a2";
-      splits.push({
-        name: "Net Salary (Cash Payout)",
-        value: netSalary,
-        type: "credit", // cash goes down
-        summaryId: netLine?.summaryId || FALLBACK_CASH_SUMMARY,
-        instanceId: netLine?.instanceId || FALLBACK_CASH_INSTANCE,
-        definitionId: netLine?.definitionId || FALLBACK_CASH_DEFINITION,
-      });
+    if (!breakup?.calculatedBreakup?.breakdown?.length) {
+      alert("No breakup data available to process salary.");
+      return;
     }
 
-    const payload = {
-      employeeId, 
-      salary: { splits },
-      transactionDate: new Date(),
-      description: `Salary for ${employeeId}`,
-    };
+    setProcessing(true);
 
-    console.log("Payload being sent to API:", payload);
+    try {
+      const breakdown = breakup.calculatedBreakup.breakdown;
 
-    const res = await api.post(`/transactions/salary/${employeeId}`, payload);
+      const splits = breakdown
+        .filter(Boolean)
+        .map((item) => ({
+          name: item.name,
+          value: item.value,
+          type: item.category === "deduction" ? "credit" : "debit",
+          summaryId: item.summaryId || null,
+          instanceId: item.instanceId || null,
+          definitionId: item.definitionId || null,
+        }));
 
-    console.log("Response from API:", res.data);
-    alert(res.data?.message || "Salary transaction completed");
+      const netSalary = breakup.calculatedBreakup.netSalary;
+      if (typeof netSalary === "number" && netSalary > 0) {
+        const netLine = breakdown.find((b) => (b.name || "").toLowerCase() === "net salary");
+        const FALLBACK_CASH_SUMMARY = "68bbbb6d7d078c821a3c5998";
+        const FALLBACK_CASH_INSTANCE = "68c9350c9f6641a93acc79aa";
+        const FALLBACK_CASH_DEFINITION = "68c934339f6641a93acc79a2";
+        splits.push({
+          name: "Net Salary (Cash Payout)",
+          value: netSalary,
+          type: "credit",
+          summaryId: netLine?.summaryId || FALLBACK_CASH_SUMMARY,
+          instanceId: netLine?.instanceId || FALLBACK_CASH_INSTANCE,
+          definitionId: netLine?.definitionId || FALLBACK_CASH_DEFINITION,
+        });
+      }
 
-    setBreakup(null);
-  } catch (err) {
-    console.error("Error processing salary:", err);
-    alert("Failed to initiate salary transaction");
-  } finally {
-    setProcessing(false);
-  }
-};
+      const payload = {
+        employeeId,
+        salary: { splits },
+        transactionDate: new Date(),
+        description: `Salary for ${employeeId}`,
+      };
 
+      console.log("Payload being sent to API:", payload);
 
+      const res = await api.post(`/transactions/salary/${employeeId}`, payload);
 
+      console.log("Response from API:", res.data);
+      alert(res.data?.message || "Salary transaction completed");
+
+      setBreakup(null);
+    } catch (err) {
+      console.error("Error processing salary:", err);
+      alert("Failed to initiate salary transaction");
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   if (loading) return <div className="p-6">Loading...</div>;
   if (!breakup) return <div className="p-6">No breakup file found for this employee.</div>;
@@ -106,8 +96,12 @@ const BreakupSummary = () => {
   const { salaryRules, calculatedBreakup } = breakup;
   const formatRupees = (amt) => `PKR ${Number(amt || 0).toLocaleString()}`;
 
+  // Filter by categories including terminalBenefits
   const allowances = calculatedBreakup.breakdown.filter((b) => b.category === "allowance");
   const deductions = calculatedBreakup.breakdown.filter((b) => b.category === "deduction");
+  const terminalBenefits = calculatedBreakup.breakdown.filter((b) => b.category === "terminalBenefit");
+
+  const totalTerminalBenefits = terminalBenefits.reduce((acc, b) => acc + b.value, 0);
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen flex justify-center">
@@ -159,6 +153,25 @@ const BreakupSummary = () => {
           <div className="flex justify-between mt-2 font-semibold">
             <span>Total Deductions:</span>
             <span>{formatRupees(calculatedBreakup.totalDeductions)}</span>
+          </div>
+        </div>
+
+        {/* Terminal Benefits */}
+        <div className="border-b py-4">
+          <h2 className="text-lg font-semibold mb-2">Terminal Benefits</h2>
+          {terminalBenefits.length ? (
+            terminalBenefits.map((item, idx) => (
+              <div key={idx} className="flex justify-between">
+                <span>{item.name}</span>
+                <span>{formatRupees(item.value)}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500">No terminal benefits</p>
+          )}
+          <div className="flex justify-between mt-2 font-semibold">
+            <span>Total Terminal Benefits:</span>
+            <span>{formatRupees(totalTerminalBenefits)}</span>
           </div>
         </div>
 

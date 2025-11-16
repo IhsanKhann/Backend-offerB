@@ -55,61 +55,73 @@ const handleEdit = (role) => {
   };
 
   // Handle input
-  const handleInputChange = (section, index, field, value) => {
-    const updated = { ...formData };
+const handleInputChange = (section, index, field, value) => {
+  let updated = { ...formData };
 
-    // baseSalary or salaryType
-    if (section === "baseSalary" || section === "salaryType") {
-      updated[section] = value;
-    } 
-    
-    else {
-      // allowances / deductions / terminalBenefits
-      updated[section][index][field] = field === "value" ? Number(value) : value;
-    }
-
-    setFormData(updated);
-  };
-
-  // Add new benefit in array
-const addBenefit = (section) => {
-  const updated = { ...formData };
-
-  // If this section doesn’t exist yet, initialize it
-  if (!Array.isArray(updated[section])) {
-    updated[section] = [];
+  if (section === "baseSalary" || section === "salaryType") {
+    updated[section] = value;
+  } else {
+    const arrCopy = [...(updated[section] || [])];
+    arrCopy[index] = { 
+      ...arrCopy[index], 
+      [field]: field === "value" ? Number(value) : value 
+    };
+    updated[section] = arrCopy;
   }
-
-  updated[section].push({
-    name: "",
-    type: "fixed",
-    value: 0,
-  });
 
   setFormData(updated);
 };
 
+  // Add new benefit in array
+  const addBenefit = (section) => {
+    const updated = {
+      ...formData,
+      [section]: [...(formData[section] || [])]
+    };
 
+    updated[section].push({
+      name: "",
+      type: "fixed",
+      value: 0,
+    });
+
+    setFormData(updated);
+  };
+
+  // remove benefit from array
   const removeBenefit = (section, index) => {
-    const updated = { ...formData };
+    const updated = {
+      ...formData,
+      [section]: [...formData[section]]
+    };
+
     updated[section].splice(index, 1);
     setFormData(updated);
   };
 
   // Save role
-  const handleSave = async () => {
-    try {
-      await api.put(`/summaries/salarytable/${editRoleId}`, {
-        salaryRules: formData,
-      });
-      handleCancel();
-      fetchRoles();
-      alert("Salary rules updated!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update salary rules");
-    }
+const handleSave = async () => {
+  const sanitized = {
+    baseSalary: formData.baseSalary ?? 0,
+    salaryType: formData.salaryType ?? "monthly",
+    allowances: Array.isArray(formData.allowances) ? formData.allowances : [],
+    deductions: Array.isArray(formData.deductions) ? formData.deductions : [],
+    terminalBenefits: Array.isArray(formData.terminalBenefits) ? formData.terminalBenefits : []
   };
+
+  console.log("Saving salaryRules:", sanitized);  // 🔹 DEBUG
+
+  try {
+    const res = await api.put(`/summaries/salarytable/${editRoleId}`, { salaryRules: sanitized });
+    console.log("Server response:", res.data);  // 🔹 DEBUG
+    handleCancel();
+    fetchRoles();
+    alert("Salary rules updated!");
+  } catch (err) {
+    console.error("Save failed:", err);
+    alert("Failed to update salary rules");
+  }
+};
 
   // Create a new role
   const handleCreate = async () => {

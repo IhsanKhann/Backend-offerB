@@ -74,3 +74,22 @@ coverage/
 *.swp
 *.swo
 *.bak
+
+# Ignore specific JSON files
+COA.json
+SummaryFieldLines.json
+breakupRules.json
+definitionsExport.json
+employee-form.accountstatementsellers.json
+employee-form.breakuprules.json
+employee-form.summaries.json
+employee-form.summaryfieldlineinstances.json
+roles.json
+rules.json
+sellers.json
+summariesExport.json
+table2.json
+Tables.json
+df.js
+instances.js
+Tables.json

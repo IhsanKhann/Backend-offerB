@@ -97,29 +97,49 @@ const SalaryDashboard = () => {
                   </div>
                 </div>
 
-                {/* Salary Info */}
-                <div className="mt-3 md:mt-0 md:w-2/3 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700">
-                  <p><span className="font-medium">Base:</span> {emp.salary?.amount || "N/A"}</p>
-                  <p><span className="font-medium">Type:</span> {emp.salary?.type || "N/A"}</p>
-                  <p><span className="font-medium">EOBI:</span> {emp.salary?.EOBI || "N/A"}</p>
-                  <p><span className="font-medium">Gratuity:</span> {emp.salary?.employeeGratuityFund || "N/A"}</p>
-                  <p><span className="font-medium">Insurance:</span> {emp.salary?.groupTermInsurance || "N/A"}</p>
-                  <p><span className="font-medium">Benefits:</span> {emp.salary?.terminalBenefits?.join(", ") || "N/A"}</p>
+               {/* Salary Info */}
+              <div className="mt-3 md:mt-0 md:w-2/3 grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-gray-700">
 
-                  {/* Detailed Salary */}
-                  {emp.salary?.salaryDetails?.length > 0 && (
-                    <div className="col-span-full mt-1 border-t pt-1 text-xs text-gray-500">
-                      {emp.salary.salaryDetails.map((detail, idx) => (
-                        <p key={idx} className="flex justify-between">
-                          <span>{detail.name}</span>
-                          <span>
-                            {detail.value} {detail.calculation ? `(${detail.calculation})` : ""}
-                          </span>
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <p><span className="font-medium">Base Salary:</span> {emp.salary?.amount || "N/A"}</p>
+                <p><span className="font-medium">Salary Type:</span> {emp.salary?.type || "N/A"}</p>
+                <p><span className="font-medium">Start Date:</span> {emp.salary?.startDate ? new Date(emp.salary.startDate).toLocaleDateString() : "N/A"}</p>
+
+             {/* Terminal Benefit Fields */}
+              <p>
+                <span className="font-medium">Gratuity:</span> {emp.salary?.terminalBenefits?.gratuity ?? 0}
+              </p>
+              <p>
+                <span className="font-medium">Provident Fund:</span> {emp.salary?.terminalBenefits?.providentFund ?? 0}
+              </p>
+              <p>
+                <span className="font-medium">EOBI:</span> {emp.salary?.terminalBenefits?.eobi ?? 0}
+              </p>
+              <p>
+                <span className="font-medium">Cost of Funds:</span> {emp.salary?.terminalBenefits?.costOfFunds ?? 0}
+              </p>
+              <p>
+                <span className="font-medium">Insurance:</span> {emp.salary?.terminalBenefits?.groupTermInsurance ?? 0}
+              </p>
+              <p>
+                <span className="font-medium">Other Benefits:</span> {emp.salary?.terminalBenefits?.otherBenefits ?? 0}
+              </p>
+
+
+                {/* Salary Details (Allowances and Deductions) */}
+                {emp.salary?.salaryDetails?.length > 0 && (
+                  <div className="col-span-full mt-2 border-t pt-2 text-xs text-gray-500">
+                    {emp.salary.salaryDetails.map((detail, idx) => (
+                      <p key={idx} className="flex justify-between">
+                        <span>{detail.name} ({detail.type})</span>
+                        <span>
+                          {detail.value} {detail.calculation ? `(${detail.calculation})` : ""}
+                        </span>
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
 
                 {/* Action Menu */}
                 <div className="mt-3 md:mt-0 relative">

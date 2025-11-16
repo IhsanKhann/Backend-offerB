@@ -26,12 +26,10 @@ const ComponentSchema = new mongoose.Schema({
 const SalaryRulesSchema = new mongoose.Schema({
   baseSalary: { type: Number, required: true },
   salaryType: { type: String, enum: ["monthly", "hourly"], default: "monthly" },
-
-  // NEW ARRAYS
   allowances: { type: [ComponentSchema], default: [] },
   deductions: { type: [ComponentSchema], default: [] },
   terminalBenefits: { type: [ComponentSchema], default: [] },
-}, { _id: false });
+});
 
 const BreakupFileSchema = new mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee", required: true },

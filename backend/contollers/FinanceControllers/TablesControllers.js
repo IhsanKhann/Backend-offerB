@@ -2,9 +2,6 @@
 import Rule from "../../models/FinanceModals/TablesModel.js";
 import AllRoles from "../../models/HRModals/AllRoles.model.js";
 
-/**
- * Create a new rule (like making a "table")
- */
 export const createRule = async (req, res) => {
   try {
     const { ruleId, transactionType, incrementType, splits } = req.body;
@@ -35,9 +32,6 @@ export const createRule = async (req, res) => {
   }
 };
 
-/**
- * Get all rules (list of "tables")
- */
 export const getRules = async (req, res) => {
   try {
     const rules = await Rule.find();
@@ -48,9 +42,6 @@ export const getRules = async (req, res) => {
   }
 };
 
-/**
- * Get one rule by ID
- */
 export const getRuleById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -99,17 +90,25 @@ export const updateSalaryRules = async (req, res) => {
     const { salaryRules } = req.body;
 
     // Validate salaryRules object minimally
-    if (!salaryRules || !salaryRules.baseSalary) {
+    if (!salaryRules || salaryRules.baseSalary === undefined || salaryRules.baseSalary === null) {
       return res.status(400).json({ success: false, message: "Invalid salary rules" });
     }
 
+  const sanitizedSalaryRules = {
+    baseSalary: salaryRules.baseSalary ?? 0,
+    salaryType: salaryRules.salaryType ?? "monthly",
+    allowances: Array.isArray(salaryRules.allowances) ? salaryRules.allowances : [],
+    deductions: Array.isArray(salaryRules.deductions) ? salaryRules.deductions : [],
+    terminalBenefits: Array.isArray(salaryRules.terminalBenefits) ? salaryRules.terminalBenefits : [],
+  };
+
     const updatedRole = await AllRoles.findByIdAndUpdate(
       roleId,
-      { salaryRules },
+      { $set: { salaryRules: sanitizedSalaryRules } },
       { new: true, runValidators: true }
-    );
+   );
 
-    if (!updatedRole) return res.status(404).json({ success: false, message: "Role not found" });
+  if (!updatedRole) return res.status(404).json({ success: false, message: "Role not found" });
 
     res.status(200).json({ success: true, data: updatedRole.salaryRules });
   } catch (err) {

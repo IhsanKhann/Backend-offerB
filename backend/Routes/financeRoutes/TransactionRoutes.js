@@ -25,11 +25,11 @@ router.use(authenticate);
 // --------------------
 // 🔹 Finance Transactions
 // --------------------
-router.post("/transaction/expense", ExpenseTransactionController);
-router.post("/transaction/commission/test", CommissionTransactionController);
-router.post("/transaction/commission/close-to-retained", transferCommissionToRetained);
-router.post("/transaction/transfer-retained-to-capital", transferRetainedIncomeToCapital);
-router.post("/transaction/salary/:employeeId", SalaryTransactionController);
+router.post("/expense", ExpenseTransactionController);
+router.post("/commission/test", CommissionTransactionController);
+router.post("/commission/close-to-retained", transferCommissionToRetained);
+router.post("/transfer-retained-to-capital", transferRetainedIncomeToCapital);
+router.post("/salary/:employeeId", SalaryTransactionController);
 
 // --------------------
 // 🔹 Order Transactions
@@ -40,6 +40,5 @@ router.post("/order-process", verifyPartner,createOrderWithTransaction);
 
 // the transaction for - order return..
 router.post("/return-process", verifyPartner,returnOrderWithTransaction);
-
 
 export default router;

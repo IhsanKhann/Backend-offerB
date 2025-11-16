@@ -719,6 +719,7 @@ export const SalaryTransactionController = async (req, res) => {
     return res.status(500).json({ error: err.message || String(err) });
   }
 };
+// working on the balancing..change the balancing logic later
 
 export const testCreateCollections = async (req, res) => {
   try {

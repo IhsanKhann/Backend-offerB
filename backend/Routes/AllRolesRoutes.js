@@ -6,8 +6,7 @@ const router = express.Router();
 
 router.use(authenticate);
 // ---------------------- Get All Roles ----------------------
-router.get("/getAllRolesList", 
-    
+router.get("/getAllRolesList",     
     authorize("View_AllRolesList"),
     getAllRolesList);
 
