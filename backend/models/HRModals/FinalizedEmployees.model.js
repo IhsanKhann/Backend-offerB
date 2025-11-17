@@ -55,7 +55,6 @@ const salarySchema = new mongoose.Schema({
   terminalBenefitDetails: { type: String },
 });
 
-
 const tenureSchema = new mongoose.Schema({
   joining: { type: Date, required: true },
   confirmation: { type: Date },
@@ -137,6 +136,17 @@ const TerminatedSchema = new mongoose.Schema({
   terminationEndDate: {type: Date},
 });
 
+const employeeBankingSchema = new mongoose.Schema({
+  bankName: { type: String },
+  accountTitle: { type: String },
+  accountNumber: { type: String },
+  iban: { type: String },
+  branchCode: { type: String },
+  cnic: { type: String },
+  mobile: { type: String },
+});
+
+
 const finalizedEmployeeSchema = new mongoose.Schema(
   {
     // 1. Personal Details
@@ -215,6 +225,9 @@ const finalizedEmployeeSchema = new mongoose.Schema(
 
     // 11. Final Submission Info
     profileStatus: { type: profileStatusSchema, default: () => ({}) },
+
+    // 12. Employee Banking Details: by default empty object is being created..
+    employeeBanking: { type: employeeBankingSchema, default: {} },
 
      refreshToken: {
         type: String,

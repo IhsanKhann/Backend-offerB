@@ -33,6 +33,7 @@ export default function EmployeeRegistrationForm() {
   "Tenure",
   "Change of Status",
   "Transfers",
+  "Banking Details",
   "Final Submission",
 ];
   const totalSteps = stepTitles.length;
@@ -78,6 +79,9 @@ const OnSubmit = async (data) => {
   }
   if (data.employmentHistory) {
     employeeFormData.append("employmentHistory", JSON.stringify(data.employmentHistory));
+  }
+  if (data.bankingDetails) {
+    employeeFormData.append("bankingDetails", JSON.stringify(data.bankingDetails));
   }
 
   // Files
@@ -313,106 +317,106 @@ const OnSubmit = async (data) => {
           )}
 
           {/* STEP 5 */}
-       {step === 5 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Start Date of Salary */}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Start Date of Salary *
-                </label>
-                <input
-                  type="date"
-                  className="input"
-                  {...register("salary.startDate", { required: true })}
-                />
-              </div>
+          {step === 5 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Start Date of Salary */}
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Start Date of Salary *
+                    </label>
+                    <input
+                      type="date"
+                      className="input"
+                      {...register("salary.startDate", { required: true })}
+                    />
+                  </div>
 
-              {/* Salary Type */}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Salary Type *
-                </label>
-                <select
-                  className="input"
-                  {...register("salary.type", { required: true })}
-                >
-                  <option value="">Select salary type</option>
-                  <option value="Initial">Initial</option>
-                  <option value="Incremented">Incremented</option>
-                  <option value="Special">Special</option>
-                  <option value="Fixed">Fixed</option>
-                  <option value="Internship">Internship</option>
-                </select>
-              </div>
+                  {/* Salary Type */}
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Salary Type *
+                    </label>
+                    <select
+                      className="input"
+                      {...register("salary.type", { required: true })}
+                    >
+                      <option value="">Select salary type</option>
+                      <option value="Initial">Initial</option>
+                      <option value="Incremented">Incremented</option>
+                      <option value="Special">Special</option>
+                      <option value="Fixed">Fixed</option>
+                      <option value="Internship">Internship</option>
+                    </select>
+                  </div>
 
-              {/* Current Salary Amount */}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Current Salary Amount *
-                </label>
-                <input
-                  placeholder="Enter amount"
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  {...register("salary.amount", { required: true })}
-                />
-              </div>
+                  {/* Current Salary Amount */}
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Current Salary Amount *
+                    </label>
+                    <input
+                      placeholder="Enter amount"
+                      type="number"
+                      step="0.01"
+                      className="input"
+                      {...register("salary.amount", { required: true })}
+                    />
+                  </div>
 
-              {/* No of Increments */}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  No of Increments
-                </label>
-                <input
-                  placeholder="Enter the no of increments"
-                  type="number"
-                  className="input w-[250px]"
-                  {...register("salary.noOfIncrements")}
-                />
-              </div>
+                  {/* No of Increments */}
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      No of Increments
+                    </label>
+                    <input
+                      placeholder="Enter the no of increments"
+                      type="number"
+                      className="input w-[250px]"
+                      {...register("salary.noOfIncrements")}
+                    />
+                  </div>
 
-              {/* List of Terminal Benefits */}
-              <div className="space-y-1 col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  List of Terminal Benefits
-                </label>
-                <textarea
-                  placeholder="Enter terminal benefits"
-                  className="input"
-                  {...register("salary.terminalBenefits")}
-                />
-              </div>
+                  {/* List of Terminal Benefits */}
+                  <div className="space-y-1 col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      List of Terminal Benefits
+                    </label>
+                    <textarea
+                      placeholder="Enter terminal benefits"
+                      className="input"
+                      {...register("salary.terminalBenefits")}
+                    />
+                  </div>
 
-              {/* Terminal Benefits Details */}
-              <div className="space-y-1 col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Terminal Benefits Details
-                </label>
-                <textarea
-                  placeholder="Enter details"
-                  className="input"
-                  {...register("salary.terminalBenefitDetails")}
-                />
-              </div>
+                  {/* Terminal Benefits Details */}
+                  <div className="space-y-1 col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Terminal Benefits Details
+                    </label>
+                    <textarea
+                      placeholder="Enter details"
+                      className="input"
+                      {...register("salary.terminalBenefitDetails")}
+                    />
+                  </div>
 
-              {/* Attach File
-              <div className="space-y-1 col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Attach File
-                </label>
-                <input
-                  type="file"
-                  className="input"
-                  {...register("salary.attachment")}
-                />
-                <p className="text-xs text-gray-500">
-                  Supported formats: PDF, DOCX, JPG, PNG. Max size 10MB.
-                </p>
-              </div> */}
+                  {/* Attach File
+                  <div className="space-y-1 col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Attach File
+                    </label>
+                    <input
+                      type="file"
+                      className="input"
+                      {...register("salary.attachment")}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Supported formats: PDF, DOCX, JPG, PNG. Max size 10MB.
+                    </p>
+                  </div> */}
 
-            </div>
-          )}
+                </div>
+              )}
 
           {/* STEP 6 */}
           {step === 6 && (
@@ -499,6 +503,48 @@ const OnSubmit = async (data) => {
                 <label className="block text-sm font-medium text-gray-700">Immediate Boss Name</label>
                 <input placeholder="Enter boss name" className="input" {...register("transfers[0].immediateBoss")} />
               </div>
+            </div>
+          )}
+
+          {/* STEP 9 - Banking Details */}
+          {step === 9 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Bank Name</label>
+                <input placeholder="Enter bank name" className="input" {...register("bankingDetails.bankName")} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Account Title</label>
+                <input placeholder="Enter account title" className="input" {...register("bankingDetails.accountTitle")} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Account Number</label>
+                <input placeholder="Enter bank account number" className="input" {...register("bankingDetails.accountNumber")} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">IBAN</label>
+                <input placeholder="Enter IBAN" className="input" {...register("bankingDetails.iban")} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Branch Code</label>
+                <input placeholder="Enter branch code" className="input" {...register("bankingDetails.branchCode")} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">CNIC</label>
+                <input placeholder="Enter CNIC" className="input" {...register("bankingDetails.cnic")} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-gray-700">Mobile</label>
+                <input placeholder="Enter banking mobile number" className="input" {...register("bankingDetails.mobile")} />
+              </div>
+
             </div>
           )}
 

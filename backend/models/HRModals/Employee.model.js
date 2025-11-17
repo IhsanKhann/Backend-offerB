@@ -86,6 +86,16 @@ const DraftStatus = new mongoose.Schema({
   },
 });
 
+const employeeBankingSchema = new mongoose.Schema({
+  bankName: { type: String },
+  accountTitle: { type: String },
+  accountNumber: { type: String },
+  iban: { type: String },
+  branchCode: { type: String },
+  cnic: { type: String },
+  mobile: { type: String },
+});
+
 // ================= Employee =================
 const employeeSchema = new mongoose.Schema(
   {
@@ -136,6 +146,9 @@ const employeeSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId, 
       ref: "OrgUnit",
     },
+
+    // right now by default empty object is being created..
+    bankingDetails: { type: employeeBankingSchema, default: {} },
   },
   { timestamps: true }
 );
