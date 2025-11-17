@@ -143,9 +143,7 @@ const employeeBankingSchema = new mongoose.Schema({
   iban: { type: String },
   branchCode: { type: String },
   cnic: { type: String },
-  mobile: { type: String },
 });
-
 
 const finalizedEmployeeSchema = new mongoose.Schema(
   {
@@ -227,7 +225,7 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     profileStatus: { type: profileStatusSchema, default: () => ({}) },
 
     // 12. Employee Banking Details: by default empty object is being created..
-    employeeBanking: { type: employeeBankingSchema, default: {} },
+    bankingDetails: { type: employeeBankingSchema, default: {} },
 
      refreshToken: {
         type: String,

@@ -288,6 +288,16 @@ export const RegisterEmployee = async (req, res) => {
       }
     }
 
+    if (req.body.bankingDetails) {
+      try {
+        console.log("🟩 Raw bankingDetails string:", req.body.bankingDetails);
+        req.body.bankingDetails = JSON.parse(req.body.bankingDetails);
+        console.log("🟩 Parsed bankingDetails object:", req.body.bankingDetails);
+      } catch (err) {
+        console.log("❌ Failed to parse bankingDetails:", err);
+      }
+    }
+
     // ================= Extract fields =================
     const {
       individualName,
@@ -307,6 +317,7 @@ export const RegisterEmployee = async (req, res) => {
       transfers,
       changeOfStatus,
       salary,
+      bankingDetails,
     } = req.body;
 
     console.log("📌 Parsed fields:", {
@@ -319,6 +330,7 @@ export const RegisterEmployee = async (req, res) => {
       officialEmail,
       personalEmail,
       employmentStatus,
+      bankingDetails,
     });
 
     // ================= Fix Required Fields Validation =================
@@ -415,6 +427,7 @@ export const RegisterEmployee = async (req, res) => {
           public_id: uploadedImage.public_id,
         },
       }),
+      bankingDetails,
       // ...(uploadedSalaryAttachment && { salaryAttachment: { url: uploadedSalaryAttachment.secure_url, public_id: uploadedSalaryAttachment.public_id } }),
     };
 
@@ -750,7 +763,6 @@ export const getAllRoles = async (req, res) => {
     });
   }
 };
-
 
 export const getSingleRole = async (req, res) => {
   try {
@@ -1417,7 +1429,6 @@ export const checkAndRestoreEmployees = async () => {
   }
 };
 
-
 export const fetchEmployeesByStatus = async (req, res) => {
   try {
     // read the status from query params (example: ?status=Active)
@@ -1440,3 +1451,4 @@ export const fetchEmployeesByStatus = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+

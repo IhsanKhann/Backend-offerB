@@ -539,12 +539,7 @@ const OnSubmit = async (data) => {
                 <label className="block text-sm font-medium text-gray-700">CNIC</label>
                 <input placeholder="Enter CNIC" className="input" {...register("bankingDetails.cnic")} />
               </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700">Mobile</label>
-                <input placeholder="Enter banking mobile number" className="input" {...register("bankingDetails.mobile")} />
-              </div>
-
+              
             </div>
           )}
 

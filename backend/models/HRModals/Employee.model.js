@@ -93,7 +93,6 @@ const employeeBankingSchema = new mongoose.Schema({
   iban: { type: String },
   branchCode: { type: String },
   cnic: { type: String },
-  mobile: { type: String },
 });
 
 // ================= Employee =================
