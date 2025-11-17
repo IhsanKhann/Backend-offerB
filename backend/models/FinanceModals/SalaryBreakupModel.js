@@ -36,6 +36,10 @@ const BreakupFileSchema = new mongoose.Schema({
   roleId: { type: mongoose.Schema.Types.ObjectId, ref: "AllRoles", required: true },
   salaryRules: SalaryRulesSchema,
   calculatedBreakup: { type: CalculatedBreakupSchema, default: {} },
+
+  month: { type: String, required: true }, // e.g., "January"
+  year: { type: Number, required: true },   // e.g., 2025
+  
 }, { timestamps: true });
 
 export default mongoose.models.SalaryBreakupfiles || mongoose.model("SalaryBreakupfiles", BreakupFileSchema);

@@ -719,7 +719,222 @@ export const SalaryTransactionController = async (req, res) => {
     return res.status(500).json({ error: err.message || String(err) });
   }
 };
-// working on the balancing..change the balancing logic later
+
+
+
+
+
+
+// ----------------- CONTROLLER with Bank API-----------------
+export const SalaryTransactionControllerWithBankingDetails = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const employeeId = req.params.employeeId || req.body.employeeId;
+    if (!employeeId) throw new Error("❌ Employee ID is required.");
+
+    const employee = await Employee.findById(employeeId).lean();
+    if (!employee) throw new Error("❌ Employee not found.");
+
+    if (!employee.bankingDetails || !employee.bankingDetails.accountNumber) {
+      throw new Error("❌ Employee banking details missing.");
+    }
+
+    const description = req.body.description || `Salary Transaction - ${employeeId}`;
+
+    const rules = await BreakupRuleModel.find({
+      transactionType: "Salary",
+    })
+      .session(session)
+      .lean();
+    if (!rules?.length) throw new Error("❌ No Breakup Rules found.");
+
+    const breakupFile = await BreakupFileModel.findOne({ employeeId })
+      .session(session)
+      .lean();
+    if (!breakupFile)
+      throw new Error(`❌ No Breakup File found for employee ${employeeId}`);
+
+    const computedBreakdown =
+      breakupFile?.calculatedBreakup?.breakdown || [];
+
+    let components = [];
+
+    // ------- MAP RULES TO COMPONENTS -------
+    for (const rule of rules) {
+      for (const split of rule.splits || []) {
+        const computed = computedBreakdown.find(
+          (c) =>
+            (c.name || "").toLowerCase() ===
+            (split.componentName || "").toLowerCase()
+        );
+
+        const value =
+          computed?.value ?? Number(split.fixedAmount || 0);
+
+        let instanceObjectId = split.instanceId
+          ? safeToObjectId(split.instanceId)
+          : null;
+
+        if (!instanceObjectId && split.definitionId && split.summaryId) {
+          const instance = await SummaryFieldLineInstance.findOne({
+            definitionId: split.definitionId,
+            summaryId: split.summaryId,
+          })
+            .session(session)
+            .lean();
+          if (instance) instanceObjectId = instance._id;
+        }
+
+        components.push({
+          componentName: split.componentName,
+          value,
+          category: computed?.category || split.type,
+          debitOrCredit:
+            split.debitOrCredit ??
+            (split.type === "deduction" ? "credit" : "debit"),
+          summaryObjectId: safeToObjectId(split.summaryId),
+          definitionObjectId: safeToObjectId(split.definitionId),
+          instanceObjectId,
+          mirrors: split.mirrors || [],
+        });
+      }
+    }
+
+    // ------- ACCOUNTING LINES -------
+    let totalAllowances = 0;
+    let totalDeductions = 0;
+
+    const accountingLines = [];
+
+    for (const comp of components) {
+      const amount = Number(comp.value || 0);
+      if (!amount) continue;
+
+      if (comp.category === "allowance") totalAllowances += amount;
+      if (comp.category === "deduction") totalDeductions += amount;
+
+      accountingLines.push({
+        employeeId,
+        instanceObjectId: comp.instanceObjectId,
+        summaryObjectId: comp.summaryObjectId,
+        definitionObjectId: comp.definitionObjectId,
+        debitOrCredit: comp.debitOrCredit,
+        amount,
+        fieldName: comp.componentName,
+      });
+
+      // Mirrors
+      for (const m of comp.mirrors) {
+        accountingLines.push({
+          employeeId,
+          instanceObjectId: m.instanceId ? safeToObjectId(m.instanceId) : null,
+          summaryObjectId: safeToObjectId(m.summaryId),
+          definitionObjectId: safeToObjectId(m.definitionId),
+          debitOrCredit: m.debitOrCredit,
+          amount,
+          fieldName: `${comp.componentName} (mirror)`,
+        });
+      }
+    }
+
+    // Net salary
+    const netSalary = totalAllowances - totalDeductions;
+
+    if (netSalary <= 0) {
+      throw new Error("❌ Net salary is zero or negative — cannot proceed.");
+    }
+
+    // CAPITAL ENTRY
+    const capitalSummaryId = await getSummaryObjectId(SID.CAPITAL, session);
+
+    accountingLines.push({
+      employeeId,
+      fieldName: "Net Salary Payment (Capital)",
+      amount: netSalary,
+      debitOrCredit: "credit",
+      summaryObjectId: capitalSummaryId,
+      definitionObjectId: null,
+      instanceObjectId: null,
+    });
+
+    // ------- PROCESS ACCOUNTING --------
+    const tx = await persistTransactionAndApply(
+      accountingLines,
+      description,
+      session
+    );
+
+    // ------- BANK PAYMENT (NEW PART) --------
+
+    const bankPayload = {
+      sender: {
+        account: process.env.BANK_SENDER_ACCOUNT,
+        iban: process.env.BANK_SENDER_IBAN,
+      },
+      receiver: {
+        name: employee.individualName,
+        email: employee.personalEmail,
+        phone: employee.address.contactNo,
+        bankName: employee.bankingDetails.bankName,
+        accountNumber: employee.bankingDetails.accountNumber,
+        iban: employee.bankingDetails.iban,
+        branchCode: employee.bankingDetails.branchCode,
+        cnic: employee.bankingDetails.cnic,
+      },
+      amount: netSalary,
+      description,
+    };
+
+    const bankResult = await sendSalaryThroughBankAPI(bankPayload);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      message: "✅ Salary transaction posted and bank transfer initiated.",
+      employeeId,
+      transactionId: tx.transactionId,
+      totalAllowances,
+      totalDeductions,
+      netSalary,
+      bankResult,
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("SalaryTransactionController Error:", err);
+    return res.status(500).json({ error: err.message || String(err) });
+  }
+};
+
+// Helper function for the above...
+export const sendSalaryThroughBankAPI = async (payload) => {
+  try {
+    console.log("\n🏦 [BANK API] Initiating Salary Transfer...");
+    console.log("Sender:", payload.sender);
+    console.log("Receiver:", payload.receiver);
+    console.log("Amount:", payload.amount);
+
+    // -------------------------------------------------------------
+    // 🔥 HERE YOU WILL LATER INTEGRATE THE REAL BANK ALFALAH API
+    // -------------------------------------------------------------
+
+    // Example placeholder response
+    return {
+      status: "PENDING_TEST_MODE",
+      message: "Bank API placeholder invoked. Replace with actual API.",
+      payloadSent: payload,
+    };
+  } catch (err) {
+    console.error("Bank API Error:", err);
+    return {
+      status: "ERROR",
+      error: err.message,
+    };
+  }
+};
 
 export const testCreateCollections = async (req, res) => {
   try {

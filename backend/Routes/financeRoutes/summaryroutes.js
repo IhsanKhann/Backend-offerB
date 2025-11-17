@@ -43,6 +43,7 @@ import {
   getSingleSalaryRole,
   createBreakupFile,
   getBreakupFile,
+  getEmployeeSalaryHistory,
 } from "../../contollers/FinanceControllers/SalaryController.js";
 
 import {
@@ -76,6 +77,7 @@ router.get("/salary/rules-by-role/:roleName", getSalaryRulesByRoleName);
 router.get("/salary/role/:roleName", getSingleSalaryRole);
 router.post("/salary/breakup/:employeeId", createBreakupFile);
 router.get("/salary/breakup/:employeeId", getBreakupFile);
+router.get("/salary/breakups/:employeeId", getEmployeeSalaryHistory);
 
 // -------------------------------------------------------------------
 // 💵 SALARY RULES TABLE

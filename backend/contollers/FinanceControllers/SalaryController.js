@@ -362,3 +362,44 @@ export const getBreakupRules = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
+// GET EMPLOYEE SALARY HISTORY
+export const getEmployeeSalaryHistory = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee ID is required",
+      });
+    }
+
+    // Fetch all breakups for this employee
+    const breakups = await BreakupFile.find({ employeeId })
+      .populate("employeeId", "individualName personalEmail UserId")
+      .populate("roleId", "roleName name")
+      .sort({ createdAt: -1 }); // newest → oldest
+
+    if (!breakups || breakups.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No salary breakups found for this employee",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: breakups.length,
+      data: breakups,
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching employee salary history:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching salary history",
+    });
+  }
+};

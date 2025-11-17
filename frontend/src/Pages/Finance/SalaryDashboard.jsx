@@ -12,11 +12,146 @@ const Loader = () => (
   </div>
 );
 
+// SalaryHistoryModal.jsx (inline inside SalaryDashboard.jsx for now)
+const SalaryHistoryModal = ({ isOpen, onClose, employeeId }) => {
+  const [loading, setLoading] = useState(false);
+  const [breakups, setBreakups] = useState([]);
+  const [expandedCard, setExpandedCard] = useState(null); // track expanded card
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchHistory = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get(`/summaries/salary/breakups/${employeeId}`);
+        setBreakups(res.data.data || []);
+      } catch (err) {
+        console.error("Error loading salary history", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [isOpen, employeeId]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center z-50">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="bg-white w-[90%] max-w-5xl max-h-[90vh] rounded-xl shadow-lg p-6 overflow-y-auto"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Salary History</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-red-500">✖</button>
+        </div>
+
+        {loading && (
+          <div className="flex justify-center py-10">
+            <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          </div>
+        )}
+
+        {!loading && breakups.length === 0 && (
+          <p className="text-gray-500 text-center py-6">No salary breakups found.</p>
+        )}
+
+        <div className="space-y-3 mt-4">
+          {breakups.map((b, i) => {
+            const isExpanded = expandedCard === i;
+            return (
+              <div
+                key={i}
+                className="rounded-xl border border-gray-200 shadow-sm hover:shadow-md bg-gray-50 cursor-pointer"
+              >
+                {/* Card Thumbnail */}
+                <div
+                  className="flex justify-between items-center p-4"
+                  onClick={() => setExpandedCard(isExpanded ? null : i)}
+                >
+                  <div>
+                    <p className="text-sm font-medium text-blue-700">{b.month} {b.year}</p>
+                    <p className="text-xs text-gray-600">Base: {b.salaryRules?.baseSalary ?? 0}</p>
+                  </div>
+                  <div className="text-gray-500">{isExpanded ? "▲" : "▼"}</div>
+                </div>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="p-4 border-t border-gray-200 text-xs text-gray-700 space-y-2">
+                    <p>Employee: {b.employeeId?.individualName || "N/A"} ({b.employeeId?.UserId || "N/A"})</p>
+                    <p>Role: {b.roleId?.roleName || "N/A"}</p>
+                    <p>Salary Type: {b.salaryRules?.salaryType ?? "N/A"}</p>
+
+                    {b.salaryRules?.terminalBenefits?.length > 0 && (
+                      <>
+                        <p className="font-medium mt-2">Terminal Benefits:</p>
+                        {b.salaryRules.terminalBenefits.map((t, idx) => (
+                          <p key={idx}>{t.name} ({t.type}): {t.value}</p>
+                        ))}
+                      </>
+                    )}
+
+                    {b.salaryRules?.allowances?.length > 0 && (
+                      <>
+                        <p className="font-medium mt-2">Allowances:</p>
+                        {b.salaryRules.allowances.map((a, idx) => (
+                          <p key={idx}>{a.name} ({a.type}): {a.value}</p>
+                        ))}
+                      </>
+                    )}
+
+                    {b.salaryRules?.deductions?.length > 0 && (
+                      <>
+                        <p className="font-medium mt-2">Deductions:</p>
+                        {b.salaryRules.deductions.map((d, idx) => (
+                          <p key={idx}>{d.name} ({d.type}): {d.value}</p>
+                        ))}
+                      </>
+                    )}
+
+                    {b.calculatedBreakup && (
+                      <>
+                        <p className="font-medium mt-2">Calculated Breakup:</p>
+                        <p>Total Allowances: {b.calculatedBreakup.totalAllowances}</p>
+                        <p>Total Deductions: {b.calculatedBreakup.totalDeductions}</p>
+                        <p>Net Salary: {b.calculatedBreakup.netSalary}</p>
+
+                        {b.calculatedBreakup.breakdown?.length > 0 && (
+                          <>
+                            <p className="font-medium mt-1">Breakdown:</p>
+                            {b.calculatedBreakup.breakdown.map((bd, idx) => (
+                              <p key={idx}>
+                                {bd.name} ({bd.category}): {bd.value} {bd.excludeFromTotals ? "(Excluded)" : ""}
+                                {bd.calculation ? ` [${bd.calculation}]` : ""}
+                              </p>
+                            ))}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const SalaryDashboard = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [openActionMenu, setOpenActionMenu] = useState(null);
+  const [historyEmployeeId, setHistoryEmployeeId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -184,12 +319,12 @@ const SalaryDashboard = () => {
                         </button>
                         <button
                           onClick={() => {
-                            navigate(`/salarytable/${emp.role?._id}`);
+                            setHistoryEmployeeId(emp._id);
                             setOpenActionMenu(null);
                           }}
                           className="px-4 py-2 text-left hover:bg-gray-100 text-sm"
                         >
-                          Role Table
+                          Salaries History
                         </button>
                       </motion.div>
                     )}
@@ -209,6 +344,15 @@ const SalaryDashboard = () => {
             redirectToBreakup={(empId) => navigate(`/salary/breakup/${empId}`)}
           />
         )}
+
+        {historyEmployeeId && (
+        <SalaryHistoryModal
+          isOpen={!!historyEmployeeId}
+          employeeId={historyEmployeeId}
+          onClose={() => setHistoryEmployeeId(null)}
+        />
+      )}
+
       </div>
     </div>
   );
