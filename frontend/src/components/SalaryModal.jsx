@@ -17,6 +17,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
   const [error, setError] = useState(null);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
 
+  const [backendMessage, setBackendMessage] = useState(null);
+  const [backendStatus, setBackendStatus] = useState(null); // "paid" | "processing"
+
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
 
@@ -141,38 +144,43 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
     }
   };
 
-  // ---------------------------------------------------------
-  // CREATE BREAKUP (SENDS MONTH/YEAR/PAIDFOR)
-  // ---------------------------------------------------------
-  const handleCreateBreakup = async () => {
-    if (!selectedRoleId || !employee?._id) {
-      return alert("Missing employee or role information");
-    }
+// ---------------------------------------------------------
+// CREATE BREAKUP (SENDS MONTH/YEAR/PAIDFOR)
+// ---------------------------------------------------------
+const handleCreateBreakup = async () => {
+  if (!selectedRoleId || !employee?._id) {
+    return setBackendMessage("Missing employee or role information");
+  }
 
-    const paidFor = `${month} ${year}`;
-    const payload = {
-      employeeId: employee._id,
-      roleId: selectedRoleId,
-      month,
-      year,
-      paidFor,
-    };
-
-    try {
-      const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
-
-      if (res.data?.success) {
-        alert("Breakup file created successfully!");
-        onClose?.();
-        navigate(`/salary/breakup/${employee._id}`);
-      } else {
-        alert("Failed to create breakup");
-      }
-    } catch (err) {
-      console.error("Error creating breakup:", err);
-      alert("Error creating breakup");
-    }
+  const paidFor = `${month} ${year}`;
+  const payload = {
+    employeeId: employee._id,
+    roleId: selectedRoleId,
+    month,
+    year,
+    paidFor,
   };
+
+  try {
+    const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
+
+    if (res.data?.success) {
+      setBackendMessage(null);
+      setBackendStatus(null);
+      alert("Breakup file created successfully!");
+      onClose?.();
+      navigate(`/salary/breakup/${employee._id}`);
+    } else {
+      // Display message returned from backend
+      setBackendMessage(res.data?.message || "Failed to create breakup");
+      setBackendStatus(res.data?.status || null);
+    }
+  } catch (err) {
+    console.error("Error creating breakup:", err);
+    setBackendMessage("Error creating breakup");
+    setBackendStatus(null);
+  }
+};
 
   // ---------------------------------------------------------
   // RENDER
@@ -234,6 +242,22 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
                 </select>
               </div>
             </div>
+
+      
+            {backendMessage && (
+              // same month breakup creation restriction response from backend..  
+              <div
+                className={`p-3 mb-4 rounded ${
+                  backendStatus === "paid"
+                    ? "bg-red-100 text-red-700 border border-red-300"
+                    : backendStatus === "processing"
+                    ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                    : "bg-gray-100 text-gray-700 border border-gray-300"
+                }`}
+              >
+                {backendMessage}
+              </div>
+            )}
 
             {/* ALLOWANCES, DEDUCTIONS, TERMINAL BENEFITS */}
             <SectionEditor

@@ -109,14 +109,31 @@ export const createBreakupFile = async (req, res) => {
     if (!role)
       return res.status(404).json({ success: false, message: "Role not found" });
 
-    const salaryRules = role.salaryRules;
+    // ---------------- CHECK EXISTING BREAKUP ----------------
+    const existingBreakup = await BreakupFile.findOne({ employeeId: empObjectId, month, year });
 
-    const {
-      baseSalary = 0,
-      allowances = [],
-      deductions = [],
-      terminalBenefits = []
-    } = salaryRules;
+    if (existingBreakup) {
+      if (existingBreakup.paidAt) {
+        // Already paid
+        return res.status(400).json({
+          success: false,
+          message: `Salary for ${month} ${year} has already been paid`,
+          month,
+          status: "paid",
+        });
+      } else {
+        // Exists but not yet paid (processing)
+        return res.status(400).json({
+          success: false,
+          message: `Salary breakup for ${month} ${year} is already created and in processing. Check salary history.`,
+          month,
+          status: "processing",
+        });
+      }
+    }
+
+    const salaryRules = role.salaryRules;
+    const { baseSalary = 0, allowances = [], deductions = [], terminalBenefits = [] } = salaryRules;
 
     // ---------------- BUILD BREAKDOWN ----------------
     const breakdown = [];
@@ -134,73 +151,44 @@ export const createBreakupFile = async (req, res) => {
 
     // Allowances
     for (const a of allowances) {
-      const calc =
-        a.type === "percentage"
-          ? Math.round((baseSalary * a.value) / 100)
-          : Number(a.value);
-
+      const calc = a.type === "percentage" ? Math.round((baseSalary * a.value) / 100) : Number(a.value);
       breakdown.push({
         name: a.name,
         category: "allowance",
         value: calc,
-        calculation:
-          a.type === "percentage"
-            ? `${a.value}% of base = ${calc}`
-            : `Fixed = ${calc}`,
+        calculation: a.type === "percentage" ? `${a.value}% of base = ${calc}` : `Fixed = ${calc}`,
         excludeFromTotals: false,
       });
-
       totalAllowances += calc;
     }
 
     // Deductions
     for (const d of deductions) {
-      const calc =
-        d.type === "percentage"
-          ? Math.round((baseSalary * d.value) / 100)
-          : Number(d.value);
-
+      const calc = d.type === "percentage" ? Math.round((baseSalary * d.value) / 100) : Number(d.value);
       breakdown.push({
         name: d.name,
         category: "deduction",
         value: calc,
-        calculation:
-          d.type === "percentage"
-            ? `${d.value}% of base = ${calc}`
-            : `Fixed = ${calc}`,
+        calculation: d.type === "percentage" ? `${d.value}% of base = ${calc}` : `Fixed = ${calc}`,
         excludeFromTotals: false,
       });
-
       totalDeductions += calc;
     }
 
     // Terminal benefits (NOT included in totals)
-    const terminalBenefitTotals = {};
-
     for (const t of terminalBenefits) {
-      const calc =
-        t.type === "percentage"
-          ? Math.round((baseSalary * t.value) / 100)
-          : Number(t.value);
-
+      const calc = t.type === "percentage" ? Math.round((baseSalary * t.value) / 100) : Number(t.value);
       breakdown.push({
         name: t.name,
         category: "terminal",
         value: calc,
-        calculation:
-          t.type === "percentage"
-            ? `${t.value}% of base = ${calc}`
-            : `Fixed = ${calc}`,
+        calculation: t.type === "percentage" ? `${t.value}% of base = ${calc}` : `Fixed = ${calc}`,
         excludeFromTotals: true,
       });
-
-      terminalBenefitTotals[t.name] =
-        (terminalBenefitTotals[t.name] || 0) + calc;
     }
 
     // Net Salary
     const netSalary = Number(baseSalary) + totalAllowances - totalDeductions;
-
     breakdown.push({
       name: "Net Salary",
       category: "net",
@@ -209,10 +197,9 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    // ---------------- UPSERT for this specific month ----------------
+    // ---------------- UPSERT ----------------
     const paidFor = `${month} ${year}`;
-
-    const loggedInEmployeeId = req.user?._id; 
+    const loggedInEmployeeId = req.user?._id;
 
     const breakupFile = await BreakupFile.findOneAndUpdate(
       { employeeId: empObjectId, month, year },
@@ -234,10 +221,9 @@ export const createBreakupFile = async (req, res) => {
       { new: true, upsert: true }
     );
 
-    // ---------------- RETURN ----------------
     return res.status(201).json({
       success: true,
-      message: `Salary breakup for ${paidFor} created/updated`,
+      message: `Salary breakup for ${paidFor} created successfully`,
       data: breakupFile,
     });
   } catch (err) {
@@ -373,5 +359,27 @@ export const getEmployeeSalaryHistory = async (req, res) => {
       success: false,
       message: "Server error while fetching salary history",
     });
+  }
+};
+
+// DELETE SALARY BREAKUP
+export const deleteBreakup = async (req, res) => {
+  const { breakupId } = req.params;
+
+  if (!breakupId) {
+    return res.status(400).json({ success: false, message: "Breakup ID is required" });
+  }
+
+  try {
+    const deleted = await SalaryBreakupfiles.findByIdAndDelete(breakupId);
+
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: "Breakup not found" });
+    }
+
+    return res.json({ success: true, message: "Breakup deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting breakup:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };

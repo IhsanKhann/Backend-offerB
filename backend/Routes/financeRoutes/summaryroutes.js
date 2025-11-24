@@ -44,6 +44,7 @@ import {
   createBreakupFile,
   getBreakupFile,
   getEmployeeSalaryHistory,
+  deleteBreakup,
 } from "../../contollers/FinanceControllers/SalaryController.js";
 
 import {
@@ -119,7 +120,9 @@ router.post("/delete", deleteSummary);
 router.post("/createFieldLines", createFieldLine);
 router.post("/deleteFieldLines", deleteFieldLine);
 router.post("/reset", summariesReset);
+router.delete("/breakup/:breakupId", deleteBreakup);
 router.post("/init-capital-cash", summariesInitCapitalCash);
+
 
 // ✅ Dynamic routes last
 router.get("/", getAllSummaries);
