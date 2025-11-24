@@ -17,6 +17,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
   const [error, setError] = useState(null);
   const [selectedRoleId, setSelectedRoleId] = useState(null);
 
+  const [month, setMonth] = useState("");
+  const [year, setYear] = useState("");
+
   const navigate = useNavigate();
 
   // ---------------------------------------------------------
@@ -62,12 +65,17 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
     };
 
     fetchSalaryRules();
+
+    // set current month/year by default
+    const now = new Date();
+    setMonth(now.toLocaleString("en-US", { month: "long" }));
+    setYear(now.getFullYear());
   }, [isOpen, employee]);
 
   if (!isOpen) return null;
 
   // ---------------------------------------------------------
-  // UPDATE FORM FIELDS WHEN EDITING
+  // FORM HANDLERS
   // ---------------------------------------------------------
   const handleChange = (e) => {
     if (!isEditing) return;
@@ -102,7 +110,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
   };
 
   // ---------------------------------------------------------
-  // UPDATE SALARY RULES IN DB
+  // SAVE SALARY RULES
   // ---------------------------------------------------------
   const handleSaveRules = async () => {
     if (!selectedRoleId) return alert("Missing role ID");
@@ -118,10 +126,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
         },
       };
 
-      const res = await api.put(
-        `/summaries/salarytable/${selectedRoleId}`,
-        payload
-      );
+      const res = await api.put(`/summaries/salarytable/${selectedRoleId}`, payload);
 
       if (res.data?.success) {
         alert("Salary rules updated successfully!");
@@ -137,19 +142,24 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
   };
 
   // ---------------------------------------------------------
-  // CREATE BREAKUP (DB RULES ONLY)
+  // CREATE BREAKUP (SENDS MONTH/YEAR/PAIDFOR)
   // ---------------------------------------------------------
   const handleCreateBreakup = async () => {
-    try {
-      const payload = {
-        employeeId: employee._id,
-        roleId: selectedRoleId,
-      };
+    if (!selectedRoleId || !employee?._id) {
+      return alert("Missing employee or role information");
+    }
 
-      const res = await api.post(
-        `/summaries/salary/breakup/${employee._id}`,
-        payload
-      );
+    const paidFor = `${month} ${year}`;
+    const payload = {
+      employeeId: employee._id,
+      roleId: selectedRoleId,
+      month,
+      year,
+      paidFor,
+    };
+
+    try {
+      const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
 
       if (res.data?.success) {
         alert("Breakup file created successfully!");
@@ -164,6 +174,9 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
     }
   };
 
+  // ---------------------------------------------------------
+  // RENDER
+  // ---------------------------------------------------------
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-8 relative max-h-[95vh] overflow-y-auto">
@@ -194,7 +207,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
           <p className="text-red-600">{error}</p>
         ) : (
           <form className="space-y-6">
-            {/* BASE SALARY */}
+            {/* BASE SALARY & TYPE */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block font-medium mb-1">Base Salary</label>
@@ -207,7 +220,6 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
                   className={`w-full border rounded px-3 py-2 ${!isEditing ? "bg-gray-100" : ""}`}
                 />
               </div>
-
               <div>
                 <label className="block font-medium mb-1">Salary Type</label>
                 <select
@@ -223,6 +235,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               </div>
             </div>
 
+            {/* ALLOWANCES, DEDUCTIONS, TERMINAL BENEFITS */}
             <SectionEditor
               title="Allowances"
               section="allowances"
@@ -232,7 +245,6 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               removeItem={removeItem}
               isEditing={isEditing}
             />
-
             <SectionEditor
               title="Deductions"
               section="deductions"
@@ -242,7 +254,6 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               removeItem={removeItem}
               isEditing={isEditing}
             />
-
             <SectionEditor
               title="Terminal Benefits"
               section="terminalBenefits"
@@ -252,6 +263,35 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
               removeItem={removeItem}
               isEditing={isEditing}
             />
+
+            {/* MONTH + YEAR SELECTORS */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="block font-medium mb-1">Month</label>
+                <select
+                  value={month}
+                  onChange={(e) => setMonth(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  {[
+                    "January","February","March","April","May","June",
+                    "July","August","September","October","November","December"
+                  ].map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-medium mb-1">Year</label>
+                <input
+                  type="number"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+            </div>
           </form>
         )}
 
@@ -284,6 +324,7 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
   );
 }
 
+// ----------------- SectionEditor -----------------
 function SectionEditor({ title, section, items, handleArrayChange, addItem, removeItem, isEditing }) {
   return (
     <div className="border rounded-lg p-4 bg-gray-50">
@@ -316,7 +357,6 @@ function SectionEditor({ title, section, items, handleArrayChange, addItem, remo
                     onChange={(e) => handleArrayChange(section, idx, "value", e.target.value)}
                     className="w-32 border rounded px-2 py-1"
                   />
-
                   <button
                     type="button"
                     onClick={() => removeItem(section, idx)}

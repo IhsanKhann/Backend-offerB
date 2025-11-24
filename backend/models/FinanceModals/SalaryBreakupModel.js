@@ -3,10 +3,13 @@ import mongoose from "mongoose";
 
 const BreakdownSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  category: { type: String, enum: ["base", "allowance", "deduction", "net"], required: true },
+  category: {
+    type: String,
+    enum: ["base", "allowance", "deduction", "terminal", "net"],
+    required: true,
+  },
   value: { type: Number, required: true },
   calculation: { type: String, required: true },
-  // NEW: mark lines that should not be summed into totalAllowances/totalDeductions
   excludeFromTotals: { type: Boolean, default: false },
 }, { _id: false });
 
@@ -31,15 +34,33 @@ const SalaryRulesSchema = new mongoose.Schema({
   terminalBenefits: { type: [ComponentSchema], default: [] },
 });
 
+// --- NEW SALARY HISTORY FIELDS ---
 const BreakupFileSchema = new mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee", required: true },
   roleId: { type: mongoose.Schema.Types.ObjectId, ref: "AllRoles", required: true },
+
   salaryRules: SalaryRulesSchema,
   calculatedBreakup: { type: CalculatedBreakupSchema, default: {} },
 
-  month: { type: String, required: true }, // e.g., "January"
-  year: { type: Number, required: true },   // e.g., 2025
-  
+  month: { type: String, required: true },
+  year: { type: Number, required: true },
+
+  paidAt: { type: Date, default: Date.now },
+
+  paidMonth: { type: String },
+  paidYear: { type: Number },
+  paidTime: { type: String },
+
 }, { timestamps: true });
 
-export default mongoose.models.SalaryBreakupfiles || mongoose.model("SalaryBreakupfiles", BreakupFileSchema);
+// Auto-fill formatted month/year/time
+BreakupFileSchema.pre("save", function (next) {
+  const date = this.paidAt || new Date();
+  this.paidMonth = date.toLocaleString("en-US", { month: "long" });
+  this.paidYear = date.getFullYear();
+  this.paidTime = date.toLocaleTimeString("en-US");
+  next();
+});
+
+export default mongoose.models.SalaryBreakupfiles ||
+  mongoose.model("SalaryBreakupfiles", BreakupFileSchema);

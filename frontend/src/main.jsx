@@ -25,6 +25,7 @@ import TransactionTestPage from "./Pages/Finance/Testing.jsx";
 import SellerDashboard from "./Pages/Finance/SellerDashboard.jsx";
 import BuyerBreakupSummary from "./Pages/Finance/BuyerBreakup.jsx";
 import BusinessTables from "./Pages/Finance/BussinessTable.jsx";
+import SalaryHistoryPage from "./Pages/Finance/SalariesHistoryPage.jsx";
 
 import Sellers from "./Pages/Finance/Sellers.jsx";
 // Account Statements:
@@ -240,6 +241,15 @@ const router = createBrowserRouter([
      </ProtectedRoute> 
    ),
   },
+   {
+   path: "/salary/history/:employeeId",
+   element: (
+     <ProtectedRoute>
+        <SalaryHistoryPage />
+     </ProtectedRoute> 
+   ),
+  },
+
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(

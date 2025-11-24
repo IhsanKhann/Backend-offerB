@@ -71,13 +71,12 @@ const BreakupSummary = () => {
         employeeId,
         salary: { splits },
         transactionDate: new Date(),
-        description: `Salary for ${employeeId}`,
+        description: `Salary for ${breakup.paidMonth || breakup.month} ${breakup.paidYear || breakup.year}`,
       };
 
       console.log("Payload being sent to API:", payload);
 
       const res = await api.post(`/transactions/salary/${employeeId}`, payload);
-
       console.log("Response from API:", res.data);
       alert(res.data?.message || "Salary transaction completed");
 
@@ -93,21 +92,33 @@ const BreakupSummary = () => {
   if (loading) return <div className="p-6">Loading...</div>;
   if (!breakup) return <div className="p-6">No breakup file found for this employee.</div>;
 
-  const { salaryRules, calculatedBreakup } = breakup;
+  const { salaryRules, calculatedBreakup, month, year, paidMonth, paidYear, paidTime } = breakup;
   const formatRupees = (amt) => `PKR ${Number(amt || 0).toLocaleString()}`;
 
   // Filter by categories including terminalBenefits
   const allowances = calculatedBreakup.breakdown.filter((b) => b.category === "allowance");
   const deductions = calculatedBreakup.breakdown.filter((b) => b.category === "deduction");
-  const terminalBenefits = calculatedBreakup.breakdown.filter((b) => b.category === "terminalBenefit");
+  const terminalBenefits = calculatedBreakup.breakdown.filter((b) => b.category === "terminal");
 
   const totalTerminalBenefits = terminalBenefits.reduce((acc, b) => acc + b.value, 0);
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen flex justify-center">
       <div className="bg-white shadow-lg rounded-lg w-full max-w-xl p-6 space-y-6">
-        <h1 className="text-3xl font-bold text-center mb-4">Salary Slip</h1>
-        <p className="text-center text-gray-600">This is how your salary has been split</p>
+        <h1 className="text-3xl font-bold text-center mb-2">Salary Slip</h1>
+        <p className="text-center text-gray-600 mb-4">This is how your salary has been split</p>
+
+        {/* Month/Year Paid */}
+        <div className="border-b py-2 flex justify-between">
+          <span>Salary Month/Year:</span>
+          <span>{paidMonth || month} {paidYear || year}</span>
+        </div>
+
+        {/* Paid Time */}
+        <div className="border-b py-2 flex justify-between">
+          <span>Payment Generated At:</span>
+          <span>{paidTime || new Date().toLocaleTimeString()}</span>
+        </div>
 
         {/* Base Salary */}
         <div className="border-t border-b py-4">
@@ -175,13 +186,13 @@ const BreakupSummary = () => {
           </div>
         </div>
 
-        {/* Net Salary (Final Salary) */}
+        {/* Net Salary */}
         <div className="py-4 flex justify-between items-center font-bold text-xl">
           <span>Net Salary (Final):</span>
           <span>{formatRupees(calculatedBreakup.netSalary)}</span>
         </div>
 
-        {/* Process Salary Button */}
+        {/* Process Salary */}
         <button
           onClick={handleSalaryTransaction}
           disabled={processing}

@@ -85,48 +85,45 @@ export const getBreakupFile = async (req, res) => {
   }
 };
 
-// CREATE / UPDATE BREAKUP FILE (MAIN CONTROLLER)
 export const createBreakupFile = async (req, res) => {
   try {
-    const { employeeId, roleId } = req.body;
+    const { employeeId, roleId, month, year } = req.body;
 
-    if (!employeeId || !roleId) {
+    if (!employeeId || !roleId || !month || !year) {
       return res.status(400).json({
         success: false,
-        message: "employeeId and roleId are required",
+        message: "employeeId, roleId, month and year are required",
       });
     }
 
     const empObjectId = safeToObjectId(employeeId);
     const roleObjectId = safeToObjectId(roleId);
 
-    // 1) Validate employee
+    // Validate employee
     const employee = await FinalizedEmployeeModel.findById(empObjectId);
     if (!employee)
       return res.status(404).json({ success: false, message: "Employee not found" });
 
-    // 2) Fetch role & salaryRules from DB
+    // Validate role
     const role = await AllRolesModel.findById(roleObjectId);
-    if (!role) return res.status(404).json({ success: false, message: "Role not found" });
+    if (!role)
+      return res.status(404).json({ success: false, message: "Role not found" });
 
     const salaryRules = role.salaryRules;
-    if (!salaryRules) {
-      return res.status(400).json({
-        success: false,
-        message: "This role has no salaryRules defined",
-      });
-    }
 
     const {
       baseSalary = 0,
-      salaryType = "monthly",
       allowances = [],
       deductions = [],
-      terminalBenefits = [],
+      terminalBenefits = []
     } = salaryRules;
 
-    // 3) Build breakup lines
+    // ---------------- BUILD BREAKDOWN ----------------
     const breakdown = [];
+    let totalAllowances = 0;
+    let totalDeductions = 0;
+
+    // Base Salary
     breakdown.push({
       name: "Base Salary",
       category: "base",
@@ -135,67 +132,75 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    let totalAllowances = 0;
-    let totalDeductions = 0;
-
     // Allowances
     for (const a of allowances) {
-      const calc = a.type === "percentage" ? Math.round((baseSalary * a.value) / 100) : Number(a.value);
+      const calc =
+        a.type === "percentage"
+          ? Math.round((baseSalary * a.value) / 100)
+          : Number(a.value);
+
       breakdown.push({
         name: a.name,
         category: "allowance",
         value: calc,
-        calculation: a.type === "percentage" ? `${a.value}% of base = ${calc}` : `Fixed = ${calc}`,
+        calculation:
+          a.type === "percentage"
+            ? `${a.value}% of base = ${calc}`
+            : `Fixed = ${calc}`,
         excludeFromTotals: false,
       });
+
       totalAllowances += calc;
     }
 
     // Deductions
     for (const d of deductions) {
-      const calc = d.type === "percentage" ? Math.round((baseSalary * d.value) / 100) : Number(d.value);
+      const calc =
+        d.type === "percentage"
+          ? Math.round((baseSalary * d.value) / 100)
+          : Number(d.value);
+
       breakdown.push({
         name: d.name,
         category: "deduction",
         value: calc,
-        calculation: d.type === "percentage" ? `${d.value}% of base = ${calc}` : `Fixed = ${calc}`,
+        calculation:
+          d.type === "percentage"
+            ? `${d.value}% of base = ${calc}`
+            : `Fixed = ${calc}`,
         excludeFromTotals: false,
       });
+
       totalDeductions += calc;
     }
 
-    // Terminal benefits lines (do not affect totals)
-    // We'll compute per-benefit totals to add to employee record later
-    const terminalBenefitTotals = {}; // { gratuity: 0, eobi: 0, ... , otherBenefits: 0 }
+    // Terminal benefits (NOT included in totals)
+    const terminalBenefitTotals = {};
 
     for (const t of terminalBenefits) {
-      const calc = t.type === "percentage" ? Math.round((baseSalary * t.value) / 100) : Number(t.value);
+      const calc =
+        t.type === "percentage"
+          ? Math.round((baseSalary * t.value) / 100)
+          : Number(t.value);
 
-      // push into breakdown as terminalBenefit
       breakdown.push({
         name: t.name,
-        category: "terminalBenefit",
+        category: "terminal",
         value: calc,
-        calculation: t.type === "percentage" ? `${t.value}% of base = ${calc}` : `Fixed = ${calc}`,
+        calculation:
+          t.type === "percentage"
+            ? `${t.value}% of base = ${calc}`
+            : `Fixed = ${calc}`,
         excludeFromTotals: true,
       });
 
-      // normalize name into a field we maintain on employee.salary.terminalBenefits
-      const nameKey = (t.name || "").toLowerCase();
-
-      let field = "otherBenefits";
-      if (nameKey.includes("gratuity")) field = "gratuity";
-      else if (nameKey.includes("provident")) field = "providentFund";
-      else if (nameKey.includes("eobi")) field = "eobi";
-      else if (nameKey.includes("cost") || nameKey.includes("cost of funds")) field = "costOfFunds";
-      else if (nameKey.includes("group") || nameKey.includes("insurance")) field = "groupTermInsurance";
-      else field = "otherBenefits";
-
-      terminalBenefitTotals[field] = (terminalBenefitTotals[field] || 0) + calc;
+      terminalBenefitTotals[t.name] =
+        (terminalBenefitTotals[t.name] || 0) + calc;
     }
 
-    // Net salary
+    // Net Salary
     const netSalary = Number(baseSalary) + totalAllowances - totalDeductions;
+
     breakdown.push({
       name: "Net Salary",
       category: "net",
@@ -204,96 +209,36 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    // 4) UPSERT breakupFile (create or update)
-    const now = new Date();
+    // ---------------- UPSERT for this specific month ----------------
+    const paidFor = `${month} ${year}`;
+
+    const loggedInEmployeeId = req.user?._id; 
 
     const breakupFile = await BreakupFile.findOneAndUpdate(
-      { employeeId: empObjectId },
+      { employeeId: empObjectId, month, year },
       {
-        $set: {
-          roleId: roleObjectId,
-          salaryRules, // persist the role's rules used
-          calculatedBreakup: {
-            breakdown,
-            totalAllowances,
-            totalDeductions,
-            netSalary,
-          },
+        employeeId: empObjectId,
+        roleId: roleObjectId,
+        salaryRules,
+        calculatedBreakup: {
+          breakdown,
+          totalAllowances,
+          totalDeductions,
+          netSalary,
         },
+        month,
+        year,
+        paidFor,
+        processedBy: loggedInEmployeeId,
       },
       { new: true, upsert: true }
     );
 
-    // 5) Accumulate terminal benefits into employee profile — but only once per calendar month
-    // Check if this employee already has a breakup created this calendar month.
-    const existing = await BreakupFile.findOne({ employeeId: empObjectId }).sort({ createdAt: -1 }).lean();
-    let alreadyProcessedThisMonth = false;
-    if (existing && existing.createdAt) {
-      const prev = new Date(existing.createdAt);
-      if (prev.getFullYear() === now.getFullYear() && prev.getMonth() === now.getMonth()) {
-        // if the existing record is same as the one we just upserted (same id), skip accumulation
-        // Note: findOneAndUpdate returned the latest doc; compare _id
-        if (String(existing._id) === String(breakupFile._id)) {
-          // we just created/updated this doc — still need to ensure we only add once per month
-          // if this is the first creation this month then there was no earlier one — but to be safe
-          // check if there was a previous createdAt before this one (hard to determine here).
-          // Simpler policy: if existing.createdAt month === now month AND existing._id !== breakupFile._id,
-          // then someone already processed this month.
-          alreadyProcessedThisMonth = false; // we created/updated the doc; count accumulation below
-        } else {
-          // there exists another breakup in the same month (older or different) — skip accumulation
-          alreadyProcessedThisMonth = true;
-        }
-      }
-    }
-
-    // Better approach: Only accumulate if there was NO breakup BEFORE this current one in the same month.
-    // We'll check if there exists any breakup for this employee with createdAt in this same month and _id !== breakupFile._id.
-    if (!alreadyProcessedThisMonth) {
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const otherInMonth = await BreakupFile.findOne({
-        employeeId: empObjectId,
-        _id: { $ne: breakupFile._id },
-        createdAt: { $gte: monthStart, $lt: monthEnd },
-      }).lean();
-
-      if (otherInMonth) {
-        // There's another breakup record in the same calendar month => skip accumulation to prevent double-add
-        alreadyProcessedThisMonth = true;
-      } else {
-        alreadyProcessedThisMonth = false;
-      }
-    }
-
-    if (!alreadyProcessedThisMonth) {
-      // Ensure employee.salary.terminalBenefits exists
-      employee.salary = employee.salary || {};
-      employee.salary.terminalBenefits = employee.salary.terminalBenefits || {
-        gratuity: 0,
-        providentFund: 0,
-        eobi: 0,
-        costOfFunds: 0,
-        groupTermInsurance: 0,
-        otherBenefits: 0,
-      };
-
-      // Add each terminal benefit total
-      for (const [field, amount] of Object.entries(terminalBenefitTotals)) {
-        if (!amount || isNaN(amount)) continue;
-        employee.salary.terminalBenefits[field] = (employee.salary.terminalBenefits[field] || 0) + Number(amount);
-      }
-
-      // Save employee
-      await employee.save();
-    }
-
-    // 6) Return result
+    // ---------------- RETURN ----------------
     return res.status(201).json({
       success: true,
-      message: "Salary breakup created/updated successfully",
+      message: `Salary breakup for ${paidFor} created/updated`,
       data: breakupFile,
-      accumulated: !alreadyProcessedThisMonth,
     });
   } catch (err) {
     console.error("❌ ERROR createBreakupFile:", err);
@@ -363,7 +308,7 @@ export const getBreakupRules = async (req, res) => {
   }
 };
 
-// GET EMPLOYEE SALARY HISTORY
+// history of the salaries paid of a specific employee
 export const getEmployeeSalaryHistory = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -375,28 +320,55 @@ export const getEmployeeSalaryHistory = async (req, res) => {
       });
     }
 
-    // Fetch all breakups for this employee
+    // Fetch breakups
     const breakups = await BreakupFile.find({ employeeId })
       .populate("employeeId", "individualName personalEmail UserId")
       .populate("roleId", "roleName name")
-      .sort({ createdAt: -1 }); // newest → oldest
+      .sort({ createdAt: -1 });
 
-    if (!breakups || breakups.length === 0) {
+    if (!breakups.length) {
       return res.status(404).json({
         success: false,
-        message: "No salary breakups found for this employee",
+        message: "No salary history found",
       });
     }
 
-    return res.status(200).json({
-      success: true,
-      count: breakups.length,
-      data: breakups,
+    // Compile dashboard-friendly array
+    const compiled = breakups.map((b) => {
+      const paidDate = b.paidAt ? new Date(b.paidAt) : null;
+
+      return {
+        breakupId: b._id,
+
+        // Basic
+        month: b.month,
+        year: b.year,
+        paidFor: b.paidFor || `${b.month} ${b.year}`,
+
+        // Salary calculations
+        netSalary: b.calculatedBreakup.netSalary,
+        totalAllowances: b.calculatedBreakup.totalAllowances,
+        totalDeductions: b.calculatedBreakup.totalDeductions,
+
+        // Payment information
+        paymentStatus: b.paymentStatus,
+        paidAt: b.paidAt,
+        paidOnDate: paidDate ? paidDate.toDateString() : null,
+        paidOnTime: paidDate ? paidDate.toLocaleTimeString() : null,
+
+        // Timestamps
+        createdAt: b.createdAt,
+      };
     });
 
-  } catch (error) {
-    console.error("❌ Error fetching employee salary history:", error);
+    return res.status(200).json({
+      success: true,
+      count: compiled.length,
+      breakups: compiled,
+    });
 
+  } catch (err) {
+    console.error("❌ Error fetching salary history:", err);
     return res.status(500).json({
       success: false,
       message: "Server error while fetching salary history",
