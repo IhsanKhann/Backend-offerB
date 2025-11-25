@@ -267,11 +267,12 @@ finalizedEmployeeSchema.methods.generateAccessToken = function(){
             UserId: this.UserId,
             individualName: this.individualName
         },
+
        process.env.ACCESS_TOKEN_SECRET,
         {
             expiresIn:  process.env.ACCESS_TOKEN_EXPIRY
         }
-    )
+    );
 };
 
 finalizedEmployeeSchema.methods.generateRefreshToken = function(){

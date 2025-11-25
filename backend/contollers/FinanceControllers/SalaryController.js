@@ -3,6 +3,7 @@ import AllRolesModel from "../../models/HRModals/AllRoles.model.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 import BreakupFile from "../../models/FinanceModals/SalaryBreakupModel.js";
 import BreakupRulesModel from "../../models/FinanceModals/BreakupRules.js";
+import SalaryBreakupfiles from "../../models/FinanceModals/SalaryBreakupModel.js";
 
 // ------------------------------------------------------------
 // UTILITY
@@ -201,25 +202,22 @@ export const createBreakupFile = async (req, res) => {
     const paidFor = `${month} ${year}`;
     const loggedInEmployeeId = req.user?._id;
 
-    const breakupFile = await BreakupFile.findOneAndUpdate(
-      { employeeId: empObjectId, month, year },
-      {
-        employeeId: empObjectId,
-        roleId: roleObjectId,
-        salaryRules,
-        calculatedBreakup: {
-          breakdown,
-          totalAllowances,
-          totalDeductions,
-          netSalary,
-        },
-        month,
-        year,
-        paidFor,
-        processedBy: loggedInEmployeeId,
+    const breakupFile = new BreakupFile({
+      employeeId: empObjectId,
+      roleId: roleObjectId,
+      salaryRules,
+      calculatedBreakup: {
+        breakdown,
+        totalAllowances,
+        totalDeductions,
+        netSalary,
       },
-      { new: true, upsert: true }
-    );
+      month,
+      year,
+      paidAt: new Date(),
+    });
+
+    await breakupFile.save();
 
     return res.status(201).json({
       success: true,
@@ -307,10 +305,11 @@ export const getEmployeeSalaryHistory = async (req, res) => {
     }
 
     // Fetch breakups
-    const breakups = await BreakupFile.find({ employeeId })
+    const breakups = await SalaryBreakupfiles.find({ employeeId })
       .populate("employeeId", "individualName personalEmail UserId")
       .populate("roleId", "roleName name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     if (!breakups.length) {
       return res.status(404).json({
@@ -319,33 +318,19 @@ export const getEmployeeSalaryHistory = async (req, res) => {
       });
     }
 
-    // Compile dashboard-friendly array
-    const compiled = breakups.map((b) => {
-      const paidDate = b.paidAt ? new Date(b.paidAt) : null;
-
-      return {
-        breakupId: b._id,
-
-        // Basic
-        month: b.month,
-        year: b.year,
-        paidFor: b.paidFor || `${b.month} ${b.year}`,
-
-        // Salary calculations
-        netSalary: b.calculatedBreakup.netSalary,
-        totalAllowances: b.calculatedBreakup.totalAllowances,
-        totalDeductions: b.calculatedBreakup.totalDeductions,
-
-        // Payment information
-        paymentStatus: b.paymentStatus,
-        paidAt: b.paidAt,
-        paidOnDate: paidDate ? paidDate.toDateString() : null,
-        paidOnTime: paidDate ? paidDate.toLocaleTimeString() : null,
-
-        // Timestamps
-        createdAt: b.createdAt,
-      };
-    });
+    // Compile full documents for frontend
+    const compiled = breakups.map((b) => ({
+      breakupId: b._id,
+      month: b.month,
+      year: b.year,
+      paidFor: b.paidFor || `${b.month} ${b.year}`,
+      salaryRules: b.salaryRules,              // include full rules
+      calculatedBreakup: b.calculatedBreakup,  // include totals + breakdown
+      paidAt: b.paidAt,
+      paidOnDate: b.paidAt ? new Date(b.paidAt).toDateString() : null,
+      paidOnTime: b.paidAt ? new Date(b.paidAt).toLocaleTimeString() : null,
+      createdAt: b.createdAt,
+    }));
 
     return res.status(200).json({
       success: true,
@@ -361,6 +346,7 @@ export const getEmployeeSalaryHistory = async (req, res) => {
     });
   }
 };
+
 
 // DELETE SALARY BREAKUP
 export const deleteBreakup = async (req, res) => {
