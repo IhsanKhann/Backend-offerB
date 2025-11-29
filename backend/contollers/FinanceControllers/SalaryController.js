@@ -114,34 +114,21 @@ export const createBreakupFile = async (req, res) => {
     const existingBreakup = await BreakupFile.findOne({ employeeId: empObjectId, month, year });
 
     if (existingBreakup) {
-      if (existingBreakup.paidAt) {
-        // Already paid
-        return res.status(400).json({
-          success: false,
-          message: `Salary for ${month} ${year} has already been paid`,
-          month,
-          status: "paid",
-        });
-      } else {
-        // Exists but not yet paid (processing)
-        return res.status(400).json({
-          success: false,
-          message: `Salary breakup for ${month} ${year} is already created and in processing. Check salary history.`,
-          month,
-          status: "processing",
-        });
-      }
+      return res.status(400).json({
+        success: false,
+        message: `Salary breakup for ${month} ${year} already exists. Check salary history.`,
+        month,
+        status: existingBreakup.paidAt ? "paid" : "processing",
+      });
     }
 
-    const salaryRules = role.salaryRules;
-    const { baseSalary = 0, allowances = [], deductions = [], terminalBenefits = [] } = salaryRules;
+    const { baseSalary = 0, allowances = [], deductions = [], terminalBenefits = [] } = role.salaryRules || {};
 
     // ---------------- BUILD BREAKDOWN ----------------
     const breakdown = [];
     let totalAllowances = 0;
     let totalDeductions = 0;
 
-    // Base Salary
     breakdown.push({
       name: "Base Salary",
       category: "base",
@@ -150,8 +137,7 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    // Allowances
-    for (const a of allowances) {
+    allowances.forEach(a => {
       const calc = a.type === "percentage" ? Math.round((baseSalary * a.value) / 100) : Number(a.value);
       breakdown.push({
         name: a.name,
@@ -161,10 +147,9 @@ export const createBreakupFile = async (req, res) => {
         excludeFromTotals: false,
       });
       totalAllowances += calc;
-    }
+    });
 
-    // Deductions
-    for (const d of deductions) {
+    deductions.forEach(d => {
       const calc = d.type === "percentage" ? Math.round((baseSalary * d.value) / 100) : Number(d.value);
       breakdown.push({
         name: d.name,
@@ -174,10 +159,9 @@ export const createBreakupFile = async (req, res) => {
         excludeFromTotals: false,
       });
       totalDeductions += calc;
-    }
+    });
 
-    // Terminal benefits (NOT included in totals)
-    for (const t of terminalBenefits) {
+    terminalBenefits.forEach(t => {
       const calc = t.type === "percentage" ? Math.round((baseSalary * t.value) / 100) : Number(t.value);
       breakdown.push({
         name: t.name,
@@ -186,9 +170,8 @@ export const createBreakupFile = async (req, res) => {
         calculation: t.type === "percentage" ? `${t.value}% of base = ${calc}` : `Fixed = ${calc}`,
         excludeFromTotals: true,
       });
-    }
+    });
 
-    // Net Salary
     const netSalary = Number(baseSalary) + totalAllowances - totalDeductions;
     breakdown.push({
       name: "Net Salary",
@@ -198,14 +181,11 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    // ---------------- UPSERT ----------------
-    const paidFor = `${month} ${year}`;
-    const loggedInEmployeeId = req.user?._id;
-
+    // ---------------- SAVE BREAKUP FILE ----------------
     const breakupFile = new BreakupFile({
       employeeId: empObjectId,
       roleId: roleObjectId,
-      salaryRules,
+      salaryRules: role.salaryRules,
       calculatedBreakup: {
         breakdown,
         totalAllowances,
@@ -214,16 +194,16 @@ export const createBreakupFile = async (req, res) => {
       },
       month,
       year,
-      paidAt: new Date(),
     });
 
     await breakupFile.save();
 
     return res.status(201).json({
       success: true,
-      message: `Salary breakup for ${paidFor} created successfully`,
+      message: `Salary breakup for ${month} ${year} created successfully`,
       data: breakupFile,
     });
+
   } catch (err) {
     console.error("❌ ERROR createBreakupFile:", err);
     return res.status(500).json({
@@ -346,7 +326,6 @@ export const getEmployeeSalaryHistory = async (req, res) => {
     });
   }
 };
-
 
 // DELETE SALARY BREAKUP
 export const deleteBreakup = async (req, res) => {
