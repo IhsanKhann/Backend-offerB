@@ -3,7 +3,6 @@ import AllRolesModel from "../../models/HRModals/AllRoles.model.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 import BreakupFile from "../../models/FinanceModals/SalaryBreakupModel.js";
 import BreakupRulesModel from "../../models/FinanceModals/BreakupRules.js";
-import SalaryBreakupfiles from "../../models/FinanceModals/SalaryBreakupModel.js";
 
 // ------------------------------------------------------------
 // UTILITY
@@ -114,21 +113,34 @@ export const createBreakupFile = async (req, res) => {
     const existingBreakup = await BreakupFile.findOne({ employeeId: empObjectId, month, year });
 
     if (existingBreakup) {
-      return res.status(400).json({
-        success: false,
-        message: `Salary breakup for ${month} ${year} already exists. Check salary history.`,
-        month,
-        status: existingBreakup.paidAt ? "paid" : "processing",
-      });
+      if (existingBreakup.paidAt) {
+        // Already paid
+        return res.status(400).json({
+          success: false,
+          message: `Salary for ${month} ${year} has already been paid`,
+          month,
+          status: "paid",
+        });
+      } else {
+        // Exists but not yet paid (processing)
+        return res.status(400).json({
+          success: false,
+          message: `Salary breakup for ${month} ${year} is already created and in processing. Check salary history.`,
+          month,
+          status: "processing",
+        });
+      }
     }
 
-    const { baseSalary = 0, allowances = [], deductions = [], terminalBenefits = [] } = role.salaryRules || {};
+    const salaryRules = role.salaryRules;
+    const { baseSalary = 0, allowances = [], deductions = [], terminalBenefits = [] } = salaryRules;
 
     // ---------------- BUILD BREAKDOWN ----------------
     const breakdown = [];
     let totalAllowances = 0;
     let totalDeductions = 0;
 
+    // Base Salary
     breakdown.push({
       name: "Base Salary",
       category: "base",
@@ -137,7 +149,8 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    allowances.forEach(a => {
+    // Allowances
+    for (const a of allowances) {
       const calc = a.type === "percentage" ? Math.round((baseSalary * a.value) / 100) : Number(a.value);
       breakdown.push({
         name: a.name,
@@ -147,9 +160,10 @@ export const createBreakupFile = async (req, res) => {
         excludeFromTotals: false,
       });
       totalAllowances += calc;
-    });
+    }
 
-    deductions.forEach(d => {
+    // Deductions
+    for (const d of deductions) {
       const calc = d.type === "percentage" ? Math.round((baseSalary * d.value) / 100) : Number(d.value);
       breakdown.push({
         name: d.name,
@@ -159,9 +173,10 @@ export const createBreakupFile = async (req, res) => {
         excludeFromTotals: false,
       });
       totalDeductions += calc;
-    });
+    }
 
-    terminalBenefits.forEach(t => {
+    // Terminal benefits (NOT included in totals)
+    for (const t of terminalBenefits) {
       const calc = t.type === "percentage" ? Math.round((baseSalary * t.value) / 100) : Number(t.value);
       breakdown.push({
         name: t.name,
@@ -170,8 +185,9 @@ export const createBreakupFile = async (req, res) => {
         calculation: t.type === "percentage" ? `${t.value}% of base = ${calc}` : `Fixed = ${calc}`,
         excludeFromTotals: true,
       });
-    });
+    }
 
+    // Net Salary
     const netSalary = Number(baseSalary) + totalAllowances - totalDeductions;
     breakdown.push({
       name: "Net Salary",
@@ -181,29 +197,35 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    // ---------------- SAVE BREAKUP FILE ----------------
-    const breakupFile = new BreakupFile({
-      employeeId: empObjectId,
-      roleId: roleObjectId,
-      salaryRules: role.salaryRules,
-      calculatedBreakup: {
-        breakdown,
-        totalAllowances,
-        totalDeductions,
-        netSalary,
-      },
-      month,
-      year,
-    });
+    // ---------------- UPSERT ----------------
+    const paidFor = `${month} ${year}`;
+    const loggedInEmployeeId = req.user?._id;
 
-    await breakupFile.save();
+    const breakupFile = await BreakupFile.findOneAndUpdate(
+      { employeeId: empObjectId, month, year },
+      {
+        employeeId: empObjectId,
+        roleId: roleObjectId,
+        salaryRules,
+        calculatedBreakup: {
+          breakdown,
+          totalAllowances,
+          totalDeductions,
+          netSalary,
+        },
+        month,
+        year,
+        paidFor,
+        processedBy: loggedInEmployeeId,
+      },
+      { new: true, upsert: true }
+    );
 
     return res.status(201).json({
       success: true,
-      message: `Salary breakup for ${month} ${year} created successfully`,
+      message: `Salary breakup for ${paidFor} created successfully`,
       data: breakupFile,
     });
-
   } catch (err) {
     console.error("❌ ERROR createBreakupFile:", err);
     return res.status(500).json({
@@ -285,11 +307,10 @@ export const getEmployeeSalaryHistory = async (req, res) => {
     }
 
     // Fetch breakups
-    const breakups = await SalaryBreakupfiles.find({ employeeId })
+    const breakups = await BreakupFile.find({ employeeId })
       .populate("employeeId", "individualName personalEmail UserId")
       .populate("roleId", "roleName name")
-      .sort({ createdAt: -1 })
-      .lean();
+      .sort({ createdAt: -1 });
 
     if (!breakups.length) {
       return res.status(404).json({
@@ -298,19 +319,33 @@ export const getEmployeeSalaryHistory = async (req, res) => {
       });
     }
 
-    // Compile full documents for frontend
-    const compiled = breakups.map((b) => ({
-      breakupId: b._id,
-      month: b.month,
-      year: b.year,
-      paidFor: b.paidFor || `${b.month} ${b.year}`,
-      salaryRules: b.salaryRules,              // include full rules
-      calculatedBreakup: b.calculatedBreakup,  // include totals + breakdown
-      paidAt: b.paidAt,
-      paidOnDate: b.paidAt ? new Date(b.paidAt).toDateString() : null,
-      paidOnTime: b.paidAt ? new Date(b.paidAt).toLocaleTimeString() : null,
-      createdAt: b.createdAt,
-    }));
+    // Compile dashboard-friendly array
+    const compiled = breakups.map((b) => {
+      const paidDate = b.paidAt ? new Date(b.paidAt) : null;
+
+      return {
+        breakupId: b._id,
+
+        // Basic
+        month: b.month,
+        year: b.year,
+        paidFor: b.paidFor || `${b.month} ${b.year}`,
+
+        // Salary calculations
+        netSalary: b.calculatedBreakup.netSalary,
+        totalAllowances: b.calculatedBreakup.totalAllowances,
+        totalDeductions: b.calculatedBreakup.totalDeductions,
+
+        // Payment information
+        paymentStatus: b.paymentStatus,
+        paidAt: b.paidAt,
+        paidOnDate: paidDate ? paidDate.toDateString() : null,
+        paidOnTime: paidDate ? paidDate.toLocaleTimeString() : null,
+
+        // Timestamps
+        createdAt: b.createdAt,
+      };
+    });
 
     return res.status(200).json({
       success: true,

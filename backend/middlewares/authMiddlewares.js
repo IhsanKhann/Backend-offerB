@@ -54,8 +54,7 @@ export const checkEmployeeStatus = async (req, res, next) => {
 export const authenticate = async (req, res, next) => {
   try {
     let token = req.cookies?.accessToken;
-         console.log("Access Secret:", process.env.JWT_ACCESS_SECRET);
-      console.log("Access Expiry:", process.env.JWT_ACCESS_EXPIRE);
+
     if (!token && req.headers.authorization?.startsWith("Bearer ")) {
       token = req.headers.authorization.split(" ")[1];
     }

@@ -108,9 +108,6 @@ export const loginUser = async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    console.log("Access Secret:", process.env.JWT_ACCESS_SECRET);
-    console.log("Access Expiry:", process.env.JWT_ACCESS_EXPIRE);
-    
     res
       .cookie("accessToken", accessToken, {
         httpOnly: true,

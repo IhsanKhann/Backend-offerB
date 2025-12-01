@@ -255,7 +255,10 @@ finalizedEmployeeSchema.methods.comparePassword = async function(candidatePasswo
 };
 
 finalizedEmployeeSchema.methods.generateAccessToken = function(){
+    console.log("Access Secret:", process.env.ACCESS_TOKEN_SECRET);
+    console.log("Access Expiry:",  process.env.ACCESS_TOKEN_EXPIRY);
 
+    
     return jwt.sign(
         {
             _id: this._id,
@@ -264,12 +267,11 @@ finalizedEmployeeSchema.methods.generateAccessToken = function(){
             UserId: this.UserId,
             individualName: this.individualName
         },
-
        process.env.ACCESS_TOKEN_SECRET,
         {
             expiresIn:  process.env.ACCESS_TOKEN_EXPIRY
         }
-    );
+    )
 };
 
 finalizedEmployeeSchema.methods.generateRefreshToken = function(){

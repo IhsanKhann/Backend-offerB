@@ -45,7 +45,7 @@ const BreakupFileSchema = new mongoose.Schema({
   month: { type: String, required: true },
   year: { type: Number, required: true },
 
-  paidAt: { type: Date, default: undefined },
+  paidAt: { type: Date, default: Date.now },
 
   paidMonth: { type: String },
   paidYear: { type: Number },
@@ -55,13 +55,10 @@ const BreakupFileSchema = new mongoose.Schema({
 
 // Auto-fill formatted month/year/time
 BreakupFileSchema.pre("save", function (next) {
-  if (this.paidAt) {
-    const date = this.paidAt;
-    this.paidMonth = date.toLocaleString("en-US", { month: "long" });
-    this.paidYear = date.getFullYear();
-    this.paidTime = date.toLocaleTimeString("en-US");
-    console.log("💰 Setting paidAt details for salary:", this.employeeId, this.paidAt);
-  }
+  const date = this.paidAt || new Date();
+  this.paidMonth = date.toLocaleString("en-US", { month: "long" });
+  this.paidYear = date.getFullYear();
+  this.paidTime = date.toLocaleTimeString("en-US");
   next();
 });
 
