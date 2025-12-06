@@ -55,62 +55,59 @@ export const fetchRulesForFrontend = async (req, res) => {
   }
 };
 
-/**
- * Create a new rule
- */
 export const createRule = async (req, res) => {
   try {
-    console.log("[createRule] Creating rule with body:", req.body);
+    const data = req.body;
 
-    const newRule = new RuleModel(req.body);
+    data.splits =
+      data.splits?.map((split) => ({
+        ...split,
+        isReflection: split.isReflection ?? false, // NEW: default for split
+        mirrors:
+          split.mirrors?.map((mir) => ({
+            ...mir,
+            isReflection: mir.isReflection ?? false, // ensure mirror flag
+          })) || [],
+      })) || [];
 
-    newRule.splits = newRule.splits?.map((split) => ({
-      ...split,
-      instanceId: split.instanceId || new mongoose.Types.ObjectId(),
-      mirrors: split.mirrors || [],
-    })) || [];
-
-    await newRule.save();
-    console.log("[createRule] Rule created:", newRule._id);
+    const newRule = await RuleModel.create(data);
     res.status(201).json(newRule);
   } catch (err) {
-    console.error("[createRule] Error:", err);
+    console.error("createRule error:", err);
     res.status(500).json({ message: "Failed to create rule" });
   }
 };
-
-/**
- * Update an existing rule
- */
 export const updateRule = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { ruleId } = req.params;
+    const updated = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid Rule ID" });
-    }
-
-    const updatedData = req.body;
-    updatedData.splits = updatedData.splits?.map((split) => ({
+    // Ensure isReflection exists
+    updated.splits = updated.splits?.map((split) => ({
       ...split,
-      instanceId: split.instanceId || new mongoose.Types.ObjectId(),
-      mirrors: split.mirrors || [],
+      isReflection: split.isReflection ?? false,
+      mirrors: split.mirrors?.map((mir) => ({
+        ...mir,
+        isReflection: mir.isReflection ?? false,
+      })) || [],
     })) || [];
 
-    const rule = await RuleModel.findByIdAndUpdate(id, updatedData, { new: true });
+    const rule = await RuleModel.findByIdAndUpdate(ruleId, updated, {
+      new: true,
+      runValidators: true, // <-- validate the schema
+    });
+
     if (!rule) return res.status(404).json({ message: "Rule not found" });
 
-    console.log("[updateRule] Rule updated:", id);
+    console.log("✅ Updated rule:", rule); // <-- log after saving
     res.json(rule);
   } catch (err) {
-    console.error("[updateRule] Error:", err);
+    console.error("updateRule error:", err);
     res.status(500).json({ message: "Failed to update rule" });
   }
 };
 
-/**
- * Delete a rule
- */
+
 export const deleteRule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -129,7 +126,6 @@ export const deleteRule = async (req, res) => {
     res.status(500).json({ message: "Failed to delete rule" });
   }
 };
-
 
 export const getAllFieldLineDefinitions = async (req, res) => {
   console.log("[getAllFieldLineDefinitions] Fetching definitions...");
@@ -160,3 +156,5 @@ export const getAllFieldLineDefinitions = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// run().catch((err) => { console.error(err); process.exit(1); });

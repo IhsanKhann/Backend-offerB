@@ -4,7 +4,9 @@ const MirrorSchema = new mongoose.Schema({
   instanceId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineInstance" },
   summaryId: { type: mongoose.Schema.Types.ObjectId, ref: "Summary" },
   definitionId: { type: mongoose.Schema.Types.ObjectId, ref: "SummaryFieldLineDefinition" },
-  debitOrCredit: { type: String, enum: ["debit", "credit"] }
+  debitOrCredit: { type: String, enum: ["debit", "credit"] },
+
+   isReflection: { type: Boolean, default: false }, 
 }, { _id: false });
 
 const SplitSchema = new mongoose.Schema({
@@ -15,7 +17,9 @@ const SplitSchema = new mongoose.Schema({
   debitOrCredit: { type: String, enum: ["debit", "credit"] },
   percentage: { type: Number },
   fixedAmount: { type: Number },
-  mirrors: [MirrorSchema]
+  mirrors: [MirrorSchema],
+
+  isReflection: { type: Boolean, default: false }, // <--- Make sure it's here
 }, { _id: false });
 
 const RuleSchema = new mongoose.Schema({

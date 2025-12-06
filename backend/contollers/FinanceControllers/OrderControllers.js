@@ -247,10 +247,8 @@ const updateSummaryBalance = async (summaryIdentifier, value, debitOrCredit, ses
 
 const BUSINESS_API_BASE = process.env.BUSINESS_API_BASE;
 
-// -----------Order WITH TRANSACTION -------
 export const createOrderWithTransaction = async (req, res) => {
   const session = await mongoose.startSession();
-
   try {
     await session.withTransaction(async () => {
       const { orderAmount, orderType, buyerId, sellerId, orderId } = req.body;
@@ -260,10 +258,10 @@ export const createOrderWithTransaction = async (req, res) => {
 
       console.log(`🚀 [ORDER] Processing Order: ${orderId} | Seller: ${sellerId}`);
 
-      // --- Ensure seller record exists ---
+      // Ensure seller exists (helper)
       const seller = await ensureSellerExists(sellerId);
 
-      // --- Determine rule set ---
+      // Build rule types
       const ruleTypes =
         orderType === "auction"
           ? ["auction", "auctionTax", "auctionDeposit"]
@@ -275,21 +273,21 @@ export const createOrderWithTransaction = async (req, res) => {
         .session(session)
         .lean();
 
-      if (!rules?.length)
-        throw new Error(`No BreakupRules found for type ${orderType}`);
-
+      if (!rules?.length) throw new Error(`No BreakupRules found for type ${orderType}`);
       console.log(`📘 [RULES] Loaded ${rules.length} breakup rules`);
 
-      const allLines = [];
-      const postingLines = [];
+      const allLines = [];      // all lines (including mirrors/reflections) - used for transaction.lines
+      const postingLines = [];  // only lines that should be posted (i.e. participate in balancing / update balances)
 
-      // PROCESS EACH RULE + SPLIT
+      // PROCESS EACH RULE + ITS SPLITS
       for (const rule of rules) {
         for (const split of rule.splits || []) {
-          const baseValue = computeValue(orderAmount, split);
+          const baseValue = computeValue(orderAmount, split); // number
 
-          // --- Main Split Posting ---
+          // --- MAIN SPLIT LINE (the "real" entry) ---
           const mainInstance = await resolveOrCreateInstance(split, session);
+
+          // Update balances and summary only for posting lines (not reflect-only)
           await updateBalance(mainInstance, baseValue, split.debitOrCredit, session);
           await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
 
@@ -303,15 +301,16 @@ export const createOrderWithTransaction = async (req, res) => {
             definitionId: split.definitionId,
             ruleType: rule.transactionType,
             isReflectOnly: false,
-            _isMirror: false,
+            _isMirror: false, // internal marker for later
           };
 
           allLines.push(mainLine);
           postingLines.push(mainLine);
 
+          // --- MIRRORS (could be reflection-only or actual balancing mirrors) ---
           const mirrorSet = split.mirrors || [];
 
-          // --- PROCESS MIRRORS (BALANCING) ---
+          // track split-level sums using only non-reflection lines
           let splitDebit = mainLine.debitOrCredit === "debit" ? baseValue : 0;
           let splitCredit = mainLine.debitOrCredit === "credit" ? baseValue : 0;
 
@@ -331,19 +330,22 @@ export const createOrderWithTransaction = async (req, res) => {
               _isMirror: true,
             };
 
+            // If this mirror is not reflect-only, it participates in posting and balances
             if (!mirror.isReflectOnly) {
               await updateBalance(mirrorInstance, baseValue, mirror.debitOrCredit, session);
               await updateSummaryBalance(mirror.summaryId, baseValue, mirror.debitOrCredit, session);
               postingLines.push(mirrorLine);
-            }
 
-            if (!mirror.isReflectOnly) {
               if (mirror.debitOrCredit === "debit") splitDebit += baseValue;
               if (mirror.debitOrCredit === "credit") splitCredit += baseValue;
             }
+
+            // always push to allLines (we want the transaction to contain mirrors too,
+            // but their isReflection flag will tell the pre-save hook / UI whether to include them in calculations)
+            allLines.push(mirrorLine);
           }
 
-          // --- Validate this split group ---
+          // Validate that this split group (main + its non-reflection mirrors) balances individually
           const diff = Math.abs(splitDebit - splitCredit);
           if (diff > 0.01) {
             console.error(`❌ [SPLIT IMBALANCE] Component "${split.componentName}" not balanced. Diff: ${diff}`);
@@ -351,10 +353,10 @@ export const createOrderWithTransaction = async (req, res) => {
           } else {
             console.log(`✅ [SPLIT BALANCED] ${split.componentName} balanced successfully.`);
           }
-        }
-      }
+        } // end splits loop
+      } // end rules loop
 
-      // --- GLOBAL VALIDATION (POSTED ONLY) ---
+      // --- GLOBAL VALIDATION ON postingLines (these are the non-reflection lines that were actually posted) ---
       const postingTotals = postingLines.reduce(
         (acc, l) => {
           if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
@@ -366,6 +368,7 @@ export const createOrderWithTransaction = async (req, res) => {
 
       const postingImbalance = Math.abs(postingTotals.debit - postingTotals.credit);
       if (postingImbalance > 0.01) {
+        // Should not happen because each split validated, but keep a warning
         console.warn(
           `⚠️ [POSTING IMBALANCE] Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit} | Diff: ${postingImbalance}`
         );
@@ -375,7 +378,7 @@ export const createOrderWithTransaction = async (req, res) => {
         );
       }
 
-      // --- CREATE BREAKUP DOCUMENTS ---
+      // --- CREATE BREAKUP DOCUMENTS (use "real" lines = non-mirror lines i.e. allLines where _isMirror === false) ---
       const realLines = allLines.filter((l) => !l._isMirror);
 
       const [parentBreakup] = await BreakupFileModel.create(
@@ -412,14 +415,8 @@ export const createOrderWithTransaction = async (req, res) => {
             breakupType: "seller",
             parentBreakupId: parentBreakup._id,
             lines: sellerLines,
-            totalDebit: sellerLines.reduce(
-              (sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0),
-              0
-            ),
-            totalCredit: sellerLines.reduce(
-              (sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0),
-              0
-            ),
+            totalDebit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0), 0),
+            totalCredit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0), 0),
           },
         ],
         { session }
@@ -440,14 +437,8 @@ export const createOrderWithTransaction = async (req, res) => {
             breakupType: "buyer",
             parentBreakupId: parentBreakup._id,
             lines: buyerLines,
-            totalDebit: buyerLines.reduce(
-              (sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0),
-              0
-            ),
-            totalCredit: buyerLines.reduce(
-              (sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0),
-              0
-            ),
+            totalDebit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0), 0),
+            totalCredit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0), 0),
           },
         ],
         { session }
@@ -455,35 +446,48 @@ export const createOrderWithTransaction = async (req, res) => {
 
       console.log(`🧾 [BREAKUP] Parent, Seller, Buyer breakups created successfully.`);
 
-      // --- RECORD TRANSACTION ---
-      const transactionAmount = postingTotals.credit - postingTotals.debit;
-      await TransactionModel.create(
-        [
-          {
-            description: `Transaction for Order ID: ${orderId}`,
-            amount: transactionAmount,
-            lines: postingLines.map((l) => ({
-              instanceId: l.instanceId,
-              summaryId: l.summaryId,
-              definitionId: l.definitionId,
-              debitOrCredit: l.debitOrCredit,
-              amount: l.amount,
-            })),
-          },
-        ],
-        { session }
-      );
+      // --- PREPARE TRANSACTION LINES for saving ---
+      // The TransactionModel's TransactionLineSchema expects:
+      // { instanceId, summaryId, definitionId, debitOrCredit, amount (Decimal128), description, isReflection }
+      const transactionLinesForSave = allLines.map((l) => ({
+        instanceId: l.instanceId || null,
+        summaryId: l.summaryId || null,
+        definitionId: l.definitionId || null,
+        debitOrCredit: l.debitOrCredit,
+        amount: mongoose.Types.Decimal128.fromString(String(safeNumber(l.amount))),
+        description: l.componentName || l.description || "",
+        // If an original mirror object had isReflectOnly true, mark isReflection true.
+        // For non-mirror real lines, isReflection is false.
+        isReflection: !!l.isReflectOnly || !!l.isReflection || false,
+      }));
 
-      console.log(`📒 [TRANSACTION] Recorded transaction of ${transactionAmount}`);
+      // Compute totals (use postingLines, i.e., those lines that were actually posted and are not reflection-only)
+      const totalDebits = postingTotals.debit;
+      const totalCredits = postingTotals.credit;
+      const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
 
-      // --- CALCULATE SELLER NET RECEIVABLE ---
+      // --- CREATE TRANSACTION doc ---
+      const transactionDescription = `Transaction for Order ID: ${orderId}`;
+      const transactionDoc = {
+        description: transactionDescription,
+        amount: mongoose.Types.Decimal128.fromString(String(safeNumber(postingTotals.credit - postingTotals.debit))),
+        lines: transactionLinesForSave,
+        totalDebits: mongoose.Types.Decimal128.fromString(String(totalDebits)),
+        totalCredits: mongoose.Types.Decimal128.fromString(String(totalCredits)),
+        isBalanced,
+        // optional fields (type, createdBy, status) can be set if available in req.user or payload
+        type: orderType || "journal",
+      };
+
+      await TransactionModel.create([transactionDoc], { session });
+      console.log(`📒 [TRANSACTION] Recorded transaction. Balanced: ${isBalanced} | Debit: ${totalDebits} | Credit: ${totalCredits}`);
+
+      // --- UPDATE SELLER NET RECEIVABLE & FINANCIALS ---
       const sellerNetReceivable = realLines
         .filter((l) => l.category === "receivable")
         .reduce((sum, l) => sum + (l.amount || 0), 0);
 
-      // --- UPDATE SELLER FINANCIALS (using helper) ---
       await updateSellerFinancials(sellerId, sellerNetReceivable, { type: "new" }, session);
-
       console.log(`🏦 [SELLER] Updated financials for ${seller.name ?? sellerId}`);
 
       // --- RESPONSE ---
@@ -492,7 +496,7 @@ export const createOrderWithTransaction = async (req, res) => {
         message: "Order transaction processed successfully",
         data: { parentBreakup, sellerBreakup, buyerBreakup },
       });
-    });
+    }); // end withTransaction
   } catch (err) {
     console.error("❌ [ORDER ERROR]:", err);
     res.status(500).json({

@@ -68,7 +68,9 @@ router.get("/rulesInstances", fetchRulesForFrontend);
 router.get("/fieldlines/definitions", getAllFieldLineDefinitions);
 
 router.post("/rules", createRule);
-router.put("/rules/:ruleId", updateRule);
+
+// this is for updating the rules.
+router.put("/rules/:ruleId/update", updateRule);
 router.delete("/rules/:ruleId", deleteRule);
 
 // -------------------------------------------------------------------
@@ -131,6 +133,7 @@ router.get("/:summaryId", getSummaryById);
 // -------------------------------------------------------------------
 // ✅ RULE SPLITS & MIRRORS (for dynamic rules) — kept at end
 // -------------------------------------------------------------------
+// for the split:
 router.post("/rules/:ruleId/splits", async (req, res) => {
   const { ruleId } = req.params;
   const splitData = req.body;
@@ -141,8 +144,18 @@ router.post("/rules/:ruleId/splits", async (req, res) => {
 
     rule.splits.push({
       ...splitData,
-      instanceId: new mongoose.Types.ObjectId(),
-      mirrors: [],
+      // use provided instanceId (if valid) otherwise create a new ObjectId
+      instanceId: splitData.instanceId
+        ? mongoose.Types.ObjectId(splitData.instanceId)
+        : new mongoose.Types.ObjectId(),
+      // ensure isReflection exists on split
+      isReflection: splitData.isReflection ?? false,
+      // ensure mirrors exist and each mirror has isReflection default
+      mirrors: (splitData.mirrors || []).map((m) => ({
+        ...m,
+        instanceId: m.instanceId ? mongoose.Types.ObjectId(m.instanceId) : new mongoose.Types.ObjectId(),
+        isReflection: m.isReflection ?? false,
+      })),
     });
     await rule.save();
 
@@ -168,6 +181,7 @@ router.delete("/rules/:ruleId/splits/:splitIdx", async (req, res) => {
   }
 });
 
+// for the mirror:
 router.post("/rules/:ruleId/splits/:splitIdx/mirrors", async (req, res) => {
   const { ruleId, splitIdx } = req.params;
   const mirrorData = req.body;
@@ -178,7 +192,10 @@ router.post("/rules/:ruleId/splits/:splitIdx/mirrors", async (req, res) => {
 
     rule.splits[Number(splitIdx)].mirrors.push({
       ...mirrorData,
-      instanceId: new mongoose.Types.ObjectId(),
+      instanceId: mirrorData.instanceId
+        ? mongoose.Types.ObjectId(mirrorData.instanceId)
+        : new mongoose.Types.ObjectId(),
+      isReflection: mirrorData.isReflection ?? false,
     });
     await rule.save();
 
