@@ -138,17 +138,28 @@ export const ExpenseTransactionController = async (req, res) => {
   session.startTransaction();
 
   try {
+    console.log("\n---------------- NEW EXPENSE TRANSACTION ----------------");
+
     const { amount, name, description } = req.body;
     const baseAmount = Number(amount);
+
+    console.log("Incoming Request Body:", req.body);
+    console.log("Parsed baseAmount =", baseAmount);
+
     if (!baseAmount || baseAmount <= 0) {
+      console.log("❌ Invalid amount received");
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ error: "Invalid amount" });
     }
 
     // 1️⃣ Fetch rules
+    console.log("\nFetching rules…");
     const rules = await TablesModel.find({ transactionType: "Expense Allocation" }).session(session).lean();
+
+    console.log("Rules fetched:", rules.length);
     if (!rules.length) {
+      console.log("❌ No Expense Allocation rules found");
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ error: "No Expense Allocation rules found" });
@@ -158,37 +169,51 @@ export const ExpenseTransactionController = async (req, res) => {
 
     // 2️⃣ Process rules
     for (const rule of rules) {
+      console.log("\n==================== PROCESSING RULE ====================");
+      console.log("Rule Name:", rule.ruleName || "(unnamed rule)");
+      console.log("Increment Type:", rule.incrementType);
+      console.log("Splits count:", (rule.splits || []).length);
+
       const splits = rule.splits || [];
       const totalPercent = splits.reduce((sum, s) => sum + (Number(s.percentage) || 0), 0) || 100;
 
+      console.log("Total Percentage of Rule Splits =", totalPercent);
+
       for (const split of splits) {
+        console.log("\n----- Processing Split:", split.fieldName, "-----");
+        console.log("Split Raw:", split);
+
         const splitAmount = computeLineAmount(split, baseAmount, rule.incrementType, totalPercent);
-        if (!splitAmount) continue;
+        console.log("Computed Split Amount =", splitAmount);
 
-        // 🛠 Debugging: log the split before resolving
-        console.log("Processing split:", split.fieldName);
-        console.log("Split raw IDs:", {
-          instanceId: split.instanceId,
-          summaryId: split.summaryId,
-          definitionId: split.definitionId
-        });
+        if (!splitAmount) {
+          console.log("⚠️ Split amount = 0 → Skipping this split");
+          continue;
+        }
 
+        // Resolve IDs
         const instanceId = await resolveInstanceForEntry(split, session);
         const summaryId = await resolveSummaryIdForEntry(split, session);
         const definitionId = await resolveDefinitionIdForEntry(split, session);
 
+        console.log("Resolved IDs:", {
+          instanceId,
+          summaryId,
+          definitionId
+        });
+
         if (!instanceId || !summaryId || !definitionId) {
-          console.warn("Skipping split: unresolved IDs", {
-            fieldName: split.fieldName,
-            instanceIdResolved: instanceId,
-            summaryIdResolved: summaryId,
-            definitionIdResolved: definitionId,
-            originalSplit: split
+          console.log("❌ SKIPPING SPLIT — Could not resolve IDs", {
+            instanceId,
+            summaryId,
+            definitionId,
+            split
           });
           continue;
         }
 
-        transactionLines.push(buildLine({
+        // Build & push line
+        const newLine = buildLine({
           instanceId,
           summaryId,
           definitionId,
@@ -196,55 +221,77 @@ export const ExpenseTransactionController = async (req, res) => {
           amount: splitAmount,
           description: split.fieldName,
           isReflection: !!split.isReflection
-        }));
+        });
 
-        // Process mirrors
+        console.log("✅ Split Line Created:", newLine);
+        transactionLines.push(newLine);
+
+        // ------- MIRRORS ----------
+        console.log("Mirror Count:", Array.isArray(split.mirrors) ? split.mirrors.length : 0);
+
         if (Array.isArray(split.mirrors)) {
           for (const mirror of split.mirrors) {
-            // 🛠 Debugging: log mirror before resolving
-            console.log("Processing mirror:", mirror.fieldName || `${split.fieldName} Mirror`);
-            console.log("Mirror raw IDs:", {
-              instanceId: mirror.instanceId,
-              summaryId: mirror.summaryId,
-              definitionId: mirror.definitionId
-            });
+            console.log("\n----- Processing Mirror:", mirror.fieldName || "(mirror)") ;
+            console.log("Mirror Raw:", mirror);
 
             const mirrorInstanceId = await resolveInstanceForEntry(mirror, session);
             const mirrorSummaryId = await resolveSummaryIdForEntry(mirror, session);
             const mirrorDefinitionId = await resolveDefinitionIdForEntry(mirror, session);
 
+            console.log("Resolved Mirror IDs:", {
+              mirrorInstanceId,
+              mirrorSummaryId,
+              mirrorDefinitionId
+            });
+
             if (!mirrorInstanceId || !mirrorSummaryId || !mirrorDefinitionId) {
-              console.warn("Skipping mirror: unresolved IDs", {
-                description: mirror.fieldName || `${split.fieldName} Mirror`,
-                instanceIdResolved: mirrorInstanceId,
-                summaryIdResolved: mirrorSummaryId,
-                definitionIdResolved: mirrorDefinitionId,
-                originalMirror: mirror
+              console.log("❌ SKIPPING MIRROR — unresolved IDs", {
+                mirrorInstanceId,
+                mirrorSummaryId,
+                mirrorDefinitionId,
+                mirror
               });
               continue;
             }
 
-            transactionLines.push(buildLine({
+           const mirrorLine = buildLine({
               instanceId: mirrorInstanceId,
               summaryId: mirrorSummaryId,
               definitionId: mirrorDefinitionId,
               debitOrCredit: mirror.debitOrCredit,
               amount: splitAmount,
               description: mirror.fieldName || `${split.fieldName} Mirror`,
-              isReflection: true
-            }));
+              isReflection: !!mirror.isReflection  // <-- use the actual mirror flag
+            });
+
+
+            console.log("✅ Mirror Line Created:", mirrorLine);
+            transactionLines.push(mirrorLine);
           }
         }
       }
     }
 
+    console.log("\n========== FINISHED PROCESSING ALL SPLITS ==========");
+    console.log("Total Lines Generated:", transactionLines.length);
+
     if (!transactionLines.length) {
+      console.log("❌ No transaction lines generated.");
       throw new Error("No valid transaction lines to create. Check logs for unresolved IDs.");
     }
 
     // 3️⃣ Compute totals
-    const totalDebits = transactionLines.filter(l => l.debitOrCredit === "debit").reduce((sum, l) => sum + parseFloat(l.amount.toString()), 0);
-    const totalCredits = transactionLines.filter(l => l.debitOrCredit === "credit").reduce((sum, l) => sum + parseFloat(l.amount.toString()), 0);
+    const totalDebits = transactionLines
+      .filter(l => l.debitOrCredit === "debit")
+      .reduce((sum, l) => sum + parseFloat(l.amount.toString()), 0);
+
+    const totalCredits = transactionLines
+      .filter(l => l.debitOrCredit === "credit")
+      .reduce((sum, l) => sum + parseFloat(l.amount.toString()), 0);
+
+    console.log("\nComputed Totals:");
+    console.log("Total Debits:", totalDebits);
+    console.log("Total Credits:", totalCredits);
 
     // 4️⃣ Create transaction
     const [tx] = await TransactionModel.create([{
@@ -260,8 +307,18 @@ export const ExpenseTransactionController = async (req, res) => {
       lines: transactionLines
     }], { session });
 
+    console.log("\nTransaction Successfully Created:", tx._id);
+
     // 5️⃣ Apply balances
+    console.log("\n----- Applying Balance Changes -----");
     for (const line of transactionLines) {
+      console.log("Applying Balance for:", {
+        instanceId: line.instanceId,
+        summaryId: line.summaryId,
+        debitOrCredit: line.debitOrCredit,
+        amount: parseFloat(line.amount.toString())
+      });
+
       await applyBalanceChange({
         instanceId: line.instanceId,
         summaryId: line.summaryId,
@@ -272,6 +329,8 @@ export const ExpenseTransactionController = async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    console.log("\n🎉 Expense Transaction Completed Successfully!\n");
 
     return res.status(201).json({
       message: "Expense transaction posted successfully",
@@ -284,7 +343,7 @@ export const ExpenseTransactionController = async (req, res) => {
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
-    console.error("ExpenseTransactionController Error:", err);
+    console.error("\n❌ ExpenseTransactionController Error:", err);
     return res.status(500).json({ error: err.message || String(err) });
   }
 };

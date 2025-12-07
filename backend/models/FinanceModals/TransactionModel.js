@@ -27,13 +27,17 @@ const TransactionSchema = new mongoose.Schema({
   lines: [TransactionLineSchema]
 });
 
-// Pre-save hook calculates totals for all lines, including reflections if needed
+// Pre-save hook calculates totals ONLY for non-reflection (real) lines
 TransactionSchema.pre("save", function(next) {
   let debitSum = 0;
   let creditSum = 0;
 
   this.lines.forEach(line => {
+    // Skip reflection (mirror) lines entirely
+    if (line.isReflection === true) return;
+
     const amt = parseFloat(line.amount.toString());
+
     if (line.debitOrCredit === "debit") debitSum += amt;
     if (line.debitOrCredit === "credit") creditSum += amt;
   });
@@ -46,3 +50,4 @@ TransactionSchema.pre("save", function(next) {
 });
 
 export default mongoose.model("Transaction", TransactionSchema);
+
