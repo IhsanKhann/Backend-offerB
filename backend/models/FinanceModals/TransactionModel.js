@@ -87,7 +87,13 @@ const TransactionSchema = new mongoose.Schema({
 
   // Modular lifecycles
   orderDetails: OrderDetailsSchema,
-  expenseDetails: ExpenseDetailsSchema
+  expenseDetails: ExpenseDetailsSchema,
+
+  commissionReportId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "CommissionReport"
+}
+
 });
 
 /* ---------------- Auto Totals ---------------- */
