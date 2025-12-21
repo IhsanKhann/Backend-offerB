@@ -20,6 +20,7 @@ const SplitSchema = new mongoose.Schema({
       "commission",
       "income",
       "receivable",
+      "payable",
       "principal",
       "expense"
     ],

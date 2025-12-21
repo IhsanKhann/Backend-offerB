@@ -294,16 +294,20 @@ export const ExpenseTransactionController = async (req, res) => {
     console.log("Total Credits:", totalCredits);
 
     // 4️⃣ Create transaction
+    // inside TransactionModel.create(...)
     const [tx] = await TransactionModel.create([{
       date: new Date(),
       description: description || name || "Expense Transaction",
-      type: "journal",
+      type: "expense",
       amount: mongoose.Types.Decimal128.fromString(baseAmount.toFixed(2)),
       createdBy: req.user?._id || null,
       status: "posted",
-      totalDebits: mongoose.Types.Decimal128.fromString(totalDebits.toFixed(2)),
-      totalCredits: mongoose.Types.Decimal128.fromString(totalCredits.toFixed(2)),
-      isBalanced: Math.abs(totalDebits - totalCredits) < 0.01,
+
+      expenseDetails: {
+        isExpense: true,
+        isCleared: false
+      },
+
       lines: transactionLines
     }], { session });
 

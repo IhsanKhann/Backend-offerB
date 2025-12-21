@@ -14,6 +14,7 @@ const BreakupLineSchema = new mongoose.Schema(
         "commission",
         "income",
         "receivable",
+        "payable",
         "expense",
         "principal",
       ],

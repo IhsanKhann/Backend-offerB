@@ -463,6 +463,7 @@ export default function BreakupRulesTable() {
                         <option value="receivable">Receivable</option>
                         <option value="base">Base</option>
                         <option value="allowance">Allowance</option>
+                        <option value="payable">Payable</option>
                       </select>
                       <input
                         type="number"

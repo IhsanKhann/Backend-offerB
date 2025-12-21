@@ -1,6 +1,5 @@
 // controllers/sellerController.js
 import axios from "axios";
-import cron from "node-cron";
 import Seller from "../../models/FinanceModals/SellersModel.js";
 import dotenv from "dotenv";
 dotenv.config();
@@ -105,16 +104,6 @@ export const getAllSellers = async (req, res) => {
     });
   }
 };
-
-// ✅ Cron job
-cron.schedule("0 */6 * * *", async () => {
-  try {
-    console.log("[CRON] Seller auto-sync started...");
-    await syncSellers();
-  } catch (err) {
-    console.error("❌ [CRON ERROR]:", err.message);
-  }
-});
 
 // ✅ Fetch single seller (local + fallback)
 export const getSingleSeller = async (req, res) => {

@@ -249,19 +249,39 @@ const BUSINESS_API_BASE = process.env.BUSINESS_API_BASE;
 
 export const createOrderWithTransaction = async (req, res) => {
   const session = await mongoose.startSession();
+
   try {
     await session.withTransaction(async () => {
-      const { orderAmount, orderType, buyerId, sellerId, orderId } = req.body;
+      const {
+        orderAmount,
+        orderType,
+        buyerId,
+        sellerId,
+        orderId,
+        deliveredAt, // optional (can be null for now)
+      } = req.body;
+
       if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId) {
         throw new Error("Missing required fields");
       }
 
-      console.log(`🚀 [ORDER] Processing Order: ${orderId} | Seller: ${sellerId}`);
+      console.log(`🚀 [ORDER] Processing Order: ${orderId}`);
 
-      // Ensure seller exists (helper)
+      // -----------------------------
+      // RETURN EXPIRY CALCULATION
+      // -----------------------------
+      const returnExpiryDate = deliveredAt
+        ? new Date(new Date(deliveredAt).getTime() + 24 * 60 * 60 * 1000)
+        : null;
+
+      // -----------------------------
+      // ENSURE SELLER
+      // -----------------------------
       const seller = await ensureSellerExists(sellerId);
 
-      // Build rule types
+      // -----------------------------
+      // LOAD RULES
+      // -----------------------------
       const ruleTypes =
         orderType === "auction"
           ? ["auction", "auctionTax", "auctionDeposit"]
@@ -273,21 +293,23 @@ export const createOrderWithTransaction = async (req, res) => {
         .session(session)
         .lean();
 
-      if (!rules?.length) throw new Error(`No BreakupRules found for type ${orderType}`);
-      console.log(`📘 [RULES] Loaded ${rules.length} breakup rules`);
+      if (!rules?.length) {
+        throw new Error(`No BreakupRules found for type ${orderType}`);
+      }
 
-      const allLines = [];      // all lines (including mirrors/reflections) - used for transaction.lines
-      const postingLines = [];  // only lines that should be posted (i.e. participate in balancing / update balances)
+      // -----------------------------
+      // PROCESS RULES
+      // -----------------------------
+      const allLines = [];
+      const postingLines = [];
 
-      // PROCESS EACH RULE + ITS SPLITS
       for (const rule of rules) {
         for (const split of rule.splits || []) {
-          const baseValue = computeValue(orderAmount, split); // number
+          const baseValue = computeValue(orderAmount, split);
 
-          // --- MAIN SPLIT LINE (the "real" entry) ---
+          // MAIN LINE
           const mainInstance = await resolveOrCreateInstance(split, session);
 
-          // Update balances and summary only for posting lines (not reflect-only)
           await updateBalance(mainInstance, baseValue, split.debitOrCredit, session);
           await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
 
@@ -301,20 +323,17 @@ export const createOrderWithTransaction = async (req, res) => {
             definitionId: split.definitionId,
             ruleType: rule.transactionType,
             isReflectOnly: false,
-            _isMirror: false, // internal marker for later
+            _isMirror: false,
           };
 
           allLines.push(mainLine);
           postingLines.push(mainLine);
 
-          // --- MIRRORS (could be reflection-only or actual balancing mirrors) ---
-          const mirrorSet = split.mirrors || [];
-
-          // track split-level sums using only non-reflection lines
+          // MIRRORS
           let splitDebit = mainLine.debitOrCredit === "debit" ? baseValue : 0;
           let splitCredit = mainLine.debitOrCredit === "credit" ? baseValue : 0;
 
-          for (const mirror of mirrorSet) {
+          for (const mirror of split.mirrors || []) {
             const mirrorInstance = await resolveOrCreateInstance(mirror, session);
 
             const mirrorLine = {
@@ -330,7 +349,6 @@ export const createOrderWithTransaction = async (req, res) => {
               _isMirror: true,
             };
 
-            // If this mirror is not reflect-only, it participates in posting and balances
             if (!mirror.isReflectOnly) {
               await updateBalance(mirrorInstance, baseValue, mirror.debitOrCredit, session);
               await updateSummaryBalance(mirror.summaryId, baseValue, mirror.debitOrCredit, session);
@@ -340,170 +358,159 @@ export const createOrderWithTransaction = async (req, res) => {
               if (mirror.debitOrCredit === "credit") splitCredit += baseValue;
             }
 
-            // always push to allLines (we want the transaction to contain mirrors too,
-            // but their isReflection flag will tell the pre-save hook / UI whether to include them in calculations)
             allLines.push(mirrorLine);
           }
 
-          // Validate that this split group (main + its non-reflection mirrors) balances individually
-          const diff = Math.abs(splitDebit - splitCredit);
-          if (diff > 0.01) {
-            console.error(`❌ [SPLIT IMBALANCE] Component "${split.componentName}" not balanced. Diff: ${diff}`);
-            throw new Error(`Component ${split.componentName} imbalance (diff=${diff})`);
-          } else {
-            console.log(`✅ [SPLIT BALANCED] ${split.componentName} balanced successfully.`);
+          if (Math.abs(splitDebit - splitCredit) > 0.01) {
+            throw new Error(`Split imbalance in ${split.componentName}`);
           }
-        } // end splits loop
-      } // end rules loop
+        }
+      }
 
-      // --- GLOBAL VALIDATION ON postingLines (these are the non-reflection lines that were actually posted) ---
+      // -----------------------------
+      // GLOBAL BALANCE CHECK
+      // -----------------------------
       const postingTotals = postingLines.reduce(
         (acc, l) => {
           if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
-          else if (l.debitOrCredit === "credit") acc.credit += safeNumber(l.amount);
+          else acc.credit += safeNumber(l.amount);
           return acc;
         },
         { debit: 0, credit: 0 }
       );
 
-      const postingImbalance = Math.abs(postingTotals.debit - postingTotals.credit);
-      if (postingImbalance > 0.01) {
-        // Should not happen because each split validated, but keep a warning
-        console.warn(
-          `⚠️ [POSTING IMBALANCE] Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit} | Diff: ${postingImbalance}`
-        );
-      } else {
-        console.log(
-          `💰 [POSTING] Overall ledger balanced. Debit: ${postingTotals.debit} | Credit: ${postingTotals.credit}`
-        );
-      }
+      const isBalanced = Math.abs(postingTotals.debit - postingTotals.credit) < 0.01;
 
-      // --- CREATE BREAKUP DOCUMENTS (use "real" lines = non-mirror lines i.e. allLines where _isMirror === false) ---
-      const realLines = allLines.filter((l) => !l._isMirror);
+      // -----------------------------
+      // BREAKUP FILES (UNCHANGED)
+      // -----------------------------
+      const realLines = allLines.filter(l => !l._isMirror);
 
-      const [parentBreakup] = await BreakupFileModel.create(
-        [
-          {
-            orderId,
-            orderType,
-            orderAmount,
-            actualAmount: orderAmount,
-            buyerId,
-            sellerId,
-            breakupType: "parent",
-            parentBreakupId: null,
-            lines: realLines,
-            totalDebit: postingTotals.debit,
-            totalCredit: postingTotals.credit,
-          },
-        ],
-        { session }
-      );
+      const [parentBreakup] = await BreakupFileModel.create([{
+        orderId,
+        orderType,
+        orderAmount,
+        actualAmount: orderAmount,
+        buyerId,
+        sellerId,
+        breakupType: "parent",
+        parentBreakupId: null,
+        lines: realLines,
+        totalDebit: postingTotals.debit,
+        totalCredit: postingTotals.credit,
+      }], { session });
 
-      const sellerLines = realLines.filter((l) =>
-        ["receivable", "commission", "income", "tax"].includes(l.category)
-      );
-
-      const [sellerBreakup] = await BreakupFileModel.create(
-        [
-          {
-            orderId,
-            orderType,
-            orderAmount,
-            buyerId,
-            sellerId,
-            breakupType: "seller",
-            parentBreakupId: parentBreakup._id,
-            lines: sellerLines,
-            totalDebit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0), 0),
-            totalCredit: sellerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0), 0),
-          },
-        ],
-        { session }
-      );
-
-      const buyerLines = realLines.filter((l) =>
-        ["base", "tax", "expense", "deduction"].includes(l.category)
-      );
-
-      const [buyerBreakup] = await BreakupFileModel.create(
-        [
-          {
-            orderId,
-            orderType,
-            orderAmount,
-            buyerId,
-            sellerId,
-            breakupType: "buyer",
-            parentBreakupId: parentBreakup._id,
-            lines: buyerLines,
-            totalDebit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "debit" ? l.amount : 0), 0),
-            totalCredit: buyerLines.reduce((sum, l) => sum + (l.debitOrCredit === "credit" ? l.amount : 0), 0),
-          },
-        ],
-        { session }
-      );
-
-      console.log(`🧾 [BREAKUP] Parent, Seller, Buyer breakups created successfully.`);
-
-      // --- PREPARE TRANSACTION LINES for saving ---
-      // The TransactionModel's TransactionLineSchema expects:
-      // { instanceId, summaryId, definitionId, debitOrCredit, amount (Decimal128), description, isReflection }
-      const transactionLinesForSave = allLines.map((l) => ({
-        instanceId: l.instanceId || null,
-        summaryId: l.summaryId || null,
-        definitionId: l.definitionId || null,
+      // -----------------------------
+      // TRANSACTION SAVE (WITH EXPIRY DATA)
+      // -----------------------------
+      const transactionLinesForSave = allLines.map(l => ({
+        instanceId: l.instanceId,
+        summaryId: l.summaryId,
+        definitionId: l.definitionId,
         debitOrCredit: l.debitOrCredit,
         amount: mongoose.Types.Decimal128.fromString(String(safeNumber(l.amount))),
-        description: l.componentName || l.description || "",
-        // If an original mirror object had isReflectOnly true, mark isReflection true.
-        // For non-mirror real lines, isReflection is false.
-        isReflection: !!l.isReflectOnly || !!l.isReflection || false,
+        description: l.componentName,
+        isReflection: !!l.isReflectOnly,
       }));
 
-      // Compute totals (use postingLines, i.e., those lines that were actually posted and are not reflection-only)
-      const totalDebits = postingTotals.debit;
-      const totalCredits = postingTotals.credit;
-      const isBalanced = Math.abs(totalDebits - totalCredits) < 0.01;
-
-      // --- CREATE TRANSACTION doc ---
-      const transactionDescription = `Transaction for Order ID: ${orderId}`;
-      const transactionDoc = {
-        description: transactionDescription,
-        amount: mongoose.Types.Decimal128.fromString(String(safeNumber(postingTotals.credit - postingTotals.debit))),
+      await TransactionModel.create([{
+        description: `Order Transaction ${orderId}`,
+        orderId,
+        orderDeliveredAt: deliveredAt || null,
+        returnExpiryDate,
+        expiryReached: false,          // 🔑 for cron
+        type: "journal",               // 🔑 orders are journals
+        amount: mongoose.Types.Decimal128.fromString(String(orderAmount)),
         lines: transactionLinesForSave,
-        totalDebits: mongoose.Types.Decimal128.fromString(String(totalDebits)),
-        totalCredits: mongoose.Types.Decimal128.fromString(String(totalCredits)),
+        totalDebits: postingTotals.debit,
+        totalCredits: postingTotals.credit,
         isBalanced,
-        // optional fields (type, createdBy, status) can be set if available in req.user or payload
-        type: orderType || "journal",
-      };
+      }], { session });
 
-      await TransactionModel.create([transactionDoc], { session });
-      console.log(`📒 [TRANSACTION] Recorded transaction. Balanced: ${isBalanced} | Debit: ${totalDebits} | Credit: ${totalCredits}`);
+      // -----------------------------
+      // SELLER FINANCIAL UPDATE
+      // -----------------------------
+      const sellerReceivable = realLines
+        .filter(l => l.category === "receivable")
+        .reduce((s, l) => s + safeNumber(l.amount), 0);
 
-      // --- UPDATE SELLER NET RECEIVABLE & FINANCIALS ---
-      const sellerNetReceivable = realLines
-        .filter((l) => l.category === "receivable")
-        .reduce((sum, l) => sum + (l.amount || 0), 0);
+      await updateSellerFinancials(sellerId, sellerReceivable, { type: "new" }, session);
 
-      await updateSellerFinancials(sellerId, sellerNetReceivable, { type: "new" }, session);
-      console.log(`🏦 [SELLER] Updated financials for ${seller.name ?? sellerId}`);
-
-      // --- RESPONSE ---
       res.status(200).json({
         success: true,
-        message: "Order transaction processed successfully",
-        data: { parentBreakup, sellerBreakup, buyerBreakup },
+        message: "Order created with transaction & return expiry",
+        data: { parentBreakup },
       });
-    }); // end withTransaction
+    });
   } catch (err) {
-    console.error("❌ [ORDER ERROR]:", err);
+    console.error("❌ [ORDER ERROR]", err);
     res.status(500).json({
       success: false,
       error: err.message,
       stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     });
+  } finally {
+    await session.endSession();
+  }
+};
+
+export const processReturnExpiryTransactions = async () => {
+  const session = await mongoose.startSession();
+  try {
+    await session.withTransaction(async () => {
+      const now = new Date();
+
+      // Fetch all journal transactions with returnExpiryDate passed but not yet processed
+      const expiredTransactions = await TransactionModel.find({
+        type: "journal",
+        returnExpiryDate: { $lte: now },
+        expiryReached: false,
+      }).session(session);
+
+      console.log(`⏰ [CRON] Found ${expiredTransactions.length} expired transactions`);
+
+      for (const txn of expiredTransactions) {
+        console.log(`🔹 Processing transaction for order: ${txn.orderId}`);
+
+        // Fetch rules for "commission cleared → debit" and "commission revenue → credit"
+        const rules = await BreakupRuleModel.find({
+          transactionType: "Commission Confirmed",
+        }).session(session);
+
+        const allLines = [];
+
+        for (const rule of rules) {
+          for (const split of rule.splits || []) {
+            const baseValue = safeNumber(txn.amount); // For simplicity; adapt as needed
+
+            const instance = await resolveOrCreateInstance(split, session);
+
+            // Apply to ledger
+            await updateBalance(instance, baseValue, split.debitOrCredit, session);
+            await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
+
+            allLines.push({
+              instanceId: instance._id,
+              summaryId: split.summaryId,
+              definitionId: split.definitionId,
+              debitOrCredit: split.debitOrCredit,
+              amount: baseValue,
+              description: split.componentName,
+              isReflection: false,
+            });
+          }
+        }
+
+        // Update transaction
+        txn.lines.push(...allLines);
+        txn.expiryReached = true;
+        await txn.save({ session });
+
+        console.log(`✅ Transaction updated and expiry marked for order ${txn.orderId}`);
+      }
+    });
+  } catch (err) {
+    console.error("❌ [CRON ERROR]", err);
   } finally {
     await session.endSession();
   }
