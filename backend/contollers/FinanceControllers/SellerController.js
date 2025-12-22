@@ -24,7 +24,50 @@ const callPhpApi = async (endpoint, method = "GET", data = null, params = {}) =>
   }
 };
 
-// 🧠 Helper function
+// ✅ Ensure seller exists (used by orders)
+export const ensureSellerExists = async (businessSellerId) => {
+  let seller = await Seller.findOne({ businessSellerId });
+
+  if (!seller) {
+    console.log(`[INFO] Seller ${businessSellerId} not found. Fetching from Business API...`);
+
+    // 🧠 Convert to numeric ID if needed
+    const numericId = /^\d+$/.test(businessSellerId)
+      ? businessSellerId
+      : businessSellerId.replace(/\D/g, ""); // remove non-digits
+
+    const response =
+      await axios.get(`${process.env.BUSINESS_API_BASE}/seller/single_seller/${numericId}`)
+        .catch(() =>
+          axios.get(`https://offersberries.com/api/v2/seller/single_seller/${numericId}`)
+        );
+
+    const businessSeller = response.data?.data;
+
+    if (!businessSeller || !businessSeller.id) {
+      throw new Error("Seller not found on business side");
+    }
+
+    seller = await Seller.create({
+      businessSellerId: businessSeller.id,
+      name: `${businessSeller.f_name} ${businessSeller.l_name}`.trim(),
+      email: businessSeller.email ?? null,
+      phone: businessSeller.phone ?? null,
+      totalOrders: 0,
+      totalPending: 0,
+      totalPaid: 0,
+      currentBalance: 0,
+      lastPaymentDate: null,
+      lastUpdated: new Date(),
+      lastSyncedAt: new Date(),
+    });
+
+    console.log(`[INFO] ✅ Seller ${seller.businessSellerId} created locally.`);
+  }
+
+  return seller;
+};
+
 export const syncSellers = async () => {
   console.log("[SYNC] Syncing sellers...");
 
@@ -133,50 +176,6 @@ export const getSingleSeller = async (req, res) => {
   }
 };
 
-// ✅ Ensure seller exists (used by orders)
-export const ensureSellerExists = async (businessSellerId) => {
-  let seller = await Seller.findOne({ businessSellerId });
-
-  if (!seller) {
-    console.log(`[INFO] Seller ${businessSellerId} not found. Fetching from Business API...`);
-
-    // 🧠 Convert to numeric ID if needed
-    const numericId = /^\d+$/.test(businessSellerId)
-      ? businessSellerId
-      : businessSellerId.replace(/\D/g, ""); // remove non-digits
-
-    const response =
-      await axios.get(`${process.env.BUSINESS_API_BASE}/seller/single_seller/${numericId}`)
-        .catch(() =>
-          axios.get(`https://offersberries.com/api/v2/seller/single_seller/${numericId}`)
-        );
-
-    const businessSeller = response.data?.data;
-
-    if (!businessSeller || !businessSeller.id) {
-      throw new Error("Seller not found on business side");
-    }
-
-    seller = await Seller.create({
-      businessSellerId: businessSeller.id,
-      name: `${businessSeller.f_name} ${businessSeller.l_name}`.trim(),
-      email: businessSeller.email ?? null,
-      phone: businessSeller.phone ?? null,
-      totalOrders: 0,
-      totalPending: 0,
-      totalPaid: 0,
-      currentBalance: 0,
-      lastPaymentDate: null,
-      lastUpdated: new Date(),
-      lastSyncedAt: new Date(),
-    });
-
-    console.log(`[INFO] ✅ Seller ${seller.businessSellerId} created locally.`);
-  }
-
-  return seller;
-};
-
 export const approveSeller = async (req, res) => {
   try {
     const { sellerId } = req.params;
@@ -265,4 +264,3 @@ export const suspendSeller = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-

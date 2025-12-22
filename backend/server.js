@@ -25,6 +25,9 @@ import sellerRoutes from "./Routes/financeRoutes/SellerRoutes.js";
 // Bussiness operation routes
 import CycleRouter from "./Routes/BussinessOperationRoutes/cyclesRoutes.js";
 
+// cron jobs:
+import cronRouter from "./middlewares/cronMiddleware.js";
+
 dotenv.config();
 const app = express();
 
@@ -70,7 +73,8 @@ app.use("/api/statements", AccountStatementRouter);
 app.use("/api/sellers", sellerRoutes);
 
 // bussiness operation routes can be added here..
-app.use("/api/cycles", CycleRouter);
+app.use("/api/cycles", CycleRouter)
+app.use("/api/cron",cronRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

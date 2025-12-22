@@ -258,7 +258,7 @@ export const createOrderWithTransaction = async (req, res) => {
         buyerId,
         sellerId,
         orderId,
-        deliveredAt, // optional (can be null for now)
+        deliveredAt, // optional
       } = req.body;
 
       if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId) {
@@ -277,7 +277,18 @@ export const createOrderWithTransaction = async (req, res) => {
       // -----------------------------
       // ENSURE SELLER
       // -----------------------------
-      const seller = await ensureSellerExists(sellerId);
+      let seller;
+      try {
+        seller = await ensureSellerExists(sellerId);
+      } catch (err) {
+        console.error("❌ [SELLER ERROR]", {
+          message: err.message,
+          stack: err.stack,
+          response: err.response?.data || null,
+          status: err.response?.status || null,
+        });
+        throw new Error(`Failed to ensure seller: ${err.message}`);
+      }
 
       // -----------------------------
       // LOAD RULES
@@ -308,7 +319,18 @@ export const createOrderWithTransaction = async (req, res) => {
           const baseValue = computeValue(orderAmount, split);
 
           // MAIN LINE
-          const mainInstance = await resolveOrCreateInstance(split, session);
+          let mainInstance;
+          try {
+            mainInstance = await resolveOrCreateInstance(split, session);
+          } catch (err) {
+            console.error("❌ [INSTANCE ERROR]", {
+              split,
+              message: err.message,
+              stack: err.stack,
+              response: err.response?.data || null,
+            });
+            throw new Error(`Failed to resolve/create instance for ${split.componentName}`);
+          }
 
           await updateBalance(mainInstance, baseValue, split.debitOrCredit, session);
           await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
@@ -334,7 +356,18 @@ export const createOrderWithTransaction = async (req, res) => {
           let splitCredit = mainLine.debitOrCredit === "credit" ? baseValue : 0;
 
           for (const mirror of split.mirrors || []) {
-            const mirrorInstance = await resolveOrCreateInstance(mirror, session);
+            let mirrorInstance;
+            try {
+              mirrorInstance = await resolveOrCreateInstance(mirror, session);
+            } catch (err) {
+              console.error("❌ [MIRROR INSTANCE ERROR]", {
+                mirror,
+                message: err.message,
+                stack: err.stack,
+                response: err.response?.data || null,
+              });
+              throw new Error(`Failed to resolve/create mirror instance for ${mirror.componentName}`);
+            }
 
             const mirrorLine = {
               componentName: `${split.componentName} (mirror)`,
@@ -382,7 +415,7 @@ export const createOrderWithTransaction = async (req, res) => {
       const isBalanced = Math.abs(postingTotals.debit - postingTotals.credit) < 0.01;
 
       // -----------------------------
-      // BREAKUP FILES (UNCHANGED)
+      // BREAKUP FILES
       // -----------------------------
       const realLines = allLines.filter(l => !l._isMirror);
 
@@ -401,7 +434,7 @@ export const createOrderWithTransaction = async (req, res) => {
       }], { session });
 
       // -----------------------------
-      // TRANSACTION SAVE (WITH EXPIRY DATA)
+      // TRANSACTION SAVE
       // -----------------------------
       const transactionLinesForSave = allLines.map(l => ({
         instanceId: l.instanceId,
@@ -418,8 +451,8 @@ export const createOrderWithTransaction = async (req, res) => {
         orderId,
         orderDeliveredAt: deliveredAt || null,
         returnExpiryDate,
-        expiryReached: false,          // 🔑 for cron
-        type: "journal",               // 🔑 orders are journals
+        expiryReached: false,
+        type: "journal",
         amount: mongoose.Types.Decimal128.fromString(String(orderAmount)),
         lines: transactionLinesForSave,
         totalDebits: postingTotals.debit,
@@ -434,7 +467,17 @@ export const createOrderWithTransaction = async (req, res) => {
         .filter(l => l.category === "receivable")
         .reduce((s, l) => s + safeNumber(l.amount), 0);
 
-      await updateSellerFinancials(sellerId, sellerReceivable, { type: "new" }, session);
+      try {
+        await updateSellerFinancials(sellerId, sellerReceivable, { type: "new" }, session);
+      } catch (err) {
+        console.error("❌ [SELLER FINANCIAL ERROR]", {
+          sellerId,
+          message: err.message,
+          stack: err.stack,
+          response: err.response?.data || null,
+        });
+        throw err;
+      }
 
       res.status(200).json({
         success: true,
@@ -443,7 +486,12 @@ export const createOrderWithTransaction = async (req, res) => {
       });
     });
   } catch (err) {
-    console.error("❌ [ORDER ERROR]", err);
+    console.error("❌ [ORDER ERROR]", {
+      message: err.message,
+      stack: err.stack,
+      response: err.response?.data || null,
+      status: err.response?.status || null,
+    });
     res.status(500).json({
       success: false,
       error: err.message,

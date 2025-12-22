@@ -35,10 +35,16 @@ router.post("/salary/:employeeId", SalaryTransactionController);
 // 🔹 Order Transactions
 // --------------------
 
+// // Create + process order with breakups & transaction
+// router.post("/order-process", verifyPartner,createOrderWithTransaction);
+
+// // the transaction for - order return..
+// router.post("/return-process", verifyPartner,returnOrderWithTransaction);
+
 // Create + process order with breakups & transaction
-router.post("/order-process", verifyPartner,createOrderWithTransaction);
+router.post("/order-process", createOrderWithTransaction);
 
 // the transaction for - order return..
-router.post("/return-process", verifyPartner,returnOrderWithTransaction);
-
+router.post("/return-process", returnOrderWithTransaction);
 export default router;
+
