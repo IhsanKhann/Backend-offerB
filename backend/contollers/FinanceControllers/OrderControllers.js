@@ -789,68 +789,148 @@ export const processReturnExpiryTransactions = async (forceProcess = false) => {
   const session = await mongoose.startSession();
 
   try {
-    console.log("Hitting the api..")
+    console.log("🕒 [CRON] Return-expiry & commission settlement started");
+
     await session.withTransaction(async () => {
       const now = new Date();
 
-      // ✅ Query transactions: either expired or forced
+      /* ======================================================
+       * 1. FIND ELIGIBLE ORDER JOURNALS
+       * ====================================================== */
       const query = {
         type: "journal",
         "orderDetails.expiryReached": false,
       };
+
       if (!forceProcess) {
         query["orderDetails.returnExpiryDate"] = { $lte: now };
       }
 
-      const expiredTransactions = await TransactionModel.find(query).session(session);
-      console.log(`⏰ [CRON] Found ${expiredTransactions.length} transactions to process`);
+      const orderTxns = await TransactionModel.find(query).session(session);
 
-      for (const txn of expiredTransactions) {
-        console.log(`🔹 Processing transaction for order: ${txn.orderDetails.orderId}`);
+      if (!orderTxns.length) {
+        console.log("ℹ️ [CRON] No eligible transactions");
+        return;
+      }
 
-        // Load "Commission Confirmed" rules
-        const rules = await BreakupRuleModel.find({ transactionType: "Commission Confirmed" }).session(session);
-        const allLines = [];
-        const commissionAmount = safeNumber(txn.commissionAmount || txn.orderDetails.commissionAmount || 0);
+      console.log(`⏰ [CRON] Found ${orderTxns.length} transactions`);
 
-        for (const rule of rules) {
-          for (const split of rule.splits || []) {
-            let baseValue = 0;
+      /* ======================================================
+       * 2. COLLECT COMMISSION
+       * ====================================================== */
+      let totalCommission = 0;
+      const sourceOrderIds = [];
 
-            // Compute base value according to split type
-            if (split.type === "commission" || split.type === "income") {
-              baseValue = parseFloat(((commissionAmount * (split.percentage || 0)) / 100).toFixed(2));
-            } else {
-              baseValue = safeNumber(txn.amount);
-            }
+      for (const txn of orderTxns) {
+        const commission = safeNumber(txn.commissionAmount);
+        if (commission > 0) {
+          totalCommission += commission;
+          sourceOrderIds.push(txn.orderDetails?.orderId);
+        }
 
-            // Ensure accounting instance exists
-            const instance = await resolveOrCreateInstance(split, session);
+        txn.orderDetails.expiryReached = true;
+        txn.orderDetails.readyForRetainedEarning = true;
+        await txn.save({ session });
+      }
 
-            // Update balances
-            await updateBalance(instance, baseValue, split.debitOrCredit, session);
-            await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
+      if (totalCommission <= 0) {
+        console.log("⚠️ [CRON] No commission to settle");
+        return;
+      }
 
-            // Add to transaction lines
-            allLines.push({
-              instanceId: instance._id,
-              summaryId: split.summaryId,
-              definitionId: split.definitionId,
-              debitOrCredit: split.debitOrCredit,
-              amount: baseValue,
-              description: split.componentName,
+      console.log(`💰 [CRON] Total commission collected: ${totalCommission}`);
+
+      /* ======================================================
+       * 3. LOAD COMMISSION CONFIRMED RULES
+       * ====================================================== */
+      const rules = await BreakupRuleModel.find({
+        transactionType: "Commission Confirmed",
+      }).session(session);
+
+      if (!rules.length) {
+        throw new Error("No Commission Confirmed rules found");
+      }
+
+      /* ======================================================
+       * 4. APPLY RULES ON AGGREGATED COMMISSION
+       * ====================================================== */
+      const settlementLines = [];
+
+      for (const rule of rules) {
+        for (const split of rule.splits || []) {
+          // base value comes ONLY from aggregated commission
+          let baseValue = computeValue(totalCommission, split);
+          baseValue = safeNumber(baseValue);
+
+          if (baseValue <= 0) continue;
+
+          /* ---------------- Instance ---------------- */
+          const instance = await resolveOrCreateInstance(split, session);
+
+          /* ---------------- Ledger Updates ---------------- */
+          await updateBalance(instance, baseValue, split.debitOrCredit, session);
+          await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
+
+          settlementLines.push({
+            instanceId: instance._id,
+            summaryId: split.summaryId,
+            definitionId: split.definitionId,
+            debitOrCredit: split.debitOrCredit,
+            amount: mongoose.Types.Decimal128.fromString(baseValue.toFixed(2)),
+            description: split.componentName,
+            isReflection: false,
+          });
+
+          /* ---------------- Mirrors ---------------- */
+          for (const mirror of split.mirrors || []) {
+            const mirrorInstance = await resolveOrCreateInstance(mirror, session);
+
+            await updateBalance(
+              mirrorInstance,
+              baseValue,
+              mirror.debitOrCredit,
+              session
+            );
+
+            await updateSummaryBalance(
+              mirror.summaryId,
+              baseValue,
+              mirror.debitOrCredit,
+              session
+            );
+
+            settlementLines.push({
+              instanceId: mirrorInstance._id,
+              summaryId: mirror.summaryId,
+              definitionId: mirror.definitionId,
+              debitOrCredit: mirror.debitOrCredit,
+              amount: mongoose.Types.Decimal128.fromString(baseValue.toFixed(2)),
+              description: `${split.componentName} (mirror)`,
               isReflection: false,
             });
           }
         }
-
-        // Commit lines and mark transaction as processed
-        txn.lines.push(...allLines);
-        txn.orderDetails.expiryReached = true;
-        await txn.save({ session });
-
-        console.log(`✅ Transaction updated and expiry marked for order ${txn.orderDetails.orderId}`);
       }
+
+      /* ======================================================
+       * 5. CREATE SETTLEMENT JOURNAL
+       * ====================================================== */
+      await TransactionModel.create(
+        [{
+          description: `Commission Confirmed Settlement`,
+          type: "journal",
+          amount: mongoose.Types.Decimal128.fromString(totalCommission.toFixed(2)),
+          status: "posted",
+          lines: settlementLines,
+          metadata: {
+            sourceOrders: sourceOrderIds,
+            settlementType: "commission-confirmed",
+          },
+        }],
+        { session }
+      );
+
+      console.log("✅ [CRON] Commission settlement journal created");
     });
   } catch (err) {
     console.error("❌ [CRON ERROR]", err);
