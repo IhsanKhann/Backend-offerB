@@ -25,12 +25,7 @@ import sellerRoutes from "./Routes/financeRoutes/SellerRoutes.js";
 // Bussiness operation routes
 import CycleRouter from "./Routes/BussinessOperationRoutes/cyclesRoutes.js";
 
-<<<<<<< HEAD
-// cron jobs:
-import cronRouter from "./middlewares/cronMiddleware.js";
-=======
 import CronRouter from "./middlewares/cronMiddleware.js";
->>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
 
 dotenv.config();
 const app = express();
@@ -78,7 +73,6 @@ app.use("/api/sellers", sellerRoutes);
 
 // bussiness operation routes can be added here..
 app.use("/api/cycles", CycleRouter)
-app.use("/api/cron",cronRouter);
 
 app.use("/api/cron", CronRouter);
 
