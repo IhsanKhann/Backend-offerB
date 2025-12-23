@@ -71,22 +71,66 @@ export const ensureSellerExists = async (businessSellerId) => {
 export const syncSellers = async () => {
   console.log("[SYNC] Syncing sellers...");
 
-  const response = await axios.get(`${process.env.BUSINESS_API_BASE}/seller/all_sellers`) || await axios.get("https://offersberries.com/api/v2/seller/all_sellers");
+  let response;
 
-  const businessSellers = response.data.data || [];
+  try {
+    console.log("[SYNC] Trying BUSINESS_API_BASE...");
+    response = await axios.get(
+      `${process.env.BUSINESS_API_BASE}/seller/all_sellers`,
+      { timeout: 8000 }
+    );
+  } catch (err) {
+    console.error("⚠️ Primary seller API failed:", err.message);
+
+    try {
+      console.log("[SYNC] Falling back to offersberries API...");
+      response = await axios.get(
+        "https://offersberries.com/api/v2/seller/all_sellers",
+        { timeout: 8000 }
+      );
+    } catch (fallbackErr) {
+      console.error("❌ Fallback seller API failed:", fallbackErr.message);
+      throw new Error("All seller APIs failed");
+    }
+  }
+
+  /* -------------------------------------------------
+   * RESPONSE VALIDATION (CRITICAL)
+   * ------------------------------------------------- */
+  if (!response?.data) {
+    throw new Error("Seller API returned empty response");
+  }
+
+  const businessSellers = response.data.data;
+
+  if (!Array.isArray(businessSellers)) {
+    console.error("❌ Unexpected API response:", response.data);
+    throw new Error("Seller API response format invalid");
+  }
+
+  console.log(`[SYNC] Received ${businessSellers.length} sellers`);
 
   let newCount = 0;
   let updatedCount = 0;
 
   for (const s of businessSellers) {
+    if (!s?.id) {
+      console.warn("⚠️ Skipping invalid seller:", s);
+      continue;
+    }
+
     const result = await Seller.updateOne(
       { businessSellerId: s.id },
       {
         $set: {
-          name: `${s.f_name} ${s.l_name}`.trim(),
+          businessSellerId: s.id,
+          name: `${s.f_name ?? ""} ${s.l_name ?? ""}`.trim(),
           email: s.email ?? null,
           phone: s.phone ?? null,
           lastSyncedAt: new Date(),
+        },
+        $setOnInsert: {
+          createdAt: new Date(),
         },
       },
       { upsert: true }
@@ -96,7 +140,9 @@ export const syncSellers = async () => {
     else updatedCount++;
   }
 
-  console.log(`[SYNC] Done. New: ${newCount}, Updated: ${updatedCount}, Total: ${businessSellers.length}`);
+  console.log(
+    `[SYNC] Done. New: ${newCount}, Updated: ${updatedCount}, Total: ${businessSellers.length}`
+  );
 };
 
 // 🚀 Route handler

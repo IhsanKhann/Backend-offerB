@@ -42,9 +42,17 @@ router.post("/salary/:employeeId", SalaryTransactionController);
 // router.post("/return-process", verifyPartner,returnOrderWithTransaction);
 
 // Create + process order with breakups & transaction
+<<<<<<< HEAD
 router.post("/order-process", createOrderWithTransaction);
 
 // the transaction for - order return..
 router.post("/return-process", returnOrderWithTransaction);
+=======
+router.post("/order-process",createOrderWithTransaction);
+
+// the transaction for - order return..
+router.post("/return-process",returnOrderWithTransaction);
+
+>>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
 export default router;
 

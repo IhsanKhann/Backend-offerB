@@ -3,21 +3,21 @@ import mongoose from "mongoose";
 
 /* ---------------- Transaction Line ---------------- */
 const TransactionLineSchema = new mongoose.Schema({
-  instanceId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "SummaryFieldLineInstance",
-    required: true
-  },
-  summaryId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Summary",
-    required: true
-  },
-  definitionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "SummaryFieldLineDefinition",
-    required: true
-  },
+ instanceId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "SummaryFieldLineInstance",
+  required: false
+},
+summaryId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Summary",
+  required: false
+},
+definitionId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "SummaryFieldLineDefinition",
+  required: false
+},
   debitOrCredit: {
     type: String,
     enum: ["debit", "credit"],
@@ -25,7 +25,7 @@ const TransactionLineSchema = new mongoose.Schema({
   },
   amount: {
     type: mongoose.Schema.Types.Decimal128,
-    required: true
+    required: true,
   },
   description: String,
   isReflection: { type: Boolean, default: false }
@@ -33,18 +33,19 @@ const TransactionLineSchema = new mongoose.Schema({
 
 /* ---------------- Order / Commission Lifecycle ---------------- */
 const OrderDetailsSchema = new mongoose.Schema({
-  orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
-  orderDeliveredAt: Date,
+  orderId: { type: String, 
+    required: true,
+  },
+  businessOrderId: { type: String, index: true },
 
-  // Layer-2 (Return expiry → Commission eligible)
+  orderDeliveredAt: Date,
   returnExpiryDate: Date,
   expiryReached: { type: Boolean, default: false },
   readyForRetainedEarning: { type: Boolean, default: false },
 
-  // Layer-3 (Period lock)
   retainedLocked: { type: Boolean, default: false },
   retainedLockedAt: Date,
-  retainedPeriodKey: String
+  retainedPeriodKey: String,
 });
 
 /* ---------------- Expense Lifecycle ---------------- */
@@ -88,6 +89,18 @@ const TransactionSchema = new mongoose.Schema({
   // Modular lifecycles
   orderDetails: OrderDetailsSchema,
   expenseDetails: ExpenseDetailsSchema,
+
+  // for saving the commission line seperatley
+  commissionAmount: { type: mongoose.Schema.Types.Decimal128, default: 0 }, 
+  commissionDetails: [
+    {
+      componentName: String,
+      amount: mongoose.Schema.Types.Decimal128,
+      instanceId: mongoose.Schema.Types.ObjectId,
+      summaryId: mongoose.Schema.Types.ObjectId,
+      definitionId: mongoose.Schema.Types.ObjectId,
+    }
+  ],
 
   commissionReportId: {
   type: mongoose.Schema.Types.ObjectId,

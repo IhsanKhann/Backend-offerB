@@ -6,8 +6,22 @@ const TRANSACTION_TYPES = ['retail', 'wholesale', 'auction', 'service'];
 const ORDER_STATUSES = ['pending', 'paid', 'shipped', 'completed', 'cancelled'];
 
 const OrderSchema = new Schema({
-  seller: { type: Types.ObjectId, ref: 'Seller', required: true },
-  buyer: { type: Types.ObjectId, ref: 'Buyer', required: true },
+   businessSellerId: {
+    type: String,
+    required: true,
+    index: true,
+  },
+
+  businessBuyerId: {
+    type: String,
+    required: true,
+    index: true,
+  },
+
+  OrderId: {
+    type: String,
+    required: true,
+  },
   transaction_type: { type: String, enum: TRANSACTION_TYPES, required: true },
   order_total_amount: { type: Number, required: true },
   status: { type: String, enum: ORDER_STATUSES, default: 'pending' },

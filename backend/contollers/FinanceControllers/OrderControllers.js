@@ -247,33 +247,54 @@ const updateSummaryBalance = async (summaryIdentifier, value, debitOrCredit, ses
 
 const BUSINESS_API_BASE = process.env.BUSINESS_API_BASE;
 
+/**
+ * CONFIG: Change this whenever business rules change
+ * Example:
+ * 24  → 1 day
+ * 48  → 2 days
+ * 72  → 3 days
+ */
+const RETURN_EXPIRY_HOURS = 24;
+
 export const createOrderWithTransaction = async (req, res) => {
   const session = await mongoose.startSession();
 
   try {
     await session.withTransaction(async () => {
+
+      /* ======================================================
+       * 1. INPUT + VALIDATION
+       * ====================================================== */
       const {
+        orderId,
         orderAmount,
         orderType,
+<<<<<<< HEAD
         buyerId,
         sellerId,
         orderId,
         deliveredAt, // optional
+=======
+        businessBuyerId,
+        businessSellerId,
+        orderPlacedAt = new Date(),
+        returnWindowDays = 7,
+        metadata = {}
+>>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
       } = req.body;
 
-      if (!orderAmount || !orderType || !buyerId || !sellerId || !orderId) {
-        throw new Error("Missing required fields");
+      if (!orderId || !orderAmount || !orderType || !businessBuyerId || !businessSellerId) {
+        throw new Error("Missing required order fields");
       }
 
-      console.log(`🚀 [ORDER] Processing Order: ${orderId}`);
+      console.log(`🚀 [ORDER] ${orderId} | Seller ${businessSellerId}`);
 
-      // -----------------------------
-      // RETURN EXPIRY CALCULATION
-      // -----------------------------
-      const returnExpiryDate = deliveredAt
-        ? new Date(new Date(deliveredAt).getTime() + 24 * 60 * 60 * 1000)
-        : null;
+      /* ======================================================
+       * 2. ENSURE SELLER EXISTS
+       * ====================================================== */
+      const seller = await ensureSellerExists(businessSellerId, session);
 
+<<<<<<< HEAD
       // -----------------------------
       // ENSURE SELLER
       // -----------------------------
@@ -289,35 +310,63 @@ export const createOrderWithTransaction = async (req, res) => {
         });
         throw new Error(`Failed to ensure seller: ${err.message}`);
       }
+=======
+      /* ======================================================
+       * 3. CREATE ORDER
+       * ====================================================== */
+      const [order] = await Order.create(
+        [{
+          OrderId: orderId,
+          businessSellerId,
+          businessBuyerId,
+          transaction_type: orderType,
+          order_total_amount: orderAmount,
+          placed_at: orderPlacedAt,
+          items: metadata.items || []
+        }],
+        { session }
+      );
+>>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
 
-      // -----------------------------
-      // LOAD RULES
-      // -----------------------------
+      /* ======================================================
+       * 4. RETURN WINDOW
+       * ====================================================== */
+      const returnExpiryDate = new Date(orderPlacedAt);
+      returnExpiryDate.setDate(returnExpiryDate.getDate() + Number(returnWindowDays));
+
+      /* ======================================================
+       * 5. LOAD BREAKUP RULES
+       * ====================================================== */
       const ruleTypes =
         orderType === "auction"
           ? ["auction", "auctionTax", "auctionDeposit"]
           : [orderType, `${orderType}Tax`];
 
       const rules = await BreakupRuleModel.find({
-        transactionType: { $in: ruleTypes },
-      })
-        .session(session)
-        .lean();
+        transactionType: { $in: ruleTypes }
+      }).session(session).lean();
 
-      if (!rules?.length) {
-        throw new Error(`No BreakupRules found for type ${orderType}`);
+      if (!rules.length) {
+        throw new Error(`No breakup rules found for ${orderType}`);
       }
 
-      // -----------------------------
-      // PROCESS RULES
-      // -----------------------------
+      /* ======================================================
+       * 6. ACCOUNTING BUCKETS
+       * ====================================================== */
       const allLines = [];
       const postingLines = [];
 
+      /* ======================================================
+       * 7. APPLY RULES & SPLITS
+       * ====================================================== */
+      let commissionAmount = 0;
+      let commissionDetails = []; // ✅ FIXED (ARRAY)
+      const appliedCommissionDefinitions = new Set();
+
       for (const rule of rules) {
         for (const split of rule.splits || []) {
-          const baseValue = computeValue(orderAmount, split);
 
+<<<<<<< HEAD
           // MAIN LINE
           let mainInstance;
           try {
@@ -331,7 +380,54 @@ export const createOrderWithTransaction = async (req, res) => {
             });
             throw new Error(`Failed to resolve/create instance for ${split.componentName}`);
           }
+=======
+          let baseValue;
 
+          if (split.type === "commission") {
+
+            const defKey = String(split.definitionId);
+
+            if (appliedCommissionDefinitions.has(defKey)) {
+              continue; // skip only this exact split if already applied
+            }
+
+            const pct = split.percentage || 0;
+            baseValue = Number(((orderAmount * pct) / 100).toFixed(2));
+
+            commissionAmount += baseValue;
+            appliedCommissionDefinitions.add(defKey);
+
+            console.log("COMMISSION SPLIT APPLIED:", {
+              rule: rule.transactionType,
+              component: split.componentName,
+              amount: baseValue
+            });
+          } else {
+            baseValue = computeValue(orderAmount, split);
+          }
+
+          /* ---------------------------
+           * 7.2 Resolve Ledger Instance
+           * --------------------------- */
+          const mainInstance = await resolveOrCreateInstance(split, session);
+>>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
+
+          /* ---------------------------
+           * 7.3 Commission Metadata
+           * --------------------------- */
+          if (split.type === "commission") {
+            commissionDetails.push({
+              componentName: split.componentName,
+              amount: mongoose.Types.Decimal128.fromString(String(baseValue)),
+              instanceId: mainInstance._id,
+              summaryId: split.summaryId,
+              definitionId: split.definitionId,
+            });
+          }
+
+          /* ---------------------------
+           * 7.4 Main Ledger Posting
+           * --------------------------- */
           await updateBalance(mainInstance, baseValue, split.debitOrCredit, session);
           await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
 
@@ -345,15 +441,17 @@ export const createOrderWithTransaction = async (req, res) => {
             definitionId: split.definitionId,
             ruleType: rule.transactionType,
             isReflectOnly: false,
-            _isMirror: false,
+            _isMirror: false
           };
 
           allLines.push(mainLine);
           postingLines.push(mainLine);
 
-          // MIRRORS
-          let splitDebit = mainLine.debitOrCredit === "debit" ? baseValue : 0;
-          let splitCredit = mainLine.debitOrCredit === "credit" ? baseValue : 0;
+          /* ---------------------------
+           * 7.5 MIRRORS / REFLECTIONS
+           * --------------------------- */
+          let splitDebit = split.debitOrCredit === "debit" ? baseValue : 0;
+          let splitCredit = split.debitOrCredit === "credit" ? baseValue : 0;
 
           for (const mirror of split.mirrors || []) {
             let mirrorInstance;
@@ -379,8 +477,10 @@ export const createOrderWithTransaction = async (req, res) => {
               definitionId: mirror.definitionId,
               ruleType: rule.transactionType,
               isReflectOnly: !!mirror.isReflectOnly,
-              _isMirror: true,
+              _isMirror: true
             };
+
+            allLines.push(mirrorLine);
 
             if (!mirror.isReflectOnly) {
               await updateBalance(mirrorInstance, baseValue, mirror.debitOrCredit, session);
@@ -390,49 +490,59 @@ export const createOrderWithTransaction = async (req, res) => {
               if (mirror.debitOrCredit === "debit") splitDebit += baseValue;
               if (mirror.debitOrCredit === "credit") splitCredit += baseValue;
             }
-
-            allLines.push(mirrorLine);
           }
 
+          /* ---------------------------
+           * 7.6 Split Balance Check
+           * --------------------------- */
           if (Math.abs(splitDebit - splitCredit) > 0.01) {
-            throw new Error(`Split imbalance in ${split.componentName}`);
+            throw new Error(`Split imbalance: ${split.componentName}`);
           }
         }
       }
 
-      // -----------------------------
-      // GLOBAL BALANCE CHECK
-      // -----------------------------
-      const postingTotals = postingLines.reduce(
+      /* ======================================================
+       * 8. GLOBAL LEDGER BALANCE CHECK
+       * ====================================================== */
+      const totals = postingLines.reduce(
         (acc, l) => {
-          if (l.debitOrCredit === "debit") acc.debit += safeNumber(l.amount);
-          else acc.credit += safeNumber(l.amount);
+          acc[l.debitOrCredit] += Number(l.amount);
           return acc;
         },
         { debit: 0, credit: 0 }
       );
 
-      const isBalanced = Math.abs(postingTotals.debit - postingTotals.credit) < 0.01;
+      if (Math.abs(totals.debit - totals.credit) > 0.01) {
+        throw new Error("Ledger imbalance detected");
+      }
 
+<<<<<<< HEAD
       // -----------------------------
       // BREAKUP FILES
       // -----------------------------
+=======
+      /* ======================================================
+       * 9. BREAKUP FILES
+       * ====================================================== */
+>>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
       const realLines = allLines.filter(l => !l._isMirror);
 
-      const [parentBreakup] = await BreakupFileModel.create([{
-        orderId,
-        orderType,
-        orderAmount,
-        actualAmount: orderAmount,
-        buyerId,
-        sellerId,
-        breakupType: "parent",
-        parentBreakupId: null,
-        lines: realLines,
-        totalDebit: postingTotals.debit,
-        totalCredit: postingTotals.credit,
-      }], { session });
+      const [parentBreakup] = await BreakupFileModel.create(
+        [{
+          orderId,
+          orderType,
+          orderAmount,
+          buyerId: businessBuyerId,
+          sellerId: businessSellerId,
+          breakupType: "parent",
+          lines: realLines,
+          totalDebit: totals.debit,
+          totalCredit: totals.credit
+        }],
+        { session }
+      );
 
+<<<<<<< HEAD
       // -----------------------------
       // TRANSACTION SAVE
       // -----------------------------
@@ -459,14 +569,71 @@ export const createOrderWithTransaction = async (req, res) => {
         totalCredits: postingTotals.credit,
         isBalanced,
       }], { session });
+=======
+      const sellerLines = realLines.filter(l =>
+        ["receivable", "commission", "income", "tax"].includes(l.category)
+      );
 
-      // -----------------------------
-      // SELLER FINANCIAL UPDATE
-      // -----------------------------
-      const sellerReceivable = realLines
+      const [sellerBreakup] = await BreakupFileModel.create(
+        [{
+          orderId,
+          orderType,
+          orderAmount,
+          buyerId: businessBuyerId,
+          sellerId: businessSellerId,
+          breakupType: "seller",
+          parentBreakupId: parentBreakup._id,
+          lines: sellerLines
+        }],
+        { session }
+      );
+>>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
+
+      /* ======================================================
+       * 10. TRANSACTION (JOURNAL)
+       * ====================================================== */
+      await TransactionModel.create(
+        [{
+          description: `Journal for Order ${orderId}`,
+          type: "journal",
+          totalDebits: mongoose.Types.Decimal128.fromString(String(totals.debit)),
+          totalCredits: mongoose.Types.Decimal128.fromString(String(totals.credit)),
+              
+          amount: mongoose.Types.Decimal128.fromString(String(orderAmount)),
+          
+          isBalanced: true,
+          lines: allLines.map(l => ({
+            instanceId: l.instanceId,
+            summaryId: l.summaryId,
+            definitionId: l.definitionId,
+            debitOrCredit: l.debitOrCredit,
+            amount: mongoose.Types.Decimal128.fromString(String(l.amount)),
+            description: l.componentName,
+            isReflection: !!l.isReflectOnly
+          })),
+          commissionAmount: mongoose.Types.Decimal128.fromString(
+            commissionAmount.toFixed(2)
+          ),
+          commissionDetails,
+          orderDetails: {
+            orderId,
+            orderDeliveredAt: orderPlacedAt,
+            returnExpiryDate,
+            expiryReached: false,
+            readyForRetainedEarning: false
+          }
+        }],
+        { session }
+      );
+
+      /* ======================================================
+       * 11. SELLER FINANCIAL UPDATE
+       * ====================================================== */
+      const sellerReceivable = sellerLines
         .filter(l => l.category === "receivable")
-        .reduce((s, l) => s + safeNumber(l.amount), 0);
+        .reduce((sum, l) => sum + Number(l.amount), 0);
 
+<<<<<<< HEAD
       try {
         await updateSellerFinancials(sellerId, sellerReceivable, { type: "new" }, session);
       } catch (err) {
@@ -478,65 +645,193 @@ export const createOrderWithTransaction = async (req, res) => {
         });
         throw err;
       }
+=======
+      await updateSellerFinancials(
+        businessSellerId,
+        sellerReceivable,
+        { type: "new", orderId },
+        session
+      );
+>>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
 
+      /* ======================================================
+       * 12. RESPONSE
+       * ====================================================== */
       res.status(200).json({
         success: true,
-        message: "Order created with transaction & return expiry",
-        data: { parentBreakup },
+        message: "Order processed successfully",
+        data: {
+          order,
+          parentBreakup,
+          sellerBreakup,
+          returnExpiryDate
+        }
       });
     });
   } catch (err) {
+<<<<<<< HEAD
     console.error("❌ [ORDER ERROR]", {
       message: err.message,
       stack: err.stack,
       response: err.response?.data || null,
       status: err.response?.status || null,
     });
+=======
+    console.error("❌ ORDER ERROR:", err);
+>>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
     res.status(500).json({
       success: false,
       error: err.message,
-      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined
     });
   } finally {
     await session.endSession();
   }
 };
 
-export const processReturnExpiryTransactions = async () => {
+// export const processReturnExpiryTransactions = async () => {
+//   const session = await mongoose.startSession();
+//   try {
+//     await session.withTransaction(async () => {
+//       const now = new Date();
+
+//       // 1️⃣ Find expired transactions that haven't been processed for return expiry
+//       const expiredTransactions = await TransactionModel.find({
+//         type: "journal",
+//         "orderDetails.returnExpiryDate": { $lte: now },
+//         "orderDetails.expiryReached": false,
+//       }).session(session);
+
+//       console.log(`⏰ [CRON] Found ${expiredTransactions.length} expired transactions`);
+
+//       for (const txn of expiredTransactions) {
+//         console.log(`🔹 Processing transaction for order: ${txn.orderDetails.orderId}`);
+
+//         // 2️⃣ Fetch the Commission Confirmed rules
+//         const rules = await BreakupRuleModel.find({
+//           transactionType: "Commission Confirmed",
+//         }).session(session);
+
+//         const allLines = [];
+
+//         // 3️⃣ Apply rules on the commissionAmount instead of orderAmount
+//         const commissionAmount = safeNumber(txn.commissionAmount || 0);
+
+//         if (commissionAmount <= 0) {
+//           console.log(`⚠️ No commission to process for order ${txn.orderDetails.orderId}`);
+//           txn.orderDetails.expiryReached = true;
+//           await txn.save({ session });
+//           continue;
+//         }
+
+//         for (const rule of rules) {
+//           for (const split of rule.splits || []) {
+//             // Use the commissionAmount as the base for all splits
+//             const baseValue = parseFloat(((commissionAmount * (split.percentage || 0)) / 100).toFixed(2));
+
+//             // 4️⃣ Resolve ledger instance
+//             const instance = await resolveOrCreateInstance(split, session);
+
+//             // 5️⃣ Update balances
+//             await updateBalance(instance, baseValue, split.debitOrCredit, session);
+//             await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
+
+//             // 6️⃣ Store line for the transaction
+//             allLines.push({
+//               instanceId: instance._id,
+//               summaryId: split.summaryId,
+//               definitionId: split.definitionId,
+//               debitOrCredit: split.debitOrCredit,
+//               amount: baseValue,
+//               description: split.componentName,
+//               isReflection: false,
+//             });
+
+//             // 7️⃣ Apply mirror lines if any
+//             for (const mirror of split.mirrors || []) {
+//               const mirrorInstance = await resolveOrCreateInstance(mirror, session);
+
+//               const mirrorValue = baseValue; // same as baseValue
+//               await updateBalance(mirrorInstance, mirrorValue, mirror.debitOrCredit, session);
+//               await updateSummaryBalance(mirror.summaryId, mirrorValue, mirror.debitOrCredit, session);
+
+//               allLines.push({
+//                 instanceId: mirrorInstance._id,
+//                 summaryId: mirror.summaryId,
+//                 definitionId: mirror.definitionId,
+//                 debitOrCredit: mirror.debitOrCredit,
+//                 amount: mirrorValue,
+//                 description: `${split.componentName} (mirror)`,
+//                 isReflection: !!mirror.isReflectOnly,
+//               });
+//             }
+//           }
+//         }
+
+//         // 8️⃣ Append lines and mark transaction as processed
+//         txn.lines.push(...allLines);
+//         txn.orderDetails.expiryReached = true;
+//         await txn.save({ session });
+
+//         console.log(`✅ Transaction updated and expiry marked for order ${txn.orderDetails.orderId}`);
+//       }
+//     });
+//   } catch (err) {
+//     console.error("❌ [CRON ERROR]", err);
+//   } finally {
+//     await session.endSession();
+//   }
+// };
+
+// for testing:
+
+export const processReturnExpiryTransactions = async (forceProcess = false) => {
   const session = await mongoose.startSession();
+
   try {
+    console.log("Hitting the api..")
     await session.withTransaction(async () => {
       const now = new Date();
 
-      // Fetch all journal transactions with returnExpiryDate passed but not yet processed
-      const expiredTransactions = await TransactionModel.find({
+      // ✅ Query transactions: either expired or forced
+      const query = {
         type: "journal",
-        returnExpiryDate: { $lte: now },
-        expiryReached: false,
-      }).session(session);
+        "orderDetails.expiryReached": false,
+      };
+      if (!forceProcess) {
+        query["orderDetails.returnExpiryDate"] = { $lte: now };
+      }
 
-      console.log(`⏰ [CRON] Found ${expiredTransactions.length} expired transactions`);
+      const expiredTransactions = await TransactionModel.find(query).session(session);
+      console.log(`⏰ [CRON] Found ${expiredTransactions.length} transactions to process`);
 
       for (const txn of expiredTransactions) {
-        console.log(`🔹 Processing transaction for order: ${txn.orderId}`);
+        console.log(`🔹 Processing transaction for order: ${txn.orderDetails.orderId}`);
 
-        // Fetch rules for "commission cleared → debit" and "commission revenue → credit"
-        const rules = await BreakupRuleModel.find({
-          transactionType: "Commission Confirmed",
-        }).session(session);
-
+        // Load "Commission Confirmed" rules
+        const rules = await BreakupRuleModel.find({ transactionType: "Commission Confirmed" }).session(session);
         const allLines = [];
+        const commissionAmount = safeNumber(txn.commissionAmount || txn.orderDetails.commissionAmount || 0);
 
         for (const rule of rules) {
           for (const split of rule.splits || []) {
-            const baseValue = safeNumber(txn.amount); // For simplicity; adapt as needed
+            let baseValue = 0;
 
+            // Compute base value according to split type
+            if (split.type === "commission" || split.type === "income") {
+              baseValue = parseFloat(((commissionAmount * (split.percentage || 0)) / 100).toFixed(2));
+            } else {
+              baseValue = safeNumber(txn.amount);
+            }
+
+            // Ensure accounting instance exists
             const instance = await resolveOrCreateInstance(split, session);
 
-            // Apply to ledger
+            // Update balances
             await updateBalance(instance, baseValue, split.debitOrCredit, session);
             await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
 
+            // Add to transaction lines
             allLines.push({
               instanceId: instance._id,
               summaryId: split.summaryId,
@@ -549,12 +844,12 @@ export const processReturnExpiryTransactions = async () => {
           }
         }
 
-        // Update transaction
+        // Commit lines and mark transaction as processed
         txn.lines.push(...allLines);
-        txn.expiryReached = true;
+        txn.orderDetails.expiryReached = true;
         await txn.save({ session });
 
-        console.log(`✅ Transaction updated and expiry marked for order ${txn.orderId}`);
+        console.log(`✅ Transaction updated and expiry marked for order ${txn.orderDetails.orderId}`);
       }
     });
   } catch (err) {
@@ -579,7 +874,7 @@ export const returnOrderWithTransaction = async (req, res) => {
 
       if (!originalBreakup) throw new Error("Original order not found");
 
-      const { orderAmount, orderType, buyerId, sellerId, lines: originalLines } = originalBreakup;
+      const { orderAmount, orderType, buyerId, businessSellerId, lines: originalLines } = originalBreakup;
       const reversedLines = [];
 
       for (const originalLine of originalLines) {
@@ -757,9 +1052,9 @@ export const getNetBalances = async (req, res) => {
 
 const safeString = (val) => (val ? String(val) : "");
 
-export const updateSellerFinancials = async (sellerId, sellerNetReceivable, options = {}, session = null) => {
-  const seller = await Seller.findOne({ businessSellerId: sellerId }).session(session);
-  if (!seller) throw new Error(`Seller with ID ${sellerId} not found`);
+export const updateSellerFinancials = async (businessSellerId, sellerNetReceivable, options = {}, session = null) => {
+  const seller = await Seller.findOne({ businessSellerId: businessSellerId }).session(session);
+  if (!seller) throw new Error(`Seller with ID ${businessSellerId} not found`);
 
   const { type } = options;
   const amount = Number(sellerNetReceivable) || 0;
@@ -783,7 +1078,7 @@ export const updateSellerFinancials = async (sellerId, sellerNetReceivable, opti
   seller.lastUpdated = new Date();
 
   await seller.save({ session });
-  console.log(`🏦 [SELLER] Financials updated for seller ${seller.name} (${sellerId})`);
+  console.log(`🏦 [SELLER] Financials updated for seller ${seller.name} (${businessSellerId})`);
 
   return seller;
 };
