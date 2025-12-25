@@ -6,6 +6,7 @@ import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 import SummaryFieldLineDefinition from "../../models/FinanceModals/FieldLineDefinitionModel.js";
 import BreakupRule from "../../models/FinanceModals/BreakupRules.js";
 import BreakupFile from "../../models/FinanceModals/BreakupFiles.js";
+import RuleModel from "../../models/FinanceModals/TablesModel.js"
 
 /**
  * Get all summaries (minimal)
@@ -42,44 +43,6 @@ export const summariesReset = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.error("[summariesReset] Error:", err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-};
-
-/**
- * Initialize capital & cash summaries
- */
-
-export const summariesInitCapitalCash = async (req, res) => {
-  try {
-    console.log("[summariesInitCapitalCash] Body:", req.body);
-    const { capitalAmount, cashAmount } = req.body;
-
-    if (typeof capitalAmount !== "number" || typeof cashAmount !== "number") {
-      return res.status(400).json({ success: false, message: "capitalAmount and cashAmount must be numbers." });
-    }
-
-    const [capitalSummary, cashSummary] = await Promise.all([
-      SummaryModel.findOne({ summaryId: 1600 }),
-      SummaryModel.findOne({ summaryId: 1500 }),
-    ]);
-
-    if (!capitalSummary || !cashSummary) {
-      return res.status(404).json({ success: false, message: "Capital or Cash summary not found." });
-    }
-
-    await Promise.all([
-      SummaryModel.updateOne({ _id: capitalSummary._id }, { $set: { startingBalance: capitalAmount, endingBalance: capitalAmount } }),
-      SummaryModel.updateOne({ _id: cashSummary._id }, { $set: { startingBalance: cashAmount, endingBalance: cashAmount } }),
-    ]);
-
-    return res.status(200).json({
-      success: true,
-      message: "Capital and Cash initialized successfully",
-      data: { capital: capitalAmount, cash: cashAmount },
-    });
-  } catch (err) {
-    console.error("[summariesInitCapitalCash] Error:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };

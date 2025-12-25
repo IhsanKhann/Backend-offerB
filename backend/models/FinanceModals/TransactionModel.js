@@ -50,12 +50,12 @@ const OrderDetailsSchema = new mongoose.Schema({
 
 /* ---------------- Expense Lifecycle ---------------- */
 const ExpenseDetailsSchema = new mongoose.Schema({
-  isExpense: { type: Boolean, default: false },
+  isReported: { type: Boolean, default: false },
 
   // unpaid → cleared during commission close
-  isCleared: { type: Boolean, default: false },
-  clearedAt: Date,
-  clearedPeriodKey: String
+  isPaid: { type: Boolean, default: false },
+  isPaidAt: Date,
+  paidPeriodKey: String
 });
 
 /* ---------------- Main Transaction ---------------- */
@@ -67,7 +67,7 @@ const TransactionSchema = new mongoose.Schema({
 
   type: {
     type: String,
-    enum: ["salary", "purchase", "sale", "journal", "transfer", "expense"],
+    enum: ["salary", "purchase", "sale", "journal", "transfer", "expense", "opening"],
     default: "journal"
   },
 

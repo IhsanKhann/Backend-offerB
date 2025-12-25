@@ -45,8 +45,8 @@ const BalanceDisplay = ({ label, amount, isReturn = false }) => (
 
 // ----------------- Finance Controls -----------------
 const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
-  const [cash, setCash] = useState("");
-  const [capital, setCapital] = useState("");
+  const [initialAmount, setInitialAmount] = useState("");
+
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseName, setExpenseName] = useState("");
   const [commissionAmount, setCommissionAmount] = useState("");
@@ -70,10 +70,9 @@ const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
       switch (type) {
         case "initBalances":
           payload = {
-            cashAmount: parseFloat(cash) || 0,
-            capitalAmount: parseFloat(capital) || 0,
+            amount: parseFloat(initialAmount) || 0,
           };
-          endpoint = "/summaries/init-capital-cash";
+          endpoint = "/transactions/init-capital-cash";
           break;
 
         case "expense":
@@ -137,22 +136,15 @@ const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
           <div className="flex items-center gap-2 text-gray-700 font-semibold">
             <FaDollarSign /> Initial Balances
           </div>
-          <input
+         <input
             type="text"
             inputMode="decimal"
-            placeholder="Cash"
-            value={cash}
-            onChange={(e) => setCash(e.target.value)}
+            placeholder="Initial Amount (Cash + Capital)"
+            value={initialAmount}
+            onChange={(e) => setInitialAmount(e.target.value)}
             className="border p-2 rounded w-full"
           />
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder="Capital"
-            value={capital}
-            onChange={(e) => setCapital(e.target.value)}
-            className="border p-2 rounded w-full"
-          />
+         
           <button
             onClick={() => handleTransaction("initBalances")}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-semibold transition-all"

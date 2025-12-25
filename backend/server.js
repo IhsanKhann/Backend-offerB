@@ -24,8 +24,12 @@ import sellerRoutes from "./Routes/financeRoutes/SellerRoutes.js";
 
 // Bussiness operation routes
 import CycleRouter from "./Routes/BussinessOperationRoutes/cyclesRoutes.js";
+import ExpenseRouter from "./Routes/BussinessOperationRoutes/ExpenseRoutes.js";
 
 import CronRouter from "./middlewares/cronMiddleware.js";
+
+import debugRoutes from "./Routes/debug.routes.js";
+
 
 dotenv.config();
 const app = express();
@@ -47,6 +51,13 @@ connectDB();
 // this ensure permissions are loaded to all the top level employees.
 await KeepPermissionsUpdated(); 
 await checkAndRestoreEmployees();
+
+app.use("/api/debug", debugRoutes);
+
+app.use((req, res, next) => {
+  console.log("🌐 Incoming request:", req.method, req.originalUrl);
+  next();
+});
 
 // Routes
 app.get("/api/hello", (req, res) => {
@@ -73,8 +84,8 @@ app.use("/api/sellers", sellerRoutes);
 
 // bussiness operation routes can be added here..
 app.use("/api/cycles", CycleRouter)
-
 app.use("/api/cron", CronRouter);
+app.use("/api/expenseReports", ExpenseRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

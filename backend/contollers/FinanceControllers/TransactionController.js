@@ -10,6 +10,7 @@ import TablesModel from "../../models/FinanceModals/TablesModel.js";
 import BreakupFileModel from "../../models/FinanceModals/SalaryBreakupModel.js";
 import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
+import RuleModel from "../../models/FinanceModals/TablesModel.js";
 
 import Seller from "../../models/FinanceModals/SellersModel.js";
 import Buyer from "../../models/FinanceModals/BuyersModel.js";
@@ -304,8 +305,8 @@ export const ExpenseTransactionController = async (req, res) => {
       status: "posted",
 
       expenseDetails: {
-        isExpense: true,
-        isCleared: false
+        isReported: false,
+        isPaid: false
       },
 
       lines: transactionLines
@@ -881,5 +882,145 @@ export const testCreateCollections = async (req, res) => {
   } catch (err) {
     console.error("Error in testCreateCollections:", err);
     return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * Initialize capital & cash summaries
+ */
+
+export const summariesInitCapitalCash = async (req, res) => {
+  const session = await mongoose.startSession();
+
+  try {
+    const { amount } = req.body;
+
+    if (typeof amount !== "number" || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Opening amount must be a positive number",
+      });
+    }
+
+    console.log("[DEBUG] Starting initialization of opening balances. Amount:", amount);
+
+    await session.withTransaction(async () => {
+      // 1️⃣ Load the rule for opening balances
+      const rule = await RuleModel.findOne({
+        transactionType: "Starting Cash And Capital Balances",
+      }).session(session);
+
+      if (!rule) throw new Error("Opening balance rule not found");
+
+      console.log("[DEBUG] Opening balance rule loaded:", rule._id, "with splits:", rule.splits.length);
+
+      // 2️⃣ Create the main transaction
+      const transaction = new TransactionModel({
+        type: "opening",
+        description: "Starting Cash And Capital Balances",
+        amount,
+        status: "posted",
+        lines: [],
+      });
+
+      // 3️⃣ Process splits
+      for (const [index, split] of rule.splits.entries()) {
+        console.log(`[DEBUG] Processing split #${index + 1}:`, split.componentName || "undefined");
+
+        const instanceId = await resolveInstanceForEntry(split, session);
+        const summaryId = await resolveSummaryIdForEntry(split, session);
+        const definitionId = await resolveDefinitionIdForEntry(split, session);
+
+        if (!instanceId) throw new Error(`Could not resolve instance for split ${split.componentName}`);
+
+        const splitAmount = computeLineAmount(split, amount, "both");
+        console.log(`[DEBUG] Computed split amount: ${splitAmount}`);
+
+        // Build primary line
+        const line = buildLine({
+          instanceId,
+          summaryId,
+          definitionId,
+          debitOrCredit: split.debitOrCredit,
+          amount: splitAmount,
+          description: "Opening Balance",
+          isReflection: false,
+        });
+
+        transaction.lines.push(line);
+        console.log(`[DEBUG] Primary line added for instance ${instanceId}`);
+
+        // Apply balance updates
+        await applyBalanceChange({
+          instanceId,
+          summaryId,
+          debitOrCredit: split.debitOrCredit,
+          amount: splitAmount,
+        }, session);
+
+        console.log(`[DEBUG] Updated balance for instance ${instanceId}`);
+
+        // Process mirror lines
+        if (split.mirrors?.length) {
+          for (const [mIndex, mirror] of split.mirrors.entries()) {
+            const mirrorInstanceId = await resolveInstanceForEntry(mirror, session);
+            const mirrorSummaryId = await resolveSummaryIdForEntry(mirror, session);
+            const mirrorDefinitionId = await resolveDefinitionIdForEntry(mirror, session);
+
+            if (!mirrorInstanceId) throw new Error(`Could not resolve mirror instance for split ${split.componentName}`);
+
+            const mirrorLine = buildLine({
+              instanceId: mirrorInstanceId,
+              summaryId: mirrorSummaryId,
+              definitionId: mirrorDefinitionId,
+              debitOrCredit: mirror.debitOrCredit,
+              amount: splitAmount,
+              description: "Opening Balance (Mirror)",
+              isReflection: mirror.isReflection ?? false,
+            });
+
+            transaction.lines.push(mirrorLine);
+            console.log(`[DEBUG] Mirror line added for instance ${mirrorInstanceId}`);
+
+            await applyBalanceChange({
+              instanceId: mirrorInstanceId,
+              summaryId: mirrorSummaryId,
+              debitOrCredit: mirror.debitOrCredit,
+              amount: splitAmount,
+            }, session);
+
+            console.log(`[DEBUG] Updated balance for mirror instance ${mirrorInstanceId}`);
+          }
+        }
+      }
+
+      // 4️⃣ Save the transaction
+      await transaction.save({ session });
+      console.log("[DEBUG] Transaction saved successfully:", transaction._id);
+    });
+
+    session.endSession();
+    console.log("[DEBUG] Session ended successfully");
+
+    return res.status(200).json({
+      success: true,
+      message: "Opening cash and capital balances initialized successfully",
+    });
+
+  } catch (err) {
+    console.error("[summariesInitCapitalCash] Error:", err);
+
+    try {
+      if (session.inTransaction()) await session.abortTransaction();
+    } catch (abortErr) {
+      console.warn("Session abort failed:", abortErr);
+    } finally {
+      session.endSession();
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };

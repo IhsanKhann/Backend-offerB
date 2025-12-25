@@ -1,14 +1,13 @@
 // routes/financeRoutes.js
 import express from "express";
 import { authenticate, authorize, verifyPartner } from "../../middlewares/authMiddlewares.js";
-
-
 import {
   ExpenseTransactionController,
   CommissionTransactionController,
   transferCommissionToRetained,
   transferRetainedIncomeToCapital,
   SalaryTransactionController,
+  summariesInitCapitalCash,
 } from "../../contollers/FinanceControllers/TransactionController.js";
 
 import {
@@ -16,6 +15,10 @@ import {
   returnOrderWithTransaction,
   
 } from "../../contollers/FinanceControllers/OrderControllers.js";
+
+// import {
+//   generateExpenseReportByCycle
+// } from "../../contollers/FinanceControllers/ExpenseReportControllers.js";
 
 const router = express.Router();
 
@@ -30,29 +33,17 @@ router.post("/commission/test", CommissionTransactionController);
 router.post("/commission/close-to-retained", transferCommissionToRetained);
 router.post("/transfer-retained-to-capital", transferRetainedIncomeToCapital);
 router.post("/salary/:employeeId", SalaryTransactionController);
-
+router.post("/init-capital-cash", summariesInitCapitalCash);
 // --------------------
 // 🔹 Order Transactions
 // --------------------
 
-// // Create + process order with breakups & transaction
-// router.post("/order-process", verifyPartner,createOrderWithTransaction);
-
-// // the transaction for - order return..
-// router.post("/return-process", verifyPartner,returnOrderWithTransaction);
-
 // Create + process order with breakups & transaction
-<<<<<<< HEAD
-router.post("/order-process", createOrderWithTransaction);
-
-// the transaction for - order return..
-router.post("/return-process", returnOrderWithTransaction);
-=======
 router.post("/order-process",createOrderWithTransaction);
 
 // the transaction for - order return..
 router.post("/return-process",returnOrderWithTransaction);
 
->>>>>>> a6ead15 (made changes to the orderController and working on the commission flow)
-export default router;
+// reports testing:
 
+export default router;

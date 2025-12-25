@@ -118,7 +118,7 @@ const getOrCreateDefinitionByNumericId = async (numericId, name = "Auto Definiti
 };
 
 // Resolve or create instance (non-duplicating) — now ensures definition existence too
-const resolveOrCreateInstance = async (split, session) => {
+export const resolveOrCreateInstance = async (split, session) => {
   // Resolve provided summary & definition object ids (if any)
   const summaryObj = safeToObjectId(split.summaryId);
   let definitionObj = safeToObjectId(split.definitionId);
