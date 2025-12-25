@@ -41,7 +41,7 @@ const OrderDetailsSchema = new mongoose.Schema({
   orderDeliveredAt: Date,
   returnExpiryDate: Date,
   expiryReached: { type: Boolean, default: false },
-  readyForRetainedEarning: { type: Boolean, default: false },
+  readyForRetainedEarning: { type: Boolean, default: true },
 
   retainedLocked: { type: Boolean, default: false },
   retainedLockedAt: Date,

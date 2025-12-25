@@ -338,13 +338,13 @@ export const fetchExpenseTransactionsController = async (req, res) => {
     const query = {};
 
     /* -------- EXPENSE TYPE FILTER -------- */
-    if (isExpense !== undefined) {
-      query.isExpense = isExpense === "true";
+    if (isReported !== undefined) {
+      query.isReported = isReported === "true";
     }
 
     /* -------- CLEARED FILTER -------- */
-    if (isCleared !== undefined) {
-      query["expenseDetails.isCleared"] = isCleared === "true";
+    if (isPaid !== undefined) {
+      query["expenseDetails.isCleared"] = isPaid === "true";
     }
 
     const transactions = await Transaction.find(query)

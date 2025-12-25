@@ -51,6 +51,9 @@ const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
   const [expenseName, setExpenseName] = useState("");
   const [commissionAmount, setCommissionAmount] = useState("");
   const [commissionDesc, setCommissionDesc] = useState("");
+
+  const [expensePaymentMode, setExpensePaymentMode] = useState("PAY_LATER");
+  const [expenseDescription, setExpenseDescription] = useState("");
   
   const handleReset = async () => {
     try {
@@ -75,13 +78,20 @@ const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
           endpoint = "/transactions/init-capital-cash";
           break;
 
-        case "expense":
+        case "expense": {
           payload = {
             amount: parseFloat(expenseAmount) || 0,
             name: expenseName,
+            description: expenseDescription,
           };
-          endpoint = "/transactions/expense";
+
+          endpoint =
+            expensePaymentMode === "PAY_NOW"
+              ? "/transactions/ExpensePayNow"
+              : "/transactions/ExpensePayLater";
+
           break;
+        }
 
         case "commissionAdd":
           payload = {
@@ -158,6 +168,7 @@ const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
           <div className="flex items-center gap-2 text-gray-700 font-semibold">
             <FaMoneyBillWave /> Expense
           </div>
+
           <input
             type="text"
             inputMode="decimal"
@@ -166,20 +177,45 @@ const FinanceControls = ({ fetchAll, setMessage, balances, onShowReturns }) => {
             onChange={(e) => setExpenseAmount(e.target.value)}
             className="border p-2 rounded w-full"
           />
+
           <input
             type="text"
-            placeholder="Name"
+            placeholder="Expense Name"
             value={expenseName}
             onChange={(e) => setExpenseName(e.target.value)}
             className="border p-2 rounded w-full"
           />
+
+          <input
+            type="text"
+            placeholder="Description (optional)"
+            value={expenseDescription}
+            onChange={(e) => setExpenseDescription(e.target.value)}
+            className="border p-2 rounded w-full"
+          />
+
+          {/* PAYMENT MODE */}
+          <select
+            value={expensePaymentMode}
+            onChange={(e) => setExpensePaymentMode(e.target.value)}
+            className="border p-2 rounded w-full"
+          >
+            <option value="PAY_LATER">Pay Later (Accrued Expense)</option>
+            <option value="PAY_NOW">Pay Now (Cash)</option>
+          </select>
+
           <button
             onClick={() => handleTransaction("expense")}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-semibold transition-all"
+            className={`px-4 py-2 rounded font-semibold transition-all ${
+              expensePaymentMode === "PAY_NOW"
+                ? "bg-red-500 hover:bg-red-600 text-white"
+                : "bg-green-500 hover:bg-green-600 text-white"
+            }`}
           >
-            Upload
+            {expensePaymentMode === "PAY_NOW" ? "Pay Expense" : "Record Expense"}
           </button>
         </div>
+
 
         {/* Add Commission */}
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex flex-col gap-2">

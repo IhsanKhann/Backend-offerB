@@ -19,6 +19,7 @@ const SplitSchema = new mongoose.Schema({
   fixedAmount: { type: Number },
   mirrors: [MirrorSchema],
 
+  isRevenue: { type: Boolean, default: false},
   isReflection: { type: Boolean, default: false }, // <--- Make sure it's here
 }, { _id: false });
 

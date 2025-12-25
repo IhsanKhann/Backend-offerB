@@ -25,11 +25,10 @@ import sellerRoutes from "./Routes/financeRoutes/SellerRoutes.js";
 // Bussiness operation routes
 import CycleRouter from "./Routes/BussinessOperationRoutes/cyclesRoutes.js";
 import ExpenseRouter from "./Routes/BussinessOperationRoutes/ExpenseRoutes.js";
-
 import CronRouter from "./middlewares/cronMiddleware.js";
+import CommissionReports from "./Routes/BussinessOperationRoutes/ComissionReportsRoutes.js";
 
 import debugRoutes from "./Routes/debug.routes.js";
-
 
 dotenv.config();
 const app = express();
@@ -86,6 +85,7 @@ app.use("/api/sellers", sellerRoutes);
 app.use("/api/cycles", CycleRouter)
 app.use("/api/cron", CronRouter);
 app.use("/api/expenseReports", ExpenseRouter);
+app.use("/api/commissionReports", CommissionReports);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

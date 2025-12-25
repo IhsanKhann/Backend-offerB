@@ -17,7 +17,7 @@ const SplitSchema = new mongoose.Schema({
       "base",
       "deduction",
       "tax",
-      "commission",
+      "commission", // on this we apply the whole => commission flow.
       "income",
       "receivable",
       "payable",

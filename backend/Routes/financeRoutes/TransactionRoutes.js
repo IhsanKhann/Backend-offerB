@@ -2,7 +2,9 @@
 import express from "express";
 import { authenticate, authorize, verifyPartner } from "../../middlewares/authMiddlewares.js";
 import {
-  ExpenseTransactionController,
+  ExpensePayLaterController,
+  ExpensePayNowController,
+
   CommissionTransactionController,
   transferCommissionToRetained,
   transferRetainedIncomeToCapital,
@@ -28,7 +30,11 @@ router.use(authenticate);
 // --------------------
 // 🔹 Finance Transactions
 // --------------------
-router.post("/expense", ExpenseTransactionController);
+
+// Expense Transactions:
+router.post("/ExpensePayLater", ExpensePayLaterController);
+router.post("/ExpensePayNow", ExpensePayNowController);
+
 router.post("/commission/test", CommissionTransactionController);
 router.post("/commission/close-to-retained", transferCommissionToRetained);
 router.post("/transfer-retained-to-capital", transferRetainedIncomeToCapital);
@@ -44,6 +50,5 @@ router.post("/order-process",createOrderWithTransaction);
 // the transaction for - order return..
 router.post("/return-process",returnOrderWithTransaction);
 
-// reports testing:
 
 export default router;

@@ -8,6 +8,7 @@ import SummaryFieldLineInstance from "../../models/FinanceModals/FieldLineInstan
 /**
  * Fetch all rules with populated mirror summary names
  */
+
 export const fetchRulesForFrontend = async (req, res) => {
   try {
     console.log("[fetchRulesForFrontend] Fetching rules...");
@@ -16,45 +17,93 @@ export const fetchRulesForFrontend = async (req, res) => {
     console.log(`[fetchRulesForFrontend] Found ${rules.length} rules`);
 
     // Collect all summary IDs from splits/mirrors
-    const summaryIds = [];
-    rules.forEach((rule) => {
-      rule.splits?.forEach((split) => {
-        if (split.summaryId) summaryIds.push(split.summaryId);
-        split.mirrors?.forEach((mirror) => {
-          if (mirror.summaryId) summaryIds.push(mirror.summaryId);
-        });
-      });
-    });
+    const summaryIdsSet = new Set();
+    for (const rule of rules) {
+      if (!rule.splits) continue;
 
+      for (const split of rule.splits) {
+        if (split.summaryId) summaryIdsSet.add(split.summaryId.toString());
+
+        if (split.mirrors) {
+          for (const mirror of split.mirrors) {
+            if (mirror.summaryId) summaryIdsSet.add(mirror.summaryId.toString());
+          }
+        }
+      }
+    }
+
+    const summaryIds = Array.from(summaryIdsSet);
     console.log("[fetchRulesForFrontend] Summary IDs to fetch:", summaryIds);
 
-    // Fetch summaries in one go
+    // Fetch summaries
     const summaries = await SummaryModel.find({ _id: { $in: summaryIds } }, "_id name").lean();
     const summaryMap = {};
     summaries.forEach((s) => {
-      summaryMap[s._id.toString()] = s.name;
+      summaryMap[s._id.toString()] = { _id: s._id, name: s.name };
     });
 
-    // Populate mirror names
-    const populatedRules = rules.map((rule) => {
-      rule.splits = rule.splits?.map((split) => {
-        split.summaryName = split.summaryId ? summaryMap[split.summaryId.toString()] || "Unknown Summary" : null;
-        split.mirrors = split.mirrors?.map((mirror) => ({
-          ...mirror,
-          summaryName: mirror.summaryId ? summaryMap[mirror.summaryId.toString()] || "Unknown Summary" : null,
-        }));
-        return split;
-      });
-      return rule;
-    });
+    // Populate rules with summaryId and summaryName
+    const populatedRules = [];
+    for (const rule of rules) {
+      const splits = [];
+      for (const split of rule.splits || []) {
+        const populatedMirrors = [];
+        for (const mirror of split.mirrors || []) {
+          const smap = mirror.summaryId ? summaryMap[mirror.summaryId.toString()] : null;
+          populatedMirrors.push({
+            ...mirror,
+            summaryId: smap?._id || null,
+            summaryName: smap?.name || "Unknown Summary",
+          });
+        }
+
+        const smap = split.summaryId ? summaryMap[split.summaryId.toString()] : null;
+        splits.push({
+          ...split,
+          summaryId: smap?._id || null,
+          summaryName: smap?.name || "Unknown Summary",
+          mirrors: populatedMirrors,
+        });
+      }
+      populatedRules.push({ ...rule, splits });
+    }
 
     res.json(populatedRules);
   } catch (err) {
     console.error("[fetchRulesForFrontend] Error:", err);
-    res.status(500).json({ message: "Failed to fetch rules" });
+    res.status(500).json({ message: "Failed to fetch rules", error: err.message });
   }
 };
 
+export const getAllFieldLineDefinitions = async (req, res) => {
+  try {
+    console.log("[getAllFieldLineDefinitions] Fetching definitions and instances...");
+
+    const defs = await SummaryFieldLineModel.find().lean();
+    const instances = await SummaryFieldLineInstance.find()
+      .populate("summaryId", "_id name")  // get summary ID and name
+      .populate("definitionId", "_id name")
+      .lean();
+
+    const defsWithInstances = defs.map((def) => {
+      const relatedInstances = instances
+        .filter((inst) => inst.definitionId?._id.toString() === def._id.toString())
+        .map((inst) => ({
+          _id: inst._id,
+          name: inst.name,
+          summaryId: inst.summaryId?._id || null,
+          summaryName: inst.summaryId?.name || "No Summary",
+        }));
+
+      return { ...def, instances: relatedInstances };
+    });
+
+    res.json(defsWithInstances);
+  } catch (err) {
+    console.error("[getAllFieldLineDefinitions] Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
 export const createRule = async (req, res) => {
   try {
     const data = req.body;
@@ -77,6 +126,7 @@ export const createRule = async (req, res) => {
     res.status(500).json({ message: "Failed to create rule" });
   }
 };
+
 export const updateRule = async (req, res) => {
   try {
     const { ruleId } = req.params;
@@ -107,7 +157,6 @@ export const updateRule = async (req, res) => {
   }
 };
 
-
 export const deleteRule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -127,34 +176,5 @@ export const deleteRule = async (req, res) => {
   }
 };
 
-export const getAllFieldLineDefinitions = async (req, res) => {
-  console.log("[getAllFieldLineDefinitions] Fetching definitions...");
-  try {
-    const defs = await SummaryFieldLineModel.find();
-
-    // Fetch instances and populate their summary
-    const instances = await SummaryFieldLineInstance.find()
-      .populate("summaryId", "name") // gets summary name
-      .populate("definitionId", "name"); // gets definition name
-
-    // Group instances under definitions
-    const defsWithInstances = defs.map((def) => ({
-      ...def.toObject(),
-      instances: instances
-        .filter((inst) => inst.definitionId?._id?.toString() === def._id.toString())
-        .map((inst) => ({
-          _id: inst._id,
-          name: inst.name,
-          summaryName: inst.summaryId?.name || "No Summary",
-        })),
-    }));
-
-    console.log("[getAllFieldLineDefinitions] Success", defsWithInstances);
-    res.json(defsWithInstances);
-  } catch (err) {
-    console.error("[getAllFieldLineDefinitions] Error:", err);
-    res.status(500).json({ error: err.message });
-  }
-};
 
 // run().catch((err) => { console.error(err); process.exit(1); });
