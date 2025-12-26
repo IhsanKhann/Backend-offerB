@@ -118,7 +118,7 @@ export function buildLine({ instanceId, summaryId, definitionId, debitOrCredit, 
   };
 }
 
-async function applyBalanceChange({ instanceId, summaryId, debitOrCredit, amount }, session = null) {
+export const applyBalanceChange = async ({ instanceId, summaryId, debitOrCredit, amount }, session = null) => {
   const amt = Number(amount || 0);
   if (amt === 0) return;
 
@@ -136,8 +136,7 @@ async function applyBalanceChange({ instanceId, summaryId, debitOrCredit, amount
   if (summaryId) {
     await SummaryModel.findByIdAndUpdate(summaryId, { $inc: { endingBalance: increment } }, { session });
   }
-}
-
+};
 
 // ================== Expense Controllers ==================
 export const ExpensePayLaterController = async (req, res) => {
@@ -369,7 +368,6 @@ export const postExpenseTransaction = async ({
   }
 };
 
-
 // ----------------- Commission Transaction -----------------
 export const CommissionTransactionController = async (req, res) => {
   const session = await mongoose.startSession();
@@ -415,129 +413,6 @@ export const CommissionTransactionController = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.error("CommissionTransactionController Error:", err);
-    return res.status(500).json({ error: err.message || String(err) });
-  }
-};
-
-// ----------------- Commission → Retained -----------------
-export const transferCommissionToRetained = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const commissionSummary = await SummaryModel.findOne({ summaryId: SID.COMMISSION }).session(session);
-    if (!commissionSummary) throw new Error("Commission summary not found");
-
-    const retainedInstance = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5401 }).session(session);
-    if (!retainedInstance) throw new Error("Retained Income instance not found");
-
-    const retainedSummary = await SummaryModel.findById(retainedInstance.summaryId).session(session);
-    if (!retainedSummary) throw new Error("Retained Summary not found");
-
-    const commissionAmount = Math.abs(Math.round((commissionSummary.endingBalance || 0) * 100) / 100);
-    if (commissionAmount === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ error: "No commission to transfer" });
-    }
-
-    const accountingLines = [
-      {
-        instanceObjectId: null,
-        summaryObjectId: commissionSummary._id,
-        summaryNumericId: commissionSummary.summaryId,
-        definitionObjectId: null,
-        debitOrCredit: "debit",
-        amount: commissionAmount,
-        fieldName: "Close Commission → Retained (debit commission)"
-      },
-      {
-        instanceObjectId: retainedInstance._id,
-        summaryObjectId: retainedSummary._id,
-        summaryNumericId: retainedSummary.summaryId,
-        definitionObjectId: retainedInstance.definitionId || null,
-        debitOrCredit: "credit",
-        amount: commissionAmount,
-        fieldName: "Close Commission → Retained (credit retained)"
-      }
-    ];
-
-    const tx = await persistTransactionAndApply(accountingLines, "Close commission → retained", session);
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({
-      message: `Transferred ${commissionAmount} commission → Retained Income`,
-      commissionBalance: commissionSummary.endingBalance - commissionAmount,
-      retainedBalance: retainedInstance.balance + commissionAmount,
-      transactionId: tx.transactionId
-    });
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error("transferCommissionToRetained Error:", err);
-    return res.status(500).json({ error: err.message || String(err) });
-  }
-};
-
-// ----------------- Retained → Capital -----------------
-export const transferRetainedIncomeToCapital = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const retainedInstance = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5401 }).session(session);
-    const capitalInstance = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5101 }).session(session);
-
-    if (!retainedInstance || !capitalInstance) throw new Error("Retained Income or Capital instance not found");
-
-    const retainedSummary = await SummaryModel.findById(retainedInstance.summaryId).session(session);
-    const capitalSummary = await SummaryModel.findById(capitalInstance.summaryId).session(session);
-
-    const transferAmount = Math.abs(Math.round((retainedInstance.balance || 0) * 100) / 100);
-    if (transferAmount === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ error: "No retained income to transfer" });
-    }
-
-    const accountingLines = [
-      {
-        instanceObjectId: retainedInstance._id,
-        summaryObjectId: retainedSummary._id,
-        summaryNumericId: retainedSummary.summaryId,
-        definitionObjectId: retainedInstance.definitionId || null,
-        debitOrCredit: "debit",
-        amount: transferAmount,
-        fieldName: "Transfer Retained → Capital (debit retained)"
-      },
-      {
-        instanceObjectId: capitalInstance._id,
-        summaryObjectId: capitalSummary._id,
-        summaryNumericId: capitalSummary.summaryId,
-        definitionObjectId: capitalInstance.definitionId || null,
-        debitOrCredit: "credit",
-        amount: transferAmount,
-        fieldName: "Transfer Retained → Capital (credit capital)"
-      }
-    ];
-
-    const tx = await persistTransactionAndApply(accountingLines, "Transfer retained → capital", session);
-
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.status(200).json({
-      message: `Transferred ${transferAmount} retained → capital`,
-      retainedBalance: retainedInstance.balance - transferAmount,
-      capitalBalance: capitalInstance.balance + transferAmount,
-      transactionId: tx.transactionId
-    });
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error("transferRetainedIncomeToCapital Error:", err);
     return res.status(500).json({ error: err.message || String(err) });
   }
 };

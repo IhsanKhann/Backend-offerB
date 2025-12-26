@@ -159,16 +159,16 @@ export const updateRule = async (req, res) => {
 
 export const deleteRule = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { ruleId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(ruleId)) {
       return res.status(400).json({ message: "Invalid Rule ID" });
     }
 
-    const rule = await RuleModel.findByIdAndDelete(id);
+    const rule = await RuleModel.findByIdAndDelete(ruleId);
     if (!rule) return res.status(404).json({ message: "Rule not found" });
 
-    console.log("[deleteRule] Rule deleted:", id);
+    console.log("[deleteRule] Rule deleted:", ruleId);
     res.json({ message: "Rule deleted successfully" });
   } catch (err) {
     console.error("[deleteRule] Error:", err);

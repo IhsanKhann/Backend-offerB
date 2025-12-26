@@ -43,6 +43,7 @@ const OrderDetailsSchema = new mongoose.Schema({
   expiryReached: { type: Boolean, default: false },
   readyForRetainedEarning: { type: Boolean, default: true },
 
+  isReported: { type: Boolean, default: false },      // included in P&L
   retainedLocked: { type: Boolean, default: false },
   retainedLockedAt: Date,
   retainedPeriodKey: String,
@@ -50,12 +51,13 @@ const OrderDetailsSchema = new mongoose.Schema({
 
 /* ---------------- Expense Lifecycle ---------------- */
 const ExpenseDetailsSchema = new mongoose.Schema({
-  isReported: { type: Boolean, default: false },
+  includedInPnL: { type: Boolean, default: false },   // explicit
 
-  // unpaid → cleared during commission close
-  isPaid: { type: Boolean, default: false },
+  isPaid: { type: Boolean, default: false },          // cash moved
   isPaidAt: Date,
-  paidPeriodKey: String
+  paidPeriodKey: String,
+
+  paidBy: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee" }
 });
 
 /* ---------------- Main Transaction ---------------- */
@@ -129,3 +131,4 @@ TransactionSchema.pre("save", function (next) {
 });
 
 export default mongoose.model("Transaction", TransactionSchema);
+

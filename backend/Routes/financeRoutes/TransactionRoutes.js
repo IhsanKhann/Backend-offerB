@@ -6,8 +6,6 @@ import {
   ExpensePayNowController,
 
   CommissionTransactionController,
-  transferCommissionToRetained,
-  transferRetainedIncomeToCapital,
   SalaryTransactionController,
   summariesInitCapitalCash,
 } from "../../contollers/FinanceControllers/TransactionController.js";
@@ -36,8 +34,6 @@ router.post("/ExpensePayLater", ExpensePayLaterController);
 router.post("/ExpensePayNow", ExpensePayNowController);
 
 router.post("/commission/test", CommissionTransactionController);
-router.post("/commission/close-to-retained", transferCommissionToRetained);
-router.post("/transfer-retained-to-capital", transferRetainedIncomeToCapital);
 router.post("/salary/:employeeId", SalaryTransactionController);
 router.post("/init-capital-cash", summariesInitCapitalCash);
 // --------------------

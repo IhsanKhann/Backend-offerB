@@ -6,11 +6,13 @@ import CommissionReport from "../../models/FinanceModals/CommissionReports.js";
 import Rule from "../../models/FinanceModals/TablesModel.js"; // Rules
 import SummaryFieldLineInstance from "../../models/FinanceModals/FieldLineInstanceModel.js";
 
-import {computeLineAmount,
+import {
+  computeLineAmount,
   resolveInstanceForEntry,
   resolveSummaryIdForEntry,
   resolveDefinitionIdForEntry,
   buildLine,
+  applyBalanceChange,
 } from "../../contollers/FinanceControllers/TransactionController.js";
 // ------------------------------ HELPER FUNCTIONS ------------------------------------
 
@@ -24,24 +26,31 @@ export async function applyRulesEngine({
   transactionType,
   baseAmount,
   session,
-  meta = {} // optional: { commissionReportId, periodKey }
+  meta = {}
 }) {
-  const rules = await Rule.find({ transactionType }).lean().session(session);
+  console.log(`\n🧠 APPLY RULES ENGINE → ${transactionType}`);
+  console.log("Base Amount:", baseAmount);
+
+  const rules = await Rule.find({ transactionType }).session(session).lean();
+
   if (!rules.length) {
-    throw new Error(`No rules found for transaction type: ${transactionType}`);
+    throw new Error(`❌ No rules found for ${transactionType}`);
   }
 
   let revenueAmount = 0;
   const createdTransactionIds = [];
 
   for (const rule of rules) {
-    const lines = [];
+    console.log(`\n📘 Rule: ${rule._id}`);
     const splits = rule.splits || [];
+    const lines = [];
 
     const totalPercent =
-      splits.reduce((sum, s) => sum + (Number(s.percentage) || 0), 0) || 100;
+      splits.reduce((s, sp) => s + (Number(sp.percentage) || 0), 0) || 100;
 
     for (const split of splits) {
+      console.log("\n➡️ Processing split:", split.fieldName);
+
       const splitAmount = computeLineAmount(
         split,
         baseAmount,
@@ -49,13 +58,27 @@ export async function applyRulesEngine({
         totalPercent
       );
 
-      if (!splitAmount || splitAmount <= 0) continue;
+      console.log("Computed amount:", splitAmount);
+
+      if (!splitAmount || splitAmount <= 0) {
+        console.log("⏭️ Skipped (amount <= 0)");
+        continue;
+      }
 
       const instanceId = await resolveInstanceForEntry(split, session);
       const summaryId = await resolveSummaryIdForEntry(split, session);
       const definitionId = await resolveDefinitionIdForEntry(split, session);
 
-      if (!instanceId || !summaryId || !definitionId) continue;
+      console.log("Resolved IDs:", {
+        instanceId,
+        summaryId,
+        definitionId
+      });
+
+      if (!instanceId || !summaryId || !definitionId) {
+        console.log("❌ Split skipped due to unresolved IDs");
+        continue;
+      }
 
       lines.push(buildLine({
         instanceId,
@@ -67,19 +90,25 @@ export async function applyRulesEngine({
         isReflection: !!split.isReflection
       }));
 
-      // 🔑 Revenue detection (VERY IMPORTANT)
       if (split.isRevenue && split.debitOrCredit === "credit") {
         revenueAmount += splitAmount;
+        console.log("💰 Revenue detected:", splitAmount);
       }
 
-      // Mirrors
       if (Array.isArray(split.mirrors)) {
         for (const mirror of split.mirrors) {
+          console.log("↪️ Mirror split");
+
           const mi = await resolveInstanceForEntry(mirror, session);
           const ms = await resolveSummaryIdForEntry(mirror, session);
           const md = await resolveDefinitionIdForEntry(mirror, session);
 
-          if (!mi || !ms || !md) continue;
+          console.log("Mirror IDs:", { mi, ms, md });
+
+          if (!mi || !ms || !md) {
+            console.log("❌ Mirror skipped (IDs unresolved)");
+            continue;
+          }
 
           lines.push(buildLine({
             instanceId: mi,
@@ -87,18 +116,18 @@ export async function applyRulesEngine({
             definitionId: md,
             debitOrCredit: mirror.debitOrCredit,
             amount: splitAmount,
-            description: mirror.fieldName || `${split.fieldName} Mirror`,
+            description: mirror.fieldName || "Mirror",
             isReflection: !!mirror.isReflection
           }));
         }
       }
     }
 
-    if (!lines.length) continue;
+    if (!lines.length) {
+      console.log("⚠️ No lines generated for this rule");
+      continue;
+    }
 
-    /* ===============================
-       CREATE JOURNAL TRANSACTION
-    ================================ */
     const [tx] = await TransactionModel.create([{
       type: "journal",
       description: `Rule Applied: ${transactionType}`,
@@ -107,31 +136,37 @@ export async function applyRulesEngine({
       ...meta
     }], { session });
 
+    console.log("✅ Transaction created:", tx._id);
+
     createdTransactionIds.push(tx._id);
+    console.log("\nApplying Balance Changes (Rules Engine)...");
 
-    /* ===============================
-       APPLY BALANCES (SUMMARIES)
-    ================================ */
-    const bulkOps = lines.map(line => ({
-      updateOne: {
-        filter: { _id: line.instanceId },
-        update: {
-          $inc: {
-            [`balances.${line.debitOrCredit}`]:
-              Number(line.amount.toString())
-          }
-        }
-      }
-    }));
+    for (const line of lines) {
+      console.log("Applying Balance:", {
+        instanceId: line.instanceId,
+        summaryId: line.summaryId,
+        debitOrCredit: line.debitOrCredit,
+        amount: Number(line.amount),
+        isReflection: line.isReflection
+      });
 
-    await SummaryFieldLineInstance.bulkWrite(bulkOps, { session });
+      await applyBalanceChange({
+        instanceId: line.instanceId,
+        summaryId: line.summaryId,
+        debitOrCredit: line.debitOrCredit,
+        amount: Number(line.amount)
+      }, session);
+    }
   }
+
+  console.log("🏁 Rules engine completed");
+  console.log("Total revenue:", revenueAmount);
 
   return {
     revenueAmount,
     transactionIds: createdTransactionIds
   };
-};
+}
 
 /* ---------- Helper functions ---------- */
 async function updateExpenseFlags({ expenseTxs, expenseReportId, periodKey, session }) {
@@ -202,12 +237,11 @@ async function applyPunchToCapital({ netAmount, reportId }) {
 /* ---------- Controllers ---------- */
 export const closeCommissionPeriodController = async (req, res) => {
   const { periodKey, fromDate, toDate } = req.body;
+  const userId = req.user._id;
 
-  console.log("INSIDE CONTROLLER");
-
-  /* ================================
-     SAFETY: Cycle already closed?
-  ================================= */
+  /* ===============================
+     SAFETY — already settled?
+  =============================== */
   const alreadyClosed = await CommissionReport.findOne({
     periodKey,
     status: "settled"
@@ -217,45 +251,33 @@ export const closeCommissionPeriodController = async (req, res) => {
     return res.status(409).json({ error: "Commission cycle already settled" });
   }
 
-  /* ================================
-     STAGE A — COMMISSION REVENUE
-  ================================= */
   let commissionAmount = 0;
   let commissionTxIds = [];
   let commissionReport;
+  let expenseReports = [];
+  let expenseTxIds = [];
 
+  /* ===============================
+     STAGE A — COMMISSION REVENUE
+  =============================== */
   const sessionA = await mongoose.startSession();
   await sessionA.withTransaction(async () => {
 
-    // const prodFilter = {
-    //   type: "journal",
-    //   "orderDetails.orderDeliveredAt": { $gte: fromDate, $lte: toDate },
-    //   "orderDetails.expiryReached": true,               // only include expired
-    //   "orderDetails.readyForRetainedEarning": false     // only include not yet ready
-    // };
-
-    // const eligibleOrders = await TransactionModel.find(prodFilter);
-    // if (!eligibleOrders.length) {
-    //   throw new Error("No eligible orders found for commission closing");
-    // }
-
-    // console.log("Eligible orders:", eligibleOrders.length);
-      
-    const testFilter = {
+    const orderFilter = {
       type: "journal",
       "orderDetails.orderDeliveredAt": { $gte: fromDate, $lte: toDate },
-      // skip the strict flags for testing
+      "orderDetails.readyForRetainedEarning": false,
+      // enable later in prod
       // "orderDetails.expiryReached": true,
-      // "orderDetails.readyForRetainedEarning": false
     };
 
-    const orders = await TransactionModel.find(testFilter);
-    console.log("Testing fetched orders:", orders.length);
+    const orders = await TransactionModel.find(orderFilter).session(sessionA);
+    if (!orders.length) throw new Error("No eligible orders");
 
-    commissionTxIds = orders.map(t => t._id);
+    commissionTxIds = orders.map(o => o._id);
 
     const baseAmount = orders.reduce(
-      (s, t) => s + Number(t.commissionAmount || 0),
+      (sum, t) => sum + Number(t.commissionAmount || 0),
       0
     );
 
@@ -272,51 +294,40 @@ export const closeCommissionPeriodController = async (req, res) => {
       fromDate,
       toDate,
       commissionAmount: decimal(commissionAmount),
-      status: "locked"
+      status: "locked",
+      closedBy: userId,
+      closedAt: new Date()
     }], { session: sessionA });
   });
-
   sessionA.endSession();
 
-  /* ================================
-     STAGE B — EXPENSE AGGREGATION
-  ================================= */
-//   const prodExpenseFilter = {
-//   status: "calculated",   // only include reports not yet paid
-//   fromDate: { $gte: fromDate },
-//   toDate: { $lte: toDate }
-// };
+  /* ===============================
+     STAGE B — EXPENSE P&L (OPTIONAL)
+  =============================== */
+  expenseReports = await ExpenseReport.find({
+    status: "calculated",
+    fromDate: { $gte: fromDate },
+    toDate: { $lte: toDate }
+  }).lean();
 
-// const eligibleExpenseReports = await ExpenseReport.find(prodExpenseFilter).lean();
-
-// if (!eligibleExpenseReports.length) {
-//   throw new Error("No eligible expense reports found for the period");
-// }
-
-// console.log("Eligible expense reports:", eligibleExpenseReports.length);
-
- const testExpenseFilter = {
-  status: "calculated",   // only include reports that are not yet paid
-  fromDate: { $gte: fromDate }, 
-  toDate: { $lte: toDate }
-};
-
-const expenseReports = await ExpenseReport.find(testExpenseFilter).lean();
-console.log("Testing fetched expense reports:", expenseReports.length);
+  if (expenseReports.length) {
+    expenseTxIds = expenseReports.flatMap(r => r.transactionIds || []);
+  }
 
   const expenseAmount = expenseReports.reduce(
-    (s, r) => s + Number(r.totalAmount),
+    (sum, r) => sum + Number(r.totalAmount || 0),
     0
   );
 
   const net = commissionAmount - expenseAmount;
 
-  /* ================================
-     STAGE C — NET SETTLEMENT
-  ================================= */
+  /* ===============================
+     STAGE C — SETTLEMENT
+  =============================== */
   const sessionC = await mongoose.startSession();
   await sessionC.withTransaction(async () => {
 
+    /* ---- P&L Settlement ---- */
     if (net !== 0) {
       await applyRulesEngine({
         transactionType: "COMMISSION_SETTLEMENT",
@@ -324,18 +335,14 @@ console.log("Testing fetched expense reports:", expenseReports.length);
         session: sessionC
       });
 
-      const capitalRuleType = net > 0 ? "Profit" : "Loss";
-
-      const capitalRule = await Rule.findOne({ transactionType: capitalRuleType }).lean();
-      if (!capitalRule) throw new Error(`${capitalRuleType} rule not found`);
-
       await applyRulesEngine({
-        transactionType: capitalRuleType,
+        transactionType: net > 0 ? "Profit" : "Loss",
         baseAmount: Math.abs(net),
         session: sessionC
       });
     }
 
+    /* ---- Commission Report ---- */
     await CommissionReport.findByIdAndUpdate(
       commissionReport._id,
       {
@@ -349,49 +356,54 @@ console.log("Testing fetched expense reports:", expenseReports.length);
       },
       { session: sessionC }
     );
-  });
 
-  sessionC.endSession();
-
-  /* ================================
-     STAGE D — FINAL FLAGS
-  ================================= */
-  const sessionD = await mongoose.startSession();
-  await sessionD.withTransaction(async () => {
-
-    // Update expense reports
-    await ExpenseReport.updateMany(
-      { _id: { $in: expenseReports.map(r => r._id) } },
-      {
-        status: "paid",
-        paidAt: new Date(),
-        linkedCommissionReport: commissionReport._id
-      },
-      { session: sessionD }
-    );
-
-    // Update transactions linked to expense reports
-    await TransactionModel.updateMany(
-      { _id: { $in: expenseReports.flatMap(r => r.transactionIds) } },
-      {
-        $set: {
-          "expenseDetails.isPaid": true,
-          "expenseDetails.isPaidAt": new Date(),
-          "expenseDetails.paidPeriodKey": periodKey
-        }
-      },
-      { session: sessionD }
-    );
-
-    // Mark orders as processed for commission
+    /* ===============================
+       UPDATE COMMISSION TRANSACTIONS
+       (ALWAYS)
+    =============================== */
     await TransactionModel.updateMany(
       { _id: { $in: commissionTxIds } },
-      { $set: { commissionReportId: commissionReport._id } },
-      { session: sessionD }
+      {
+        $set: {
+          "orderDetails.readyForRetainedEarning": true,
+          "orderDetails.retainedLocked": true,
+          "orderDetails.retainedLockedAt": new Date(),
+          "orderDetails.isReported": true,
+          commissionReportId: commissionReport._id
+        }
+      },
+      { session: sessionC }
     );
-  });
 
-  sessionD.endSession();
+    /* ===============================
+       UPDATE EXPENSE TRANSACTIONS
+       (ONLY IF EXPENSES EXIST)
+    =============================== */
+    if (expenseTxIds.length) {
+      await TransactionModel.updateMany(
+        { _id: { $in: expenseTxIds } },
+        {
+          $set: {
+            "expenseDetails.isReported": true,
+            "expenseDetails.includedInPnL": true,
+            "expenseDetails.isPaid": false,       // NOT cash-paid here
+            "expenseDetails.paidPeriodKey": periodKey
+          }
+        },
+        { session: sessionC }
+      );
+
+      await ExpenseReport.updateMany(
+        { _id: { $in: expenseReports.map(r => r._id) } },
+        {
+          status: "paid",
+          paidAt: new Date()
+        },
+        { session: sessionC }
+      );
+    }
+  });
+  sessionC.endSession();
 
   return res.json({
     reportId: commissionReport._id,
@@ -401,6 +413,7 @@ console.log("Testing fetched expense reports:", expenseReports.length);
     resultType: getResultType(net)
   });
 };
+
 
 export const closeCommissionByDateRange = async (req, res) => {
   const { fromDate, toDate, expenseIds = [], periodKey } = req.body;
@@ -439,6 +452,18 @@ export const closeCommissionByDateRange = async (req, res) => {
     }], { session });
 
     await updateExpenseFlags({ expenseTxs: expenseIds, expenseReportId: expenseReport._id, periodKey, session });
+    
+    // apply rules on the expanses..
+    await applyRulesEngine({
+      transactionType: "EXPENSE_PAY_LATER",
+      baseAmount: expenseAmount,
+      session,
+      meta: {
+        periodKey,
+        commissionReportId: commissionReport._id
+      }
+    });
+
     await applyPunchToCapital({ netAmount: net, reportId: commissionReport._id });
     await finalizeCommissionReport({ reportId: commissionReport._id, net, commissionTxIds: commissionTxs.map(t => t._id), session });
 
@@ -547,164 +572,104 @@ export const fetchCommissionTransactionsController = async (req, res) => {
   }
 };
 
-// -----------------------------------------------------------------------------------------
-// export const closeCommissionPeriodController = async (req, res) => {
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
+// group the transactions based on Months: into 3 categories
+export const groupCommissionTransactionsByMonthController = async (req, res) => {
+  try {
+    console.log("🚀 [Commission] Group by month controller triggered");
 
-//   try {
-//     const {
-//       fromDate,
-//       toDate,
-//       expenseReportIds = [],
-//       confirmCapitalUsage = false
-//     } = req.body;
+    // Fetch all journal transactions sorted by date ascending
+    const transactions = await TransactionModel.find({ type: "journal" }).sort({ date: 1 });
 
-//     const periodKey = `${fromDate}_${toDate}`;
+    const grouped = {};
 
-//     /* --------------------------------------------------
-//        1️⃣ FETCH ELIGIBLE COMMISSION TRANSACTIONS
-//        -------------------------------------------------- */
-//     const commissionTxs = await TransactionModel.find({
-//       "orderDetails.returnWindowExpired": true,
-//       "orderDetails.commissionClosed": false,
-//       date: { $gte: new Date(fromDate), $lte: new Date(toDate) }
-//     }).session(session);
+    transactions.forEach(txn => {
+      const monthKey = txn.date.toISOString().slice(0, 7); // YYYY-MM
 
-//     if (!commissionTxs.length) {
-//       throw new Error("No eligible commission transactions found");
-//     }
+      if (!grouped[monthKey]) {
+        grouped[monthKey] = {
+          readyForCommission: [],
+          waitingForReturn: [],
+          settled: []
+        };
+      }
 
-//     /* --------------------------------------------------
-//        2️⃣ APPLY COMMISSION CLEARANCE RULE
-//        -------------------------------------------------- */
-//     const {
-//       revenueAmount: commissionRevenue
-//     } = await applyRulesEngine({
-//       transactionType: "CommissionClearance",
-//       baseAmount: commissionTxs.length, // or computed commission base
-//       session
-//     });
+      const isSettled = txn.orderDetails?.isReported;
+      const isReturnExpired = txn.orderDetails?.expiryReached;
 
-//     if (!commissionRevenue || commissionRevenue <= 0) {
-//       throw new Error("Commission revenue evaluated to zero");
-//     }
+      if (isSettled) {
+        grouped[monthKey].settled.push(txn);
+      } else if (isReturnExpired) {
+        grouped[monthKey].readyForCommission.push(txn);
+      } else {
+        grouped[monthKey].waitingForReturn.push(txn);
+      }
+    });
 
-//     /* --------------------------------------------------
-//        3️⃣ FETCH & PAY EXPENSE REPORTS
-//        -------------------------------------------------- */
-//     let expenseAmount = 0;
+    // Convert grouped object to array for easier UI consumption
+    const result = Object.entries(grouped).map(([month, data]) => ({
+      month,
+      ...data
+    }));
 
-//     const expenseReports = await ExpenseReport.find({
-//       _id: { $in: expenseReportIds },
-//       status: "calculated"
-//     }).session(session);
+    console.log("📦 Commission transactions grouped by month");
 
-//     for (const report of expenseReports) {
-//       expenseAmount += Number(report.totalAmount.toString());
+    return res.status(200).json({ months: result });
 
-//       await ExpenseReport.updateOne(
-//         { _id: report._id },
-//         {
-//           $set: {
-//             status: "paid",
-//             paidAt: new Date(),
-//             linkedCommissionPeriod: periodKey
-//           }
-//         },
-//         { session }
-//       );
+  } catch (error) {
+    console.error("🔥 ERROR in groupCommissionTransactionsByMonthController:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 
-//       await TransactionModel.updateMany(
-//         { _id: { $in: report.transactionIds } },
-//         {
-//           $set: {
-//             "expenseDetails.isCleared": true,
-//             "expenseDetails.clearedAt": new Date(),
-//             "expenseDetails.clearedPeriodKey": periodKey
-//           }
-//         },
-//         { session }
-//       );
-//     }
+export const fetchCommissionTransactionsByStatusController = async (req, res) => {
+  try {
+    const transactions = await TransactionModel.find({
+      type: "journal",
+      orderDetails: { $exists: true }
+    }).sort({ date: 1 });
 
-//     /* --------------------------------------------------
-//        4️⃣ NET RESULT
-//        -------------------------------------------------- */
-//     const netResult = commissionRevenue - expenseAmount;
+    const readyForCommission = [];
+    const waitingForReturn = [];
+    const settled = [];
 
-//     if (netResult < 0 && !confirmCapitalUsage) {
-//       throw new Error("Loss detected. Capital usage confirmation required.");
-//     }
+    transactions.forEach(tx => {
+      const expiryReached = tx.orderDetails?.expiryReached;
+      const hasReport = tx.expenseDetails?.includedInPnL;
 
-//     /* --------------------------------------------------
-//        5️⃣ APPLY FINAL PROFIT / LOSS RULES
-//        -------------------------------------------------- */
-//     if (netResult > 0) {
-//       await applyRulesEngine({
-//         transactionType: "CommissionIncomeToCapital",
-//         baseAmount: netResult,
-//         session
-//       });
-//     }
+      if (hasReport) {
+        settled.push(tx);
+      } else if (expiryReached) {
+        readyForCommission.push(tx);
+      } else {
+        waitingForReturn.push(tx);
+      }
+    });
 
-//     if (netResult < 0) {
-//       await applyRulesEngine({
-//         transactionType: "CapitalToCommissionLoss",
-//         baseAmount: Math.abs(netResult),
-//         session
-//       });
-//     }
+    return res.json({
+      readyForCommission,
+      waitingForReturn,
+      settled
+    });
 
-//     /* --------------------------------------------------
-//        6️⃣ CREATE COMMISSION REPORT (DERIVED)
-//        -------------------------------------------------- */
-//     const [commissionReport] = await CommissionReport.create([{
-//       periodKey,
-//       fromDate,
-//       toDate,
-//       commissionRevenue,
-//       expenseAmount,
-//       netResult,
-//       resultType:
-//         netResult > 0 ? "profit" :
-//         netResult < 0 ? "loss" :
-//         "breakeven",
-//       status: "settled",
-//       settledAt: new Date(),
-//       commissionTransactionIds: commissionTxs.map(t => t._id)
-//     }], { session });
+  } catch (error) {
+    console.error("❌ fetchCommissionTransactionsByStatusController", error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
-//     /* --------------------------------------------------
-//        7️⃣ LOCK COMMISSION TRANSACTIONS
-//        -------------------------------------------------- */
-//     await TransactionModel.updateMany(
-//       { _id: { $in: commissionTxs.map(t => t._id) } },
-//       {
-//         $set: {
-//           "orderDetails.commissionClosed": true,
-//           "orderDetails.commissionClosedAt": new Date(),
-//           "orderDetails.commissionPeriodKey": periodKey,
-//           "orderDetails.commissionReportId": commissionReport._id
-//         }
-//       },
-//       { session }
-//     );
+export const fetchCommissionReportsByStatusController = async (req, res) => {
+  try {
+    const locked = await CommissionReport.find({ status: "locked" }).sort({ createdAt: -1 });
+    const settled = await CommissionReport.find({ status: "settled" }).sort({ settledAt: -1 });
 
-//     await session.commitTransaction();
-//     session.endSession();
+    return res.json({
+      locked,
+      settled
+    });
 
-//     return res.json({
-//       message: "Commission period closed successfully",
-//       commissionReportId: commissionReport._id,
-//       commissionRevenue,
-//       expenseAmount,
-//       netResult
-//     });
+  } catch (error) {
+    console.error("❌ fetchCommissionReportsByStatusController", error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
-//   } catch (error) {
-//     await session.abortTransaction();
-//     session.endSession();
-//     return res.status(500).json({ error: error.message });
-//   }
-// };

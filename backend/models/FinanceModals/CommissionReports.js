@@ -1,6 +1,7 @@
 // models/FinanceModels/CommissionReport.js
 import mongoose from "mongoose";
 
+// models/FinanceModels/CommissionReport.js
 const CommissionReportSchema = new mongoose.Schema({
   periodKey: { type: String, unique: true },
   fromDate: Date,
@@ -8,16 +9,13 @@ const CommissionReportSchema = new mongoose.Schema({
 
   commissionAmount: mongoose.Schema.Types.Decimal128,
   expenseAmount: mongoose.Schema.Types.Decimal128,
-
-  netResult: mongoose.Schema.Types.Decimal128, // +profit / -loss
+  netResult: mongoose.Schema.Types.Decimal128,
 
   resultType: {
     type: String,
     enum: ["profit", "loss", "breakeven"]
-  }, 
-  // if expenses = commission => breakeven..
+  },
 
-  // if the capital is hit => incase of loss we paid the loss using the capital the amount used is saved in the capitalImpactAmount.
   capitalImpactAmount: mongoose.Schema.Types.Decimal128,
 
   status: {
@@ -26,13 +24,18 @@ const CommissionReportSchema = new mongoose.Schema({
     default: "locked"
   },
 
+  closedBy: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee" },
+  closedAt: Date,
+
   settledAt: Date,
+
   commissionTransactionIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Transaction"
-    }],
+  }],
 
   createdAt: { type: Date, default: Date.now }
 });
+
 
 export default mongoose.model("CommissionReport", CommissionReportSchema);
