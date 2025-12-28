@@ -38,6 +38,10 @@ import PaidExpenseReports from "./Pages/BussinessOperation/ExpenseReports-paid.j
 import PaidExpenses from "./Pages/BussinessOperation/ExpenseTransactions-Paid.jsx";
 import UnpaidExpenses from "./Pages/BussinessOperation/ExpenseTransactions-Unpaid.jsx"
 
+import CommissionDashboard from "./Pages/BussinessOperation/CommissionDashboard.jsx";
+import CommissionReports from "./Pages/BussinessOperation/CommissionReportsPage.jsx";
+import CommissionTransactions from "./Pages/BussinessOperation/CommissionTransactions.jsx";
+
 import "./index.css";
 import store from "./store/store.jsx";
 import { Provider } from "react-redux";
@@ -293,6 +297,30 @@ const router = createBrowserRouter([
    element: (
      <ProtectedRoute>
         <UnpaidExpenses />
+     </ProtectedRoute> 
+   ),
+  },
+       {
+   path: "/commissionDashboard",
+   element: (
+     <ProtectedRoute>
+        <CommissionDashboard />
+     </ProtectedRoute> 
+   ),
+  },
+     {
+   path: "/commissionDashboard/Reports",
+   element: (
+     <ProtectedRoute>
+        <CommissionReports />
+     </ProtectedRoute> 
+   ),
+  },
+     {
+   path: "/commissionDashboard/Transactions",
+   element: (
+     <ProtectedRoute>
+        <CommissionTransactions />
      </ProtectedRoute> 
    ),
   },

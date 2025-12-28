@@ -34,6 +34,11 @@ const CommissionReportSchema = new mongoose.Schema({
     ref: "Transaction"
   }],
 
+  commissionLinked: {
+    type: Boolean,
+    default: false,
+  },
+
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -296,7 +296,7 @@ export const closeCommissionPeriodController = async (req, res) => {
       commissionAmount: decimal(commissionAmount),
       status: "locked",
       closedBy: userId,
-      closedAt: new Date()
+      closedAt: new Date(),
     }], { session: sessionA });
   });
   sessionA.endSession();
@@ -352,7 +352,7 @@ export const closeCommissionPeriodController = async (req, res) => {
         capitalImpactAmount: decimal(Math.abs(net)),
         status: "settled",
         settledAt: new Date(),
-        commissionTransactionIds: commissionTxIds
+        commissionTransactionIds: commissionTxIds,
       },
       { session: sessionC }
     );
