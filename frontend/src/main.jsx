@@ -33,9 +33,16 @@ import AccountStatements from "./Pages/Finance/AccountStatements.jsx";
 import PaidStatements from "./Pages/Finance/AccountStatementsPaid.jsx";
 import BidderDashboard from "./Pages/Finance/BidderDashboard.jsx";
 
+import CalculatedExpenseReports from "./Pages/BussinessOperation/ExpenseReports-calculated.jsx";
+import PaidExpenseReports from "./Pages/BussinessOperation/ExpenseReports-paid.jsx";
+import PaidExpenses from "./Pages/BussinessOperation/ExpenseTransactions-Paid.jsx";
+import UnpaidExpenses from "./Pages/BussinessOperation/ExpenseTransactions-Unpaid.jsx"
+
 import "./index.css";
 import store from "./store/store.jsx";
 import { Provider } from "react-redux";
+
+import ExpenseDashboard from "./Pages/BussinessOperation/ExpenseDashboard.jsx";
 
 const router = createBrowserRouter([
   {
@@ -249,7 +256,47 @@ const router = createBrowserRouter([
      </ProtectedRoute> 
    ),
   },
-
+   {
+   path: "/expenseDashboard",
+   element: (
+     <ProtectedRoute>
+        <ExpenseDashboard />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/expenseDashboard/CalculatedExpenseReports",
+   element: (
+     <ProtectedRoute>
+        <CalculatedExpenseReports />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/expenseDashboard/PaidExpenseReports",
+   element: (
+     <ProtectedRoute>
+        <PaidExpenseReports />
+     </ProtectedRoute> 
+   ),
+  },
+  {
+   path: "/expenseDashboard/PaidExpenses",
+   element: (
+     <ProtectedRoute>
+        <PaidExpenses />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/expenseDashboard/UnPaidExpenses",
+   element: (
+     <ProtectedRoute>
+        <UnpaidExpenses />
+     </ProtectedRoute> 
+   ),
+  },
+  
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(

@@ -383,52 +383,59 @@ export const generateExpenseReportByMonthsController = async (req, res) => {
 // only groups them together based on months
 export const groupTransactionsByMonthController = async (req, res) => {
   try {
-    console.log("🚀 [Transactions] Group by month controller triggered");
+    console.log("🚀 Group by month controller triggered");
 
-    // Fetch all transactions sorted by date ascending
-    const transactions = await Transaction.find({ type: "expense" }).sort({ date: 1 });
+    const transactions = await Transaction.find({
+      type: { $regex: /^expense$/i } // case-safe
+    }).sort({ date: 1 });
+
+    console.log("🧪 Transactions found:", transactions.length);
 
     const grouped = {};
 
     transactions.forEach(txn => {
-      const monthKey = txn.date.toISOString().slice(0, 7); // YYYY-MM
+      if (!txn.date) {
+        console.warn("⚠️ Missing date for txn:", txn._id);
+        return;
+      }
+
+      const monthKey = new Date(txn.date).toISOString().slice(0, 7);
 
       if (!grouped[monthKey]) {
         grouped[monthKey] = { reported: [], unreported: [] };
       }
 
-      if (txn.expenseDetails?.includedInPnL) {
+      if (txn.expenseDetails?.isPaid === true) {
         grouped[monthKey].reported.push(txn);
       } else {
         grouped[monthKey].unreported.push(txn);
       }
     });
 
-    // Prepare arrays for easier UI consumption
     const unreportedMonths = [];
     const reportedMonths = [];
 
-    for (const monthKey in grouped) {
-      if (grouped[monthKey].unreported.length > 0) {
-        unreportedMonths.push({ month: monthKey, transactions: grouped[monthKey].unreported });
-      }
-      if (grouped[monthKey].reported.length > 0) {
-        reportedMonths.push({ month: monthKey, transactions: grouped[monthKey].reported });
-      }
-    }
+    Object.entries(grouped).forEach(([month, data]) => {
+      if (data.unreported.length)
+        unreportedMonths.push({ month, transactions: data.unreported });
 
-    console.log("📦 Transactions grouped by month");
-
-    return res.status(200).json({
-      unreportedMonths,
-      reportedMonths
+      if (data.reported.length)
+        reportedMonths.push({ month, transactions: data.reported });
     });
 
+    console.log("📦 Grouped result:", {
+      unreportedMonths: unreportedMonths.length,
+      reportedMonths: reportedMonths.length
+    });
+
+    return res.json({ unreportedMonths, reportedMonths });
+
   } catch (error) {
-    console.error("🔥 ERROR in groupTransactionsByMonthController:", error);
+    console.error("🔥 Grouping error:", error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 export const fetchExpenseReportsController = async (req, res) => {
   try {
@@ -474,6 +481,9 @@ export const fetchExpenseTransactionsController = async (req, res) => {
     const transactions = await Transaction.find(query)
       .sort({ date: -1 });
 
+    console.log("Length: ", transactions.length);
+    console.log("Transactions: ", transactions);
+    
     res.json({
       count: transactions.length,
       transactions
@@ -486,5 +496,3 @@ export const fetchExpenseTransactionsController = async (req, res) => {
   }
 };
 
-fetchExpenseReportsController
-fetchExpenseTransactionsController

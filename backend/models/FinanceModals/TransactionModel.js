@@ -74,7 +74,7 @@ const TransactionSchema = new mongoose.Schema({
   },
 
   amount: { type: mongoose.Schema.Types.Decimal128, required: true },
-  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee" },
 
   status: {
     type: String,
