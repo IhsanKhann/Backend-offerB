@@ -414,162 +414,134 @@ export const closeCommissionPeriodController = async (req, res) => {
   });
 };
 
+export const closeCommissionOnly = async (req, res) => {
+  const { periodKey, fromDate, toDate } = req.body;
+  const userId = req.user._id;
 
-export const closeCommissionByDateRange = async (req, res) => {
-  const { fromDate, toDate, expenseIds = [], periodKey } = req.body;
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  /* ===============================
+     SAFETY — already settled?
+  =============================== */
+  const alreadyClosed = await CommissionReport.findOne({
+    periodKey,
+    status: "settled"
+  });
 
-  try {
-    const commissionTxs = await TransactionModel.find(
-      { date: { $gte: fromDate, $lte: toDate } },
-      { _id: 1, commissionAmount: 1 }
-    ).lean().session(session);
+  if (alreadyClosed) {
+    return res.status(409).json({ error: "Commission cycle already settled" });
+  }
 
-    const expenseTxs = await TransactionModel.find(
-      { _id: { $in: expenseIds } },
-      { _id: 1, amount: 1 }
-    ).lean().session(session);
+  let commissionAmount = 0;
+  let commissionTxIds = [];
+  let commissionReport;
 
-    const commissionAmount = commissionTxs.reduce((s,t)=>s+Number(t.commissionAmount||0),0);
-    const expenseAmount = expenseTxs.reduce((s,t)=>s+Number(t.amount||0),0);
-    const net = calcNet(commissionAmount, expenseAmount);
+  /* ===============================
+     STAGE A — COMMISSION REVENUE
+  =============================== */
+  const sessionA = await mongoose.startSession();
+  await sessionA.withTransaction(async () => {
 
-    const [expenseReport] = await ExpenseReport.create([{
-      periodKey,
-      fromDate, toDate,
-      totalAmount: decimal(expenseAmount),
-      transactionIds: expenseIds
-    }], { session });
+    const orderFilter = {
+      type: "journal",
+      "orderDetails.orderDeliveredAt": { $gte: fromDate, $lte: toDate },
+      "orderDetails.readyForRetainedEarning": false,
+      // optional later:
+      // "orderDetails.expiryReached": true,
+    };
 
-    const [commissionReport] = await CommissionReport.create([{
-      periodKey,
-      fromDate, toDate,
-      commissionAmount: decimal(commissionAmount),
-      expenseAmount: decimal(expenseAmount),
-      netResult: decimal(net),
-      resultType: getReportStatus(net)
-    }], { session });
+    const orders = await TransactionModel.find(orderFilter).session(sessionA);
+    if (!orders.length) throw new Error("No eligible orders");
 
-    await updateExpenseFlags({ expenseTxs: expenseIds, expenseReportId: expenseReport._id, periodKey, session });
-    
-    // apply rules on the expanses..
-    await applyRulesEngine({
-      transactionType: "EXPENSE_PAY_LATER",
-      baseAmount: expenseAmount,
-      session,
-      meta: {
-        periodKey,
-        commissionReportId: commissionReport._id
-      }
+    commissionTxIds = orders.map(o => o._id);
+
+    const baseAmount = orders.reduce(
+      (sum, t) => sum + Number(t.commissionAmount || 0),
+      0
+    );
+
+    const { revenueAmount } = await applyRulesEngine({
+      transactionType: "COMMISSION_REVENUE",
+      baseAmount,
+      session: sessionA
     });
 
-    await applyPunchToCapital({ netAmount: net, reportId: commissionReport._id });
-    await finalizeCommissionReport({ reportId: commissionReport._id, net, commissionTxIds: commissionTxs.map(t => t._id), session });
+    commissionAmount = revenueAmount;
 
-    await session.commitTransaction();
-    res.json({ reportId: commissionReport._id, commissionAmount, expenseAmount, net });
-
-  } catch(e) {
-    await session.abortTransaction();
-    res.status(500).json({ error: e.message });
-  } finally { session.endSession(); }
-};
-
-export const closeCommissionOnly = async (req, res) => {
-  const { fromDate, toDate, periodKey } = req.body;
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const commissionTxs = await TransactionModel.find(
-      { date: { $gte: fromDate, $lte: toDate } },
-      { _id: 1, commissionAmount: 1 }
-    ).lean().session(session);
-
-    const commissionAmount = commissionTxs.reduce((s,t)=>s+Number(t.commissionAmount||0),0);
-    const net = commissionAmount;
-
-    const [commissionReport] = await CommissionReport.create([{
+    [commissionReport] = await CommissionReport.create([{
       periodKey,
-      fromDate, toDate,
+      fromDate,
+      toDate,
       commissionAmount: decimal(commissionAmount),
       expenseAmount: decimal(0),
-      netResult: decimal(net),
-      resultType: getReportStatus(net)
-    }], { session });
+      status: "locked",
+      closedBy: userId,
+      closedAt: new Date(),
+    }], { session: sessionA });
+  });
+  sessionA.endSession();
 
-    await applyPunchToCapital({ netAmount: net, reportId: commissionReport._id });
-    await finalizeCommissionReport({ reportId: commissionReport._id, net, commissionTxIds: commissionTxs.map(t => t._id), session });
+  /* ===============================
+     STAGE B — SETTLEMENT (NO EXPENSE)
+  =============================== */
+  const net = commissionAmount;
 
-    await session.commitTransaction();
-    res.json({ reportId: commissionReport._id, commissionAmount, expenseAmount: 0, net });
+  const sessionC = await mongoose.startSession();
+  await sessionC.withTransaction(async () => {
 
-  } catch(e) {
-    await session.abortTransaction();
-    res.status(500).json({ error: e.message });
-  } finally { session.endSession(); }
-};
+    /* ---- P&L Settlement ---- */
+    if (net !== 0) {
+      await applyRulesEngine({
+        transactionType: "COMMISSION_SETTLEMENT",
+        baseAmount: Math.abs(net),
+        session: sessionC
+      });
 
-export const fetchCommissionReportsController = async (req, res) => {
-  try {
-    const { status } = req.query;
-
-    if (!["locked", "settled"].includes(status)) {
-      return res.status(400).json({
-        error: "Invalid status. Use locked or settled."
+      await applyRulesEngine({
+        transactionType: net > 0 ? "Profit" : "Loss",
+        baseAmount: Math.abs(net),
+        session: sessionC
       });
     }
 
-    const reports = await CommissionReport.find({ status })
-      .sort({ createdAt: -1 });
+    /* ---- Commission Report ---- */
+    await CommissionReport.findByIdAndUpdate(
+      commissionReport._id,
+      {
+        netResult: decimal(net),
+        resultType: getResultType(net),
+        capitalImpactAmount: decimal(Math.abs(net)),
+        status: "settled",
+        settledAt: new Date(),
+        commissionTransactionIds: commissionTxIds,
+      },
+      { session: sessionC }
+    );
 
-    res.json({
-      count: reports.length,
-      reports
-    });
+    /* ===============================
+       UPDATE COMMISSION TRANSACTIONS
+    =============================== */
+    await TransactionModel.updateMany(
+      { _id: { $in: commissionTxIds } },
+      {
+        $set: {
+          "orderDetails.readyForRetainedEarning": true,
+          "orderDetails.retainedLocked": true,
+          "orderDetails.retainedLockedAt": new Date(),
+          "orderDetails.isReported": true,
+          commissionReportId: commissionReport._id
+        }
+      },
+      { session: sessionC }
+    );
+  });
+  sessionC.endSession();
 
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-// 3️⃣ FETCH COMMISSION TRANSACTIONS BY FLAGS
-export const fetchCommissionTransactionsController = async (req, res) => {
-  try {
-    const {
-      expiryReached,
-      readyForRetainedEarning,
-      retainedLocked
-    } = req.query;
-
-    const query = {};
-
-    if (expiryReached !== undefined) {
-      query["orderDetails.expiryReached"] = expiryReached === "true";
-    }
-
-    if (readyForRetainedEarning !== undefined) {
-      query["orderDetails.readyForRetainedEarning"] =
-        readyForRetainedEarning === "true";
-    }
-
-    if (retainedLocked !== undefined) {
-      query["orderDetails.retainedLocked"] =
-        retainedLocked === "true";
-    }
-
-    const transactions = await Transaction.find(query)
-      .sort({ date: -1 });
-
-    res.json({
-      count: transactions.length,
-      transactions
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  return res.json({
+    reportId: commissionReport._id,
+    commissionAmount,
+    expenseAmount: 0,
+    net,
+    resultType: getResultType(net)
+  });
 };
 
 // group the transactions based on Months: into 3 categories

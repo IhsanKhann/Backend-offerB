@@ -2,7 +2,7 @@ import express from "express";
 import { authenticate,authorize } from "../../middlewares/authMiddlewares.js";
 import {
     closeCommissionOnly,
-    closeCommissionByDateRange,
+    // closeCommissionByDateRange,
     closeCommissionPeriodController,
     groupCommissionTransactionsByMonthController,
 
@@ -15,7 +15,7 @@ const router = express.Router();
 router.use(authenticate);
 
 router.post("/cyclicReports", closeCommissionPeriodController);
-router.post("/nonCyclicReports", closeCommissionByDateRange);
+// router.post("/nonCyclicReports", closeCommissionByDateRange);
 router.post("/directlyNoExpanses", closeCommissionOnly);
 router.get("/groupTransactionsForCommission", groupCommissionTransactionsByMonthController);
 

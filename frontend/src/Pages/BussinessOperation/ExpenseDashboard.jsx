@@ -47,7 +47,7 @@ const ExpenseDashboard = () => {
  const navItems = [
      { name: "All Summaries", path: "/summary-table", icon: <Layers size={18} /> },
        { name: "Expenses Dashboard", path: "/expenseDashboard", icon: <Layers size={18} /> },
-     { name: "Commission Dashboard", path: "/commission-dashboard", icon: <CreditCard size={18} /> },
+     { name: "Commission Dashboard", path: "/commissionDashboard", icon: <CreditCard size={18} /> },
      { name: "Calculated Reports", path: "/expenseDashboard/CalculatedExpenseReports", icon: <FileText size={18} /> },
      { name: "Paid Reports", path: "/expenseDashboard/PaidExpenseReports", icon: <FileText size={18} /> },
      { name: "Paid Expenses", path: "/expenseDashboard/PaidExpenses", icon: <Calendar size={18} /> },
