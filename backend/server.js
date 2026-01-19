@@ -13,7 +13,7 @@ import orgUnitsRouter from "./Routes/orgUnitsRoutes.js";
 import AuthRouter from "./Routes/authRoutes.js";
 import PermissionRouter from "./Routes/permissionRoutes.js";
 import FinalizedEmployeesRouter from "./Routes/finalizedEmployeesRoutes.js"
-import AllRolesRouter from "./Routes/AllRolesRoutes.js";
+import roleRoutes from "./Routes/RoleRoutes.js";
 import LeavesRouter from "./Routes/LeaveRoutes.js";
 
 // Finance-Routes..
@@ -31,8 +31,8 @@ import CommissionReports from "./Routes/BussinessOperationRoutes/ComissionReport
 // Cron-Jobs: for the events..
 import "../backend/events/eventsCronJobs.js";
 
-
-
+// Notifications:
+import notificationRouter from "./Routes/NotificationRoutes.js";
 
 import debugRoutes from "./Routes/debug.routes.js";
 
@@ -78,7 +78,9 @@ app.use("/api/hierarchy", HierarchyRouter);
 app.use("/api/orgUnits", orgUnitsRouter);
 app.use("/api/permissions", PermissionRouter);
 app.use("/api/finalizedEmployees", FinalizedEmployeesRouter);
-app.use("/api/allRoles", AllRolesRouter);
+app.use("/api/roles", roleRoutes);
+// changed /api/allRoles..
+
 app.use("/api/leaves", LeavesRouter);
 
 // finance routes:
@@ -92,6 +94,8 @@ app.use("/api/cycles", CycleRouter)
 app.use("/api/cron", CronRouter);
 app.use("/api/expenseReports", ExpenseRouter);
 app.use("/api/commissionReports", CommissionReports);
+
+app.use("/api", notificationRouter);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
-import AllRolesModel from "../../models/HRModals/AllRoles.model.js";
+import RoleModel from "../../models/HRModals/Role.model.js"; // ✅ Changed from AllRolesModel
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 import BreakupFile from "../../models/FinanceModals/SalaryBreakupModel.js";
 import BreakupRulesModel from "../../models/FinanceModals/BreakupRules.js";
+import RoleAssignmentModel from "../../models/HRModals/RoleAssignment.model.js"; // ✅ Added
 
 // ------------------------------------------------------------
 // UTILITY
@@ -20,8 +21,9 @@ export const getSalaryRulesByRoleName = async (req, res) => {
   try {
     const roleNameDecoded = decodeURIComponent(req.params.roleName).trim();
 
-    const role = await AllRolesModel.findOne({
-      name: { $regex: new RegExp(`^${roleNameDecoded}$`, "i") },
+    // ✅ Changed to RoleModel
+    const role = await RoleModel.findOne({
+      roleName: { $regex: new RegExp(`^${roleNameDecoded}$`, "i") },
     });
 
     if (!role) {
@@ -43,8 +45,9 @@ export const getSingleSalaryRole = async (req, res) => {
   try {
     const roleNameDecoded = decodeURIComponent(req.params.roleName).trim();
 
-    const role = await AllRolesModel.findOne({
-      name: { $regex: new RegExp(`^${roleNameDecoded}$`, "i") },
+    // ✅ Changed to RoleModel
+    const role = await RoleModel.findOne({
+      roleName: { $regex: new RegExp(`^${roleNameDecoded}$`, "i") },
     });
 
     if (!role)
@@ -66,7 +69,7 @@ export const getBreakupFile = async (req, res) => {
 
     const breakup = await BreakupFile.findOne({ employeeId })
       .populate("employeeId", "individualName personalEmail")
-      .populate("roleId", "name");
+      .populate("roleId", "roleName"); // ✅ Changed field name
 
     if (!breakup) {
       return res
@@ -85,6 +88,7 @@ export const getBreakupFile = async (req, res) => {
   }
 };
 
+// ✅ UPDATED: CREATE BREAKUP FILE
 export const createBreakupFile = async (req, res) => {
   try {
     const { employeeId, roleId, month, year } = req.body;
@@ -104,17 +108,20 @@ export const createBreakupFile = async (req, res) => {
     if (!employee)
       return res.status(404).json({ success: false, message: "Employee not found" });
 
-    // Validate role
-    const role = await AllRolesModel.findById(roleObjectId);
+    // ✅ Changed to RoleModel
+    const role = await RoleModel.findById(roleObjectId);
     if (!role)
-      return res.status(404).json({ success: false, message: "Role not found" });
+      return res.status(404).json({ success: false, message: "Role declaration not found" });
 
-    // ---------------- CHECK EXISTING BREAKUP ----------------
-    const existingBreakup = await BreakupFile.findOne({ employeeId: empObjectId, month, year });
+    // Check existing breakup
+    const existingBreakup = await BreakupFile.findOne({ 
+      employeeId: empObjectId, 
+      month, 
+      year 
+    });
 
     if (existingBreakup) {
       if (existingBreakup.paidAt) {
-        // Already paid
         return res.status(400).json({
           success: false,
           message: `Salary for ${month} ${year} has already been paid`,
@@ -122,20 +129,25 @@ export const createBreakupFile = async (req, res) => {
           status: "paid",
         });
       } else {
-        // Exists but not yet paid (processing)
         return res.status(400).json({
           success: false,
-          message: `Salary breakup for ${month} ${year} is already created and in processing. Check salary history.`,
+          message: `Salary breakup for ${month} ${year} is already created and in processing`,
           month,
           status: "processing",
         });
       }
     }
 
+    // Get salary rules from role declaration
     const salaryRules = role.salaryRules;
-    const { baseSalary = 0, allowances = [], deductions = [], terminalBenefits = [] } = salaryRules;
+    const { 
+      baseSalary = 0, 
+      allowances = [], 
+      deductions = [], 
+      terminalBenefits = [] 
+    } = salaryRules;
 
-    // ---------------- BUILD BREAKDOWN ----------------
+    // Build breakdown
     const breakdown = [];
     let totalAllowances = 0;
     let totalDeductions = 0;
@@ -151,12 +163,16 @@ export const createBreakupFile = async (req, res) => {
 
     // Allowances
     for (const a of allowances) {
-      const calc = a.type === "percentage" ? Math.round((baseSalary * a.value) / 100) : Number(a.value);
+      const calc = a.type === "percentage" 
+        ? Math.round((baseSalary * a.value) / 100) 
+        : Number(a.value);
       breakdown.push({
         name: a.name,
         category: "allowance",
         value: calc,
-        calculation: a.type === "percentage" ? `${a.value}% of base = ${calc}` : `Fixed = ${calc}`,
+        calculation: a.type === "percentage" 
+          ? `${a.value}% of base = ${calc}` 
+          : `Fixed = ${calc}`,
         excludeFromTotals: false,
       });
       totalAllowances += calc;
@@ -164,12 +180,16 @@ export const createBreakupFile = async (req, res) => {
 
     // Deductions
     for (const d of deductions) {
-      const calc = d.type === "percentage" ? Math.round((baseSalary * d.value) / 100) : Number(d.value);
+      const calc = d.type === "percentage" 
+        ? Math.round((baseSalary * d.value) / 100) 
+        : Number(d.value);
       breakdown.push({
         name: d.name,
         category: "deduction",
         value: calc,
-        calculation: d.type === "percentage" ? `${d.value}% of base = ${calc}` : `Fixed = ${calc}`,
+        calculation: d.type === "percentage" 
+          ? `${d.value}% of base = ${calc}` 
+          : `Fixed = ${calc}`,
         excludeFromTotals: false,
       });
       totalDeductions += calc;
@@ -177,12 +197,16 @@ export const createBreakupFile = async (req, res) => {
 
     // Terminal benefits (NOT included in totals)
     for (const t of terminalBenefits) {
-      const calc = t.type === "percentage" ? Math.round((baseSalary * t.value) / 100) : Number(t.value);
+      const calc = t.type === "percentage" 
+        ? Math.round((baseSalary * t.value) / 100) 
+        : Number(t.value);
       breakdown.push({
         name: t.name,
         category: "terminal",
         value: calc,
-        calculation: t.type === "percentage" ? `${t.value}% of base = ${calc}` : `Fixed = ${calc}`,
+        calculation: t.type === "percentage" 
+          ? `${t.value}% of base = ${calc}` 
+          : `Fixed = ${calc}`,
         excludeFromTotals: true,
       });
     }
@@ -197,7 +221,7 @@ export const createBreakupFile = async (req, res) => {
       excludeFromTotals: false,
     });
 
-    // ---------------- UPSERT ----------------
+    // Create breakup file
     const paidFor = `${month} ${year}`;
     const loggedInEmployeeId = req.user?._id;
 
@@ -294,7 +318,7 @@ export const getBreakupRules = async (req, res) => {
   }
 };
 
-// history of the salaries paid of a specific employee
+// ✅ UPDATED: GET EMPLOYEE SALARY HISTORY
 export const getEmployeeSalaryHistory = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -309,7 +333,7 @@ export const getEmployeeSalaryHistory = async (req, res) => {
     // Fetch breakups
     const breakups = await BreakupFile.find({ employeeId })
       .populate("employeeId", "individualName personalEmail UserId")
-      .populate("roleId", "roleName name")
+      .populate("roleId", "roleName") // ✅ Changed field name
       .sort({ createdAt: -1 });
 
     if (!breakups.length) {
@@ -325,25 +349,19 @@ export const getEmployeeSalaryHistory = async (req, res) => {
 
       return {
         breakupId: b._id,
-
-        // Basic
         month: b.month,
         year: b.year,
         paidFor: b.paidFor || `${b.month} ${b.year}`,
-
-        // Salary calculations
         netSalary: b.calculatedBreakup.netSalary,
         totalAllowances: b.calculatedBreakup.totalAllowances,
         totalDeductions: b.calculatedBreakup.totalDeductions,
-
-        // Payment information
         paymentStatus: b.paymentStatus,
         paidAt: b.paidAt,
         paidOnDate: paidDate ? paidDate.toDateString() : null,
         paidOnTime: paidDate ? paidDate.toLocaleTimeString() : null,
-
-        // Timestamps
         createdAt: b.createdAt,
+        salaryRules: b.salaryRules, // ✅ Include full salary rules
+        calculatedBreakup: b.calculatedBreakup, // ✅ Include breakdown
       };
     });
 
@@ -367,19 +385,31 @@ export const deleteBreakup = async (req, res) => {
   const { breakupId } = req.params;
 
   if (!breakupId) {
-    return res.status(400).json({ success: false, message: "Breakup ID is required" });
+    return res.status(400).json({ 
+      success: false, 
+      message: "Breakup ID is required" 
+    });
   }
 
   try {
-    const deleted = await SalaryBreakupfiles.findByIdAndDelete(breakupId);
+    const deleted = await BreakupFile.findByIdAndDelete(breakupId);
 
     if (!deleted) {
-      return res.status(404).json({ success: false, message: "Breakup not found" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "Breakup not found" 
+      });
     }
 
-    return res.json({ success: true, message: "Breakup deleted successfully" });
+    return res.json({ 
+      success: true, 
+      message: "Breakup deleted successfully" 
+    });
   } catch (err) {
     console.error("Error deleting breakup:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error" 
+    });
   }
 };

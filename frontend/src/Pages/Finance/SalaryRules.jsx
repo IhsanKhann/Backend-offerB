@@ -18,11 +18,11 @@ export default function SalaryRulesTable() {
     { name: "Testing", path: "/paymentDashboard" },
   ];
 
-  // Fetch all roles
+  // ✅ Fetch all roles (using new Roles API)
   const fetchRoles = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/summaries/salarytable/all");
+      const res = await api.get("/summaries/salarytable/all"); // Uses TablesController which now uses RoleModel
       setRoles(res.data.data || []);
     } catch (err) {
       console.error(err);
@@ -37,17 +37,17 @@ export default function SalaryRulesTable() {
   }, []);
 
   // Start editing
-const handleEdit = (role) => {
-  const rules = JSON.parse(JSON.stringify(role.salaryRules));
+  const handleEdit = (role) => {
+    const rules = JSON.parse(JSON.stringify(role.salaryRules));
 
-  // Ensure all arrays exist
-  rules.allowances = rules.allowances || [];
-  rules.deductions = rules.deductions || [];
-  rules.terminalBenefits = rules.terminalBenefits || [];
+    // Ensure all arrays exist
+    rules.allowances = rules.allowances || [];
+    rules.deductions = rules.deductions || [];
+    rules.terminalBenefits = rules.terminalBenefits || [];
 
-  setEditRoleId(role._id);
-  setFormData(rules);
-};
+    setEditRoleId(role._id);
+    setFormData(rules);
+  };
 
   const handleCancel = () => {
     setEditRoleId(null);
@@ -55,22 +55,22 @@ const handleEdit = (role) => {
   };
 
   // Handle input
-const handleInputChange = (section, index, field, value) => {
-  let updated = { ...formData };
+  const handleInputChange = (section, index, field, value) => {
+    let updated = { ...formData };
 
-  if (section === "baseSalary" || section === "salaryType") {
-    updated[section] = value;
-  } else {
-    const arrCopy = [...(updated[section] || [])];
-    arrCopy[index] = { 
-      ...arrCopy[index], 
-      [field]: field === "value" ? Number(value) : value 
-    };
-    updated[section] = arrCopy;
-  }
+    if (section === "baseSalary" || section === "salaryType") {
+      updated[section] = value;
+    } else {
+      const arrCopy = [...(updated[section] || [])];
+      arrCopy[index] = { 
+        ...arrCopy[index], 
+        [field]: field === "value" ? Number(value) : value 
+      };
+      updated[section] = arrCopy;
+    }
 
-  setFormData(updated);
-};
+    setFormData(updated);
+  };
 
   // Add new benefit in array
   const addBenefit = (section) => {
@@ -88,7 +88,7 @@ const handleInputChange = (section, index, field, value) => {
     setFormData(updated);
   };
 
-  // remove benefit from array
+  // Remove benefit from array
   const removeBenefit = (section, index) => {
     const updated = {
       ...formData,
@@ -99,39 +99,50 @@ const handleInputChange = (section, index, field, value) => {
     setFormData(updated);
   };
 
-  // Save role
-const handleSave = async () => {
-  const sanitized = {
-    baseSalary: formData.baseSalary ?? 0,
-    salaryType: formData.salaryType ?? "monthly",
-    allowances: Array.isArray(formData.allowances) ? formData.allowances : [],
-    deductions: Array.isArray(formData.deductions) ? formData.deductions : [],
-    terminalBenefits: Array.isArray(formData.terminalBenefits) ? formData.terminalBenefits : []
-  };
+  // ✅ Save role (uses updated API)
+  const handleSave = async () => {
+    const sanitized = {
+      baseSalary: formData.baseSalary ?? 0,
+      salaryType: formData.salaryType ?? "monthly",
+      allowances: Array.isArray(formData.allowances) ? formData.allowances : [],
+      deductions: Array.isArray(formData.deductions) ? formData.deductions : [],
+      terminalBenefits: Array.isArray(formData.terminalBenefits) ? formData.terminalBenefits : []
+    };
 
-  console.log("Saving salaryRules:", sanitized);  // 🔹 DEBUG
-
-  try {
-    const res = await api.put(`/summaries/salarytable/${editRoleId}`, { salaryRules: sanitized });
-    console.log("Server response:", res.data);  // 🔹 DEBUG
-    handleCancel();
-    fetchRoles();
-    alert("Salary rules updated!");
-  } catch (err) {
-    console.error("Save failed:", err);
-    alert("Failed to update salary rules");
-  }
-};
-
-  // Create a new role
-  const handleCreate = async () => {
-    const name = prompt("Enter role name");
-    if (!name) return;
+    console.log("Saving salaryRules:", sanitized);
 
     try {
-      await api.post("/salarytable/", {
-        name,
+      const res = await api.put(`/summaries/salarytable/${editRoleId}`, { 
+        salaryRules: sanitized 
+      });
+      
+      console.log("Server response:", res.data);
+      handleCancel();
+      fetchRoles();
+      alert("Salary rules updated!");
+    } catch (err) {
+      console.error("Save failed:", err);
+      alert("Failed to update salary rules");
+    }
+  };
+
+  // ✅ Create a new role (uses updated API)
+  const handleCreate = async () => {
+    const roleName = prompt("Enter role name");
+    if (!roleName) return;
+
+    const code = prompt("Enter department code (HR/Finance/BusinessOperation)");
+    if (!code) return;
+
+    const status = prompt("Enter status (Offices/Groups/Divisions/Departments/Branches/Cells)");
+    if (!status) return;
+
+    try {
+      await api.post("/summaries/salarytable", {
+        roleName,
         description: "",
+        code,
+        status,
         salaryRules: {
           baseSalary: 0,
           salaryType: "monthly",
@@ -172,28 +183,39 @@ const handleSave = async () => {
       </div>
 
       <div className="flex-1 p-6 space-y-6 overflow-x-auto">
-        <h2 className="text-xl font-semibold mb-2">Salary Rules</h2>
+        <h2 className="text-xl font-semibold mb-2">Salary Rules (Role Declarations)</h2>
 
         {roles.map((role) => (
           <div key={role._id} className="border rounded-lg shadow bg-white p-4 space-y-4">
             
             {/* Header */}
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold">{role.name}</h3>
+              <div>
+                <h3 className="text-lg font-bold">{role.roleName || role.name}</h3>
+                <p className="text-sm text-gray-600">
+                  Department: {role.code} | Level: {role.status}
+                </p>
+              </div>
 
               {editRoleId === role._id ? (
-                <>
-                  <button onClick={handleSave} className="bg-green-600 text-white px-3 py-1 rounded">
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleSave} 
+                    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                  >
                     Save
                   </button>
-                  <button onClick={handleCancel} className="bg-gray-500 text-white px-3 py-1 rounded">
+                  <button 
+                    onClick={handleCancel} 
+                    className="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600"
+                  >
                     Cancel
                   </button>
-                </>
+                </div>
               ) : (
                 <button
                   onClick={() => handleEdit(role)}
-                  className="bg-blue-600 text-white px-3 py-1 rounded"
+                  className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
                 >
                   Edit
                 </button>
@@ -240,17 +262,17 @@ const handleSave = async () => {
             </div>
 
             {/* Arrays */}
-             {["allowances", "deductions", "terminalBenefits"].map((section) => (
+            {["allowances", "deductions", "terminalBenefits"].map((section) => (
               <div key={section} className="bg-gray-50 p-3 border rounded">
-                <h4 className="font-semibold">
-                  {section.replace(/([A-Z])/g, " $1").toUpperCase()}
+                <h4 className="font-semibold capitalize mb-2">
+                  {section.replace(/([A-Z])/g, " $1")}
                 </h4>
 
                 {(editRoleId === role._id
                   ? (formData[section] || [])
                   : (role.salaryRules[section] || [])
                 ).map((item, idx) => (
-                    <div key={idx} className="flex gap-2 items-center mt-2">
+                  <div key={idx} className="flex gap-2 items-center mt-2">
                     {editRoleId === role._id ? (
                       <>
                         <input
@@ -284,7 +306,7 @@ const handleSave = async () => {
                         />
 
                         <button
-                          className="bg-red-500 text-white px-2 py-1 rounded"
+                          className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
                           onClick={() => removeBenefit(section, idx)}
                         >
                           Delete
@@ -301,7 +323,7 @@ const handleSave = async () => {
                 {/* Add Button */}
                 {editRoleId === role._id && (
                   <button
-                    className="bg-blue-600 text-white px-3 py-1 rounded mt-2"
+                    className="bg-blue-600 text-white px-3 py-1 rounded mt-2 hover:bg-blue-700"
                     onClick={() => addBenefit(section)}
                   >
                     + Add
@@ -315,7 +337,7 @@ const handleSave = async () => {
         {/* Create Button */}
         <button
           onClick={handleCreate}
-          className="bg-green-700 text-white px-4 py-2 rounded"
+          className="bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800"
         >
           + Create New Role
         </button>

@@ -35,6 +35,7 @@ const AssignRolesForm = () => {
   const [cellId, setCellId] = useState("");
   const [deskId, setDeskId] = useState("");
 
+  // hard coded: Hierarchy..
   const levelOrder = ["office", "group", "division", "department", "branch", "cell", "desk"];
   const backendLevels = {
     office: "offices",
@@ -88,7 +89,7 @@ const AssignRolesForm = () => {
   const fetchEmployeePermissions = async() => {
     try{
         setLoading(true);
-        const response = await api.get("/permissions/AllPermissions");
+        const response = await api.get("/permissions/AllPermissions"); // for the dropDown => fetch the Permissions..
         setFetchedPermissions(response.data.Permissions);
       }catch(error){
         console.log(error);
@@ -101,10 +102,11 @@ const AssignRolesForm = () => {
     fetchEmployeePermissions();
   },[])
 
-      const fetchRolesList = async () => {
+  // allRoles used..
+  const fetchRolesList = async () => {
   try {
     setLoading(true);
-    const response = await api.get("/allRoles/getAllRolesList");
+    const response = await api.get("/allRoles/getAllRolesList"); // dropDown of the rules
     
     if (response.data && response.data.Roles) {
       setRolesList(response.data.Roles);
@@ -125,8 +127,7 @@ const AssignRolesForm = () => {
     fetchRolesList();
   },[]);
 
-  // Add role
-// Add role with full data
+// Add role with full data: allRoles used..
 const handleAddRole = async (newRole) => {
   try {
     setActionLoading(true);
@@ -158,7 +159,7 @@ const handleAddRole = async (newRole) => {
   }
 };
 
-// Delete role
+// Delete role..AllRoles used..
 const handleDeleteRole = async (roleId) => {
   try {
     setActionLoading(true);

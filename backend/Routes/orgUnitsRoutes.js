@@ -1,46 +1,69 @@
+// ============================================
+// routes/orgUnitsRoutes.js (UPDATED)
+// ============================================
 import express from "express";
 import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
-import { resolveOrgUnit } from "../contollers/employeeController.js";
-
-import { 
-    getOrgUnits, 
-    createOrgUnit,
-    getEmployeesByOrgUnit,
+import {
+  getOrgUnits,
+  createOrgUnit,
+  updateOrgUnit,
+  deleteOrgUnit,
+  getEmployeesByOrgUnit,
+  getEmployeesByDepartmentAndStatus,
+  getOrgUnitsByDepartment,
 } from "../contollers/OrgUnitsController.js";
 
-const router = express.Router();
+const orgUnitRouter = express.Router();
 
+orgUnitRouter.use(authenticate);
 
-// Resolve Org Unit conflicts - moved before authentication middleware
-router.post(
-"/org-units/resolve",
-  resolveOrgUnit
-);
-
-router.use(authenticate);
-
-// View all org units
-router.get(
-  "/getOrgUnits",
-  authorize("view_org_units"),
+// Get all org units (tree structure)
+orgUnitRouter.get(
+  "/org-units",
+  // authorize("view_org_units"),
   getOrgUnits
 );
 
-// Create a new org unit
-router.post(
-  "/createOrgUnit",
-  authorize("create_org_unit"),
+// Get org units by department
+orgUnitRouter.get(
+  "/org-units/department/:code",
+  // authorize("view_org_units"),
+  getOrgUnitsByDepartment
+);
+
+// Create org unit
+orgUnitRouter.post(
+  "/org-units",
+  // authorize("create_org_unit"),
   createOrgUnit
 );
 
-// View employees by org unit
-router.get(
-  "/getorgUnit/:orgUnitId",
-//   setResourceOrgUnit,
-  authorize("view_employees_by_org_unit"),
+// Update org unit
+orgUnitRouter.put(
+  "/org-units/:orgUnitId",
+  // authorize("edit_org_unit"),
+  updateOrgUnit
+);
+
+// Delete org unit
+orgUnitRouter.delete(
+  "/org-units/:orgUnitId",
+  // authorize("delete_org_unit"),
+  deleteOrgUnit
+);
+
+// Get employees by org unit
+orgUnitRouter.get(
+  "/org-units/:orgUnitId/employees",
+  // authorize("view_employees_by_org_unit"),
   getEmployeesByOrgUnit
 );
 
-// ------------------- Org Unit Routes -------------------
+// Get employees by department and status (for notifications)
+orgUnitRouter.get(
+  "/org-units/employees/filter",
+  // authorize("view_employees_by_org_unit"),
+  getEmployeesByDepartmentAndStatus
+);
 
-export default router;
+export default orgUnitRouter;
