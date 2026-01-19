@@ -34,7 +34,7 @@ router.get(
 
 // /finalizedEmployees/allWithRoles - route
 router.get("/allWithRoles", 
-  authorize("view_all_finalized_employees"),
+  // authorize("view_all_finalized_employees"),
   getFinalizedEmployeesWithRoles);
 
 router.patch(

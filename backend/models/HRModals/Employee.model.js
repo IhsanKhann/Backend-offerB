@@ -139,7 +139,7 @@ const employeeSchema = new mongoose.Schema(
 
     role: {
       type: mongoose.Schema.Types.ObjectId, 
-      ref: "roles",
+      ref: "Role",
     },
     orgUnit: {
       type: mongoose.Schema.Types.ObjectId, 

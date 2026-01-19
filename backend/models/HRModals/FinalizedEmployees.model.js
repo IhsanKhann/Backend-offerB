@@ -206,7 +206,7 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     // posting: { type: AppointmentSchema, required: true }, // if needed
 
     // 6. Roles
-    role: { type: mongoose.Schema.Types.ObjectId, ref: "roles"},
+    role: { type: mongoose.Schema.Types.ObjectId, ref: "Role"},
     orgUnit: { type: mongoose.Schema.Types.ObjectId, ref: "OrgUnit", required: true },
 
     // 7. Salary & Benefits
