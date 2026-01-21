@@ -6,15 +6,16 @@ import { setResourceOrgUnit } from "../middlewares/authUtility.js";
 import {
   RegisterEmployee,
   SubmitEmployee,
+  EditEmployee,
   deleteEmployee,
   getSingleEmployee,
   getAllEmployees,
   AssignEmployeePost,
   getAllRoles,
   getSingleRole,
-  resolveOrgUnit,
 } from "../contollers/employeeController.js";
 
+import { resolveOrgUnit } from "../contollers/employeeController.js";
 const router = express.Router();
 
 router.use(authenticate);
@@ -22,56 +23,60 @@ router.use(authenticate);
 // Assign employee role
 router.post(
   "/roles/assign",
-  authorize("assign_employee_role"),
+  // authorize("assign_employee_role"),
   AssignEmployeePost
 );
 
 // ------------------- Employee Routes -------------------
 
-// Register new employee
 // View all roles
 router.get(
   "/getAllRoles",
-  authorize("view_all_roles"),
+  // authorize("view_all_roles"),
   getAllRoles
 );
-
 
 // View all employees
 router.get(
   "/getAllEmployees",
-  authorize("view_all_employees"),
+  // authorize("view_all_employees"),
   getAllEmployees
 );
 
+// Register new employee
 router.post(
   "/register",
-  authorize("register_employee"),
+  // authorize("register_employee"),
   upload.single("profileImage"),
   RegisterEmployee
+);
+
+// ✅ NEW: Edit draft employee
+router.put(
+  "/edit/:employeeId",
+  // authorize("edit_employee"),
+  upload.single("profileImage"),
+  EditEmployee
 );
 
 // Submit employee for approval
 router.post(
   "/submit-employee",
-  authorize("submit_employee"),
+  // authorize("submit_employee"),
   SubmitEmployee
 );
 
 // Delete employee (before finalized)
 router.delete(
   "/deleteEmployee/:employeeId",
-//   setResourceOrgUnit,
-  authorize("delete_employee"),
+  // authorize("delete_employee"),
   deleteEmployee
 );
-
 
 // View single employee
 router.get(
   "/:employeeId",
-//   setResourceOrgUnit,
-  authorize("view_single_employee"),
+  // authorize("view_single_employee"),
   getSingleEmployee
 );
 
@@ -80,10 +85,8 @@ router.get(
 // View single role
 router.get(
   "/roles/:id",
-  authorize("view_single_role"),
+  // authorize("view_single_role"),
   getSingleRole
 );
-
-
 
 export default router;

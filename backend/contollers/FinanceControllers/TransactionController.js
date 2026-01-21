@@ -12,11 +12,6 @@ import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 import RuleModel from "../../models/FinanceModals/TablesModel.js";
 
-import Seller from "../../models/FinanceModals/SellersModel.js";
-import Buyer from "../../models/FinanceModals/BuyersModel.js";
-import Order from "../../models/FinanceModals/OrdersModel.js";
-import Payment from "../../models/FinanceModals/PaymentModel.js";
-
 // ----------------- Helpers -----------------
 
 const safeToObjectId = (id) => {
@@ -50,18 +45,6 @@ async function getInstanceByNumericFieldLineId(numericId, session = null) {
   const inst = await q;
   return inst ? inst._id : null;
 }
-
-/**
- * Attempt to resolve an instance ObjectId for a split or mirror using many fallbacks.
- * Accepts object with optional keys:
- *   - instanceId
- *   - definitionId
- *   - fieldLineId (numeric)
- *   - summaryId (numeric or ObjectId)
- *
- * Returns an ObjectId or null.
- */
-// helpers
 
 export const resolveInstanceForEntry = async(entry, session = null) => {
   if (entry.instanceId) return safeToObjectId(entry.instanceId);
@@ -136,6 +119,89 @@ export const applyBalanceChange = async ({ instanceId, summaryId, debitOrCredit,
   if (summaryId) {
     await SummaryModel.findByIdAndUpdate(summaryId, { $inc: { endingBalance: increment } }, { session });
   }
+};
+
+// ----------------- persistTransactionAndApply -----------------
+export const persistTransactionAndApply = async (
+  accountingLines = [],
+  description = "Transaction",
+  session
+) => {
+  if (!Array.isArray(accountingLines) || !accountingLines.length) {
+    throw new Error("❌ No accounting lines provided");
+  }
+
+  if (!session) {
+    throw new Error("❌ MongoDB session is required");
+  }
+
+  // ---------------- VALIDATE & NORMALIZE ----------------
+  const normalizedLines = accountingLines.map((l, index) => {
+    if (!l.debitOrCredit || !["debit", "credit"].includes(l.debitOrCredit)) {
+      throw new Error(`❌ Invalid debitOrCredit at line ${index + 1}`);
+    }
+
+    const amount = Number(l.amount);
+    if (!amount || amount <= 0) {
+      throw new Error(`❌ Invalid amount at line ${index + 1}`);
+    }
+
+    return {
+      employeeId: l.employeeId || null,
+      instanceId: l.instanceObjectId || null,
+      summaryId: l.summaryObjectId || null,
+      definitionId: l.definitionObjectId || null,
+      debitOrCredit: l.debitOrCredit,
+      amount: mongoose.Types.Decimal128.fromString(amount.toFixed(2)),
+      description: l.fieldName || "",
+      isReflection: !!l.isReflection,
+    };
+  });
+
+  // ---------------- CREATE TRANSACTION ----------------
+  const totalAmount = normalizedLines.reduce(
+    (sum, l) => sum + Number(l.amount),
+    0
+  );
+
+  const [transaction] = await TransactionModel.create(
+    [
+      {
+        date: new Date(),
+        description,
+        type: "journal",
+        amount: mongoose.Types.Decimal128.fromString(
+          totalAmount.toFixed(2)
+        ),
+        status: "posted",
+        lines: normalizedLines,
+      },
+    ],
+    { session }
+  );
+
+  // ---------------- APPLY BALANCES ----------------
+  for (const line of normalizedLines) {
+    await applyBalanceChange(
+      {
+        instanceId: line.instanceId,
+        summaryId: line.summaryId,
+        debitOrCredit: line.debitOrCredit,
+        amount: Number(line.amount),
+      },
+      session
+    );
+  }
+
+  return {
+    transactionId: transaction._id,
+    transaction,
+  };
+};
+
+export const SID = {
+  CAPITAL: 1600,
+  CASH: 1500,
 };
 
 // ================== Expense Controllers ==================

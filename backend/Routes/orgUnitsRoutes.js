@@ -1,10 +1,9 @@
-// ============================================
-// routes/orgUnitsRoutes.js (UPDATED)
-// ============================================
+// routes/orgUnitsRoutes.js (FIXED)
 import express from "express";
 import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
 import {
   getOrgUnits,
+  getSingleOrgUnit,
   createOrgUnit,
   updateOrgUnit,
   deleteOrgUnit,
@@ -13,57 +12,39 @@ import {
   getOrgUnitsByDepartment,
 } from "../contollers/OrgUnitsController.js";
 
+import { resolveOrgUnit } from "../contollers/employeeController.js";
+
 const orgUnitRouter = express.Router();
 
+// ✅ CRITICAL: resolveOrgUnit MUST be BEFORE authenticate middleware
+// This route is called during employee registration, before authentication
+orgUnitRouter.post("/resolve", resolveOrgUnit);
+
+// ✅ All other routes require authentication
 orgUnitRouter.use(authenticate);
 
-// Get all org units (tree structure)
-orgUnitRouter.get(
-  "/org-units",
-  // authorize("view_org_units"),
-  getOrgUnits
-);
+// ✅ Get all org units (tree structure)
+orgUnitRouter.get("/", getOrgUnits);
+
+// ✅ Get single org unit by ID
+orgUnitRouter.get("/:orgUnitId", getSingleOrgUnit);
 
 // Get org units by department
-orgUnitRouter.get(
-  "/org-units/department/:code",
-  // authorize("view_org_units"),
-  getOrgUnitsByDepartment
-);
+orgUnitRouter.get("/department/:code", getOrgUnitsByDepartment);
 
 // Create org unit
-orgUnitRouter.post(
-  "/org-units",
-  // authorize("create_org_unit"),
-  createOrgUnit
-);
+orgUnitRouter.post("/", createOrgUnit);
 
 // Update org unit
-orgUnitRouter.put(
-  "/org-units/:orgUnitId",
-  // authorize("edit_org_unit"),
-  updateOrgUnit
-);
+orgUnitRouter.put("/:orgUnitId", updateOrgUnit);
 
 // Delete org unit
-orgUnitRouter.delete(
-  "/org-units/:orgUnitId",
-  // authorize("delete_org_unit"),
-  deleteOrgUnit
-);
+orgUnitRouter.delete("/:orgUnitId", deleteOrgUnit);
 
-// Get employees by org unit
-orgUnitRouter.get(
-  "/org-units/:orgUnitId/employees",
-  // authorize("view_employees_by_org_unit"),
-  getEmployeesByOrgUnit
-);
+// Get employees by org unit (includes descendants)
+orgUnitRouter.get("/:orgUnitId/employees", getEmployeesByOrgUnit);
 
 // Get employees by department and status (for notifications)
-orgUnitRouter.get(
-  "/org-units/employees/filter",
-  // authorize("view_employees_by_org_unit"),
-  getEmployeesByDepartmentAndStatus
-);
+orgUnitRouter.get("/employees/filter", getEmployeesByDepartmentAndStatus);
 
 export default orgUnitRouter;

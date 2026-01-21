@@ -3,10 +3,10 @@ import eventBus from "./eventBus.js";
 import { EVENT_TYPES } from "./events.js";
 import {
   createNotificationsFromEvent,
+  notifyGlobalRole,
+  notifyDepartmentRole,
   notifyDepartment,
-  notifyRole,
   notifyEmployee,
-  notifyStatus,
 } from "../notifications/notificationFactory.js";
 
 // ============================================
@@ -37,10 +37,11 @@ eventBus.on(EVENT_TYPES.BIZ_ORDER_CREATED, async (payload) => {
 eventBus.on(EVENT_TYPES.BIZ_INVENTORY_LOW, async (payload) => {
   try {
     console.log("📢 Event: INVENTORY_LOW");
-    // Notify specific roles in BusinessOperation
-    await notifyRole(
-      "BusinessOperation",
+    
+    // ✅ REFACTORED: Notify specific role in department
+    await notifyDepartmentRole(
       "Inventory Manager",
+      "BusinessOperation",
       EVENT_TYPES.BIZ_INVENTORY_LOW,
       payload
     );
@@ -119,17 +120,17 @@ eventBus.on(EVENT_TYPES.FINANCE_SALARY_PENDING, async (payload) => {
   try {
     console.log("📢 Event: SALARY_PENDING");
     
-    // Notify Finance managers only
-    await notifyRole(
-      "Finance",
+    // ✅ REFACTORED: Notify specific roles in Finance
+    await notifyDepartmentRole(
       "Finance Manager",
+      "Finance",
       EVENT_TYPES.FINANCE_SALARY_PENDING,
       payload
     );
     
-    await notifyRole(
-      "Finance",
+    await notifyDepartmentRole(
       "Accountant",
+      "Finance",
       EVENT_TYPES.FINANCE_SALARY_PENDING,
       payload
     );
@@ -154,10 +155,17 @@ eventBus.on(EVENT_TYPES.FINANCE_BUDGET_EXCEEDED, async (payload) => {
   try {
     console.log("📢 Event: BUDGET_EXCEEDED");
     
-    // Notify Finance department and department heads
-    await notifyStatus(
+    // ✅ REFACTORED: Notify Finance managers (department-level)
+    await notifyDepartmentRole(
+      "Finance Manager",
       "Finance",
-      "Departments",
+      EVENT_TYPES.FINANCE_BUDGET_EXCEEDED,
+      payload
+    );
+    
+    // Also notify all department heads (global role)
+    await notifyGlobalRole(
+      "Department Head",
       EVENT_TYPES.FINANCE_BUDGET_EXCEEDED,
       payload
     );
@@ -291,8 +299,13 @@ eventBus.on(EVENT_TYPES.HR_CONTRACT_EXPIRING, async (payload) => {
   try {
     console.log("📢 Event: CONTRACT_EXPIRING");
     
-    // Notify HR managers
-    await notifyRole("HR", "HR Manager", EVENT_TYPES.HR_CONTRACT_EXPIRING, payload);
+    // ✅ REFACTORED: Notify HR Managers (department-level)
+    await notifyDepartmentRole(
+      "HR Manager",
+      "HR",
+      EVENT_TYPES.HR_CONTRACT_EXPIRING,
+      payload
+    );
     
     // Notify the employee
     if (payload.employeeId) {
@@ -311,8 +324,13 @@ eventBus.on(EVENT_TYPES.HR_PROBATION_ENDING, async (payload) => {
   try {
     console.log("📢 Event: PROBATION_ENDING");
     
-    // Notify HR and the employee's manager
-    await notifyRole("HR", "HR Manager", EVENT_TYPES.HR_PROBATION_ENDING, payload);
+    // Notify HR managers
+    await notifyDepartmentRole(
+      "HR Manager",
+      "HR",
+      EVENT_TYPES.HR_PROBATION_ENDING,
+      payload
+    );
   } catch (err) {
     console.error("❌ PROBATION_ENDING notification failed:", err);
   }
@@ -323,8 +341,12 @@ eventBus.on(EVENT_TYPES.HR_BIRTHDAY_REMINDER, async (payload) => {
     console.log("📢 Event: BIRTHDAY_REMINDER");
     
     // Notify the employee's department
-    if (payload.department && payload.department !== "ALL") {
-      await notifyDepartment(payload.department, EVENT_TYPES.HR_BIRTHDAY_REMINDER, payload);
+    if (payload.departmentCode && payload.departmentCode !== "ALL") {
+      await notifyDepartment(
+        payload.departmentCode,
+        EVENT_TYPES.HR_BIRTHDAY_REMINDER,
+        payload
+      );
     }
   } catch (err) {
     console.error("❌ BIRTHDAY_REMINDER notification failed:", err);
@@ -351,7 +373,8 @@ eventBus.on(EVENT_TYPES.SYSTEM_MAINTENANCE, async (payload) => {
   try {
     console.log("📢 Event: SYSTEM_MAINTENANCE");
     
-    // Notify all departments
+    // ✅ REFACTORED: Notify organization-wide
+    // This could use a global role like "All Employees" or notify all departments
     await notifyDepartment("HR", EVENT_TYPES.SYSTEM_MAINTENANCE, payload);
     await notifyDepartment("Finance", EVENT_TYPES.SYSTEM_MAINTENANCE, payload);
     await notifyDepartment("BusinessOperation", EVENT_TYPES.SYSTEM_MAINTENANCE, payload);
@@ -403,6 +426,30 @@ eventBus.on(EVENT_TYPES.DEADLINE_APPROACHING, async (payload) => {
     }
   } catch (err) {
     console.error("❌ DEADLINE_APPROACHING notification failed:", err);
+  }
+});
+
+// ============================================
+// EXAMPLE: Using Global Role Notifications
+// ============================================
+
+eventBus.on(EVENT_TYPES.SYSTEM_ALERT, async (payload) => {
+  try {
+    console.log("📢 Event: SYSTEM_ALERT");
+    
+    // ✅ NEW: Notify all executives globally (across all departments)
+    await notifyGlobalRole(
+      "Executive",
+      EVENT_TYPES.SYSTEM_ALERT,
+      {
+        ...payload,
+        title: "System Alert",
+        message: payload.message,
+        priority: "critical",
+      }
+    );
+  } catch (err) {
+    console.error("❌ SYSTEM_ALERT notification failed:", err);
   }
 });
 

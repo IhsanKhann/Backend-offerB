@@ -46,6 +46,10 @@ export default function SalaryModal({ isOpen, onClose, employee }) {
           `/summaries/salary/rules-by-role/${encodeURIComponent(roleName)}`
         );
 
+        console.log("📊 Salary Rules Response:", res.data);
+        console.log("📊 Role ID:", res.data?.data?._id);
+        console.log("📊 Salary Rules:", res.data?.data?.salaryRules);
+
         const salaryRules = res.data?.data?.salaryRules || {};
         setSelectedRoleId(res.data?.data?._id || null);
 
@@ -163,6 +167,7 @@ const handleCreateBreakup = async () => {
 
   try {
     const res = await api.post(`/summaries/salary/breakup/${employee._id}`, payload);
+    console.log("✅ Breakup creation response:", res.data);
 
     if (res.data?.success) {
       setBackendMessage(null);

@@ -9,7 +9,7 @@ import {checkAndRestoreEmployees} from "./contollers/employeeController.js";
 
 import employeeRouter from "./Routes/employeRoutes.js";
 import HierarchyRouter from "./Routes/HiearchyRoutes.js";
-import orgUnitsRouter from "./Routes/orgUnitsRoutes.js";
+import orgUnitRoutes from "./Routes/orgUnitsRoutes.js";
 import AuthRouter from "./Routes/authRoutes.js";
 import PermissionRouter from "./Routes/permissionRoutes.js";
 import FinalizedEmployeesRouter from "./Routes/finalizedEmployeesRoutes.js"
@@ -75,10 +75,10 @@ app.get("/api/hello", (req, res) => {
 app.use("/api/auth", AuthRouter);
 app.use("/api/employees", employeeRouter);
 app.use("/api/hierarchy", HierarchyRouter);
-app.use("/api/orgUnits", orgUnitsRouter);
+app.use('/api/org-units', orgUnitRoutes);
 app.use("/api/permissions", PermissionRouter);
 app.use("/api/finalizedEmployees", FinalizedEmployeesRouter);
-app.use("/api/roles", roleRoutes);
+app.use("/api", roleRoutes);
 // changed /api/allRoles..
 
 app.use("/api/leaves", LeavesRouter);

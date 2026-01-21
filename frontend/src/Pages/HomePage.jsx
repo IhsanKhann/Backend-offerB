@@ -59,6 +59,7 @@ function HomePage() {
     { title: "Assign Roles", desc: "Assign roles to employees", onClick: () => navigate("/assign-roles") },
     { title: "Permissions Management", desc: "Manage system permissions", onClick: () => navigate("/Permission-handler") },
     { title: "Notification Manager", desc: "Manage notification rules", onClick: () => navigate("/notification-manager") },
+    { title: "Roles Manager Advanced", desc: "Roles Manager Advanced page", onClick: () => navigate("/RolesManagerAdvanced"),}
   ];
 
   // Finance Division Cards

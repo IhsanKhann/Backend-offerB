@@ -457,68 +457,143 @@ export const RegisterEmployee = async (req, res) => {
 export const SubmitEmployee = async (req, res) => {
   try {
     const { employeeId, orgUnitId } = req.body;
+    
+    console.log("📝 SubmitEmployee called with:", { employeeId, orgUnitId });
+    
     if (!employeeId || !orgUnitId) {
-      return res
-        .status(400)
-        .json({ success: false, message: "employeeId and orgUnitId are required" });
+      return res.status(400).json({ 
+        success: false, 
+        message: "employeeId and orgUnitId are required" 
+      });
     }
 
     // 1️⃣ Find draft employee
-    const employee = await EmployeeModel.findById(employeeId);
+    const employee = await EmployeeModel.findById(employeeId)
+      .populate('role')
+      .populate('orgUnit');
+      
     if (!employee) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Employee not found" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "Employee not found" 
+      });
     }
 
-   const duplicateFinalized = await FinalizedEmployeeModel.find({
-    $or: [
+    console.log("👤 Employee found:", {
+      name: employee.individualName,
+      hasRole: !!employee.role,
+      hasOrgUnit: !!employee.orgUnit,
+      draftStatus: employee.DraftStatus?.status
+    });
+
+    // ✅ FIX: Check if employee has role (either as reference or populated)
+    if (!employee.role) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot submit employee: No role assigned. Please assign a role first."
+      });
+    }
+
+    // ✅ FIX: Check if employee has orgUnit (either as reference or populated)
+    if (!employee.orgUnit) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot submit employee: No orgUnit assigned. Please assign an orgUnit first."
+      });
+    }
+
+    // 2️⃣ Check for duplicate in finalized employees
+    const duplicateFinalized = await FinalizedEmployeeModel.findOne({
+      $or: [
         { officialEmail: employee.officialEmail },
         { personalEmail: employee.personalEmail },
         { govtId: employee.govtId },
         { passportNo: employee.passportNo },
         { alienRegNo: employee.alienRegNo },
-      ],
+      ].filter(condition => {
+        const value = Object.values(condition)[0];
+        return value && value !== null && value !== '';
+      })
     });
 
-    if (duplicateFinalized.length > 0) {   // <-- check length
+    if (duplicateFinalized) {
       return res.status(400).json({
         success: false,
         message: "Duplicate employee exists in finalized employees",
+        duplicateField: duplicateFinalized.officialEmail === employee.officialEmail ? 'officialEmail' : 
+                       duplicateFinalized.personalEmail === employee.personalEmail ? 'personalEmail' :
+                       duplicateFinalized.govtId === employee.govtId ? 'govtId' : 'other'
       });
     }
 
-    // 3️⃣ Update draft employee
+    // 3️⃣ Update draft employee status
     employee.DraftStatus.status = "Submitted";
     employee.finalizationStatus = "Pending";
+
+    // 4️⃣ Generate Organization ID
+    const OrganizationId = await getNextOrganizationId();
+    employee.OrganizationId = OrganizationId;
+    
     await employee.save();
 
-    // 4️⃣ Find assigned role (one per employee)
-    const assignedRole = await RoleModel.findOne({ employeeId: employee._id });
-    if (!assignedRole) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot submit employee: No role assigned",
+    console.log("✅ Draft employee updated with OrganizationId:", OrganizationId);
+
+    // 5️⃣ Get role ID (handle both populated and reference)
+    const roleId = employee.role._id || employee.role;
+    const orgUnitIdToUse = employee.orgUnit._id || employee.orgUnit;
+
+    // 6️⃣ Verify orgUnit exists
+    const orgUnit = await OrgUnitModel.findById(orgUnitIdToUse);
+    if (!orgUnit) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid orgUnitId - OrgUnit not found" 
       });
     }
 
-    // 5️⃣ Verify orgUnit exists
-    const orgUnit = await OrgUnitModel.findById(orgUnitId);
-    if (!orgUnit) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid orgUnitId" });
+    // 7️⃣ Create or verify RoleAssignment exists
+    let roleAssignment = await RoleAssignmentModel.findOne({
+      employeeId: employee._id,
+      roleId: roleId,
+      isActive: true
+    });
+
+    // ✅ If no active assignment exists, create one
+    if (!roleAssignment) {
+      console.log("⚠️ No active RoleAssignment found, creating one...");
+      
+      const roleDeclaration = await RoleModel.findById(roleId);
+      if (!roleDeclaration) {
+        return res.status(400).json({
+          success: false,
+          message: "Role declaration not found"
+        });
+      }
+
+      roleAssignment = new RoleAssignmentModel({
+        employeeId: employee._id,
+        roleId: roleId,
+        orgUnit: orgUnitIdToUse,
+        code: roleDeclaration.code,
+        status: roleDeclaration.status,
+        effectiveFrom: new Date(),
+        effectiveUntil: null,
+        assignedBy: null, // Set this if you have req.user
+        isActive: true,
+      });
+
+      await roleAssignment.save();
+      console.log("✅ Created RoleAssignment:", roleAssignment._id);
+    } else {
+      console.log("✅ Found existing RoleAssignment:", roleAssignment._id);
     }
 
-    const OrganizationId = await getNextOrganizationId(); 
-    employee.OrganizationId = OrganizationId;
-    employee.save();
-
-    // 6️⃣ Prepare finalized employee (only refs for role + orgUnit)
+    // 8️⃣ Prepare finalized employee data
     const finalizedData = {
       ...employee.toObject(),
-      role: assignedRole._id, // reference only
-      orgUnit: orgUnit._id,   // reference only
+      role: roleId, // Store reference to role
+      orgUnit: orgUnitIdToUse, // Store reference to orgUnit
+      roleAssignment: roleAssignment._id, // ✅ NEW: Store reference to assignment
       OrganizationId: OrganizationId,
       profileStatus: {
         submitted: true,
@@ -528,29 +603,48 @@ export const SubmitEmployee = async (req, res) => {
       },
     };
 
+    // Remove draft-specific fields
     delete finalizedData.DraftStatus;
     delete finalizedData._id;
+    delete finalizedData.__v;
+    delete finalizedData.createdAt;
+    delete finalizedData.updatedAt;
 
-    // 7️⃣ Create finalized employee
+    // 9️⃣ Create finalized employee
     const finalizedEmployee = await FinalizedEmployeeModel.create(finalizedData);
 
-    // 8️⃣ Update orgUnit with employee reference
-    await OrgUnitModel.findByIdAndUpdate(orgUnitId, {
-      employee: finalizedEmployee._id,
+    console.log("✅ FinalizedEmployee created:", finalizedEmployee._id);
+
+    // 🔟 Update orgUnit with employee reference
+    await OrgUnitModel.findByIdAndUpdate(orgUnitIdToUse, {
+      $addToSet: { employees: finalizedEmployee._id }
     });
+
+    // 1️⃣1️⃣ Update RoleAssignment to link to finalized employee (optional)
+    roleAssignment.employeeId = finalizedEmployee._id;
+    await roleAssignment.save();
+
+    console.log("✅ Submit process completed successfully");
 
     return res.status(200).json({
       success: true,
       message: "Draft submitted successfully and FinalizedEmployee created",
-      finalizedEmployeeId: finalizedEmployee._id,
-      roleId: assignedRole._id,
-      orgUnitId: orgUnit._id,
+      data: {
+        finalizedEmployeeId: finalizedEmployee._id,
+        roleAssignmentId: roleAssignment._id,
+        roleId: roleId,
+        orgUnitId: orgUnitIdToUse,
+        OrganizationId: OrganizationId
+      }
     });
+
   } catch (error) {
     console.error("🔥 SubmitEmployee error:", error.stack || error.message);
-    return res
-      .status(500)
-      .json({ success: false, message: "Failed to submit draft" });
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to submit draft",
+      error: error.message 
+    });
   }
 };
 
@@ -695,93 +789,147 @@ export const resolveOrgUnit = async (req, res) => {
 };
 
 // ---------------------- Assign Role to Employee ----------------------
+// ✅ FIXED: AssignEmployeePost function
+// This handles role assignment using the NEW RoleAssignment model
 export const AssignEmployeePost = async (req, res) => {
   try {
     const {
       employeeId,
-      roleId,
-      orgUnitId,
-      effectiveFrom,
-      effectiveUntil,
-      notes
+      roleId,       // ✅ NEW: ID of the role declaration
+      roleName,     // ✅ OLD: Keep for backward compatibility
+      orgUnit,
+      permissions = []
     } = req.body;
 
-    // Validate inputs
-    if (!employeeId || !roleId || !orgUnitId) {
+    console.log("📝 AssignEmployeePost received:", { employeeId, roleId, roleName, orgUnit });
+
+    // Validate Employee
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       return res.status(400).json({ 
-        message: "employeeId, roleId, and orgUnitId are required", 
-        success: false 
+        success: false, 
+        message: "Invalid employeeId" 
       });
     }
 
-    // Check if employee exists
-    const employee = await FinalizedEmployeesModel.findById(employeeId);
+    const employee = await EmployeeModel.findById(employeeId);
     if (!employee) {
       return res.status(404).json({ 
-        message: "Employee not found", 
-        success: false 
+        success: false, 
+        message: "Employee not found" 
       });
     }
 
-    // Check if role declaration exists
-    const role = await RoleModel.findById(roleId);
-    if (!role) {
+    // Validate OrgUnit
+    if (!mongoose.Types.ObjectId.isValid(orgUnit)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid orgUnitId" 
+      });
+    }
+
+    const orgUnitDoc = await OrgUnitModel.findById(orgUnit);
+    if (!orgUnitDoc) {
       return res.status(404).json({ 
-        message: "Role declaration not found", 
-        success: false 
+        success: false, 
+        message: "OrgUnit not found" 
       });
     }
 
-    // Check if org unit exists
-    const orgUnit = await OrgUnitModel.findById(orgUnitId);
-    if (!orgUnit) {
-      return res.status(404).json({ 
-        message: "Organization unit not found", 
-        success: false 
+    // ✅ Find or create role declaration
+    let roleDeclaration;
+
+    if (roleId) {
+      // NEW WAY: Use roleId to find role declaration
+      roleDeclaration = await RoleModel.findById(roleId);
+      if (!roleDeclaration) {
+        return res.status(404).json({
+          success: false,
+          message: "Role declaration not found"
+        });
+      }
+    } else if (roleName) {
+      // OLD WAY: Use roleName to find/create role
+      roleDeclaration = await RoleModel.findOne({ 
+        roleName: roleName 
+      });
+
+      if (!roleDeclaration) {
+        // Create a basic role declaration if it doesn't exist
+        roleDeclaration = await RoleModel.create({
+          roleName: roleName,
+          description: `Auto-created role for ${roleName}`,
+          code: "HR", // Default
+          status: "Departments", // Default
+          salaryRules: {
+            baseSalary: 0,
+            salaryType: "monthly",
+            allowances: [],
+            deductions: [],
+            terminalBenefits: []
+          },
+          permissions: permissions || [],
+          isActive: true
+        });
+        console.log("✅ Created new role declaration:", roleDeclaration._id);
+      }
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Either roleId or roleName must be provided"
       });
     }
 
-    // Deactivate any existing active assignments
+    // ✅ Deactivate any existing role assignments for this employee
     await RoleAssignmentModel.updateMany(
-      { employeeId, isActive: true },
+      { employeeId: employee._id, isActive: true },
       { isActive: false }
     );
 
-    // Create new role assignment
+    // ✅ Create new role assignment
     const roleAssignment = new RoleAssignmentModel({
-      employeeId,
-      roleId,
-      orgUnit: orgUnitId,
-      code: role.code, // Auto-derived from role declaration
-      status: role.status, // Auto-derived from role declaration
-      effectiveFrom: effectiveFrom || new Date(),
-      effectiveUntil: effectiveUntil || null,
-      assignedBy: req.user?._id,
-      notes: notes || "",
+      employeeId: employee._id,
+      roleId: roleDeclaration._id,
+      orgUnit: orgUnitDoc._id,
+      code: roleDeclaration.code,
+      status: roleDeclaration.status,
+      effectiveFrom: new Date(),
+      effectiveUntil: null,
+      assignedBy: req.user?._id || null,
+      notes: "",
       isActive: true,
     });
 
     await roleAssignment.save();
+    console.log("✅ Created role assignment:", roleAssignment._id);
 
-    // Update employee's current role reference (optional)
-    employee.roleAssignment = roleAssignment._id;
+    // ✅ Update employee references
+    employee.role = roleDeclaration._id; // Reference to role declaration
+    employee.orgUnit = orgUnitDoc._id;
+    employee.DraftStatus.PostStatus = "Assigned";
     await employee.save();
 
-    // Update org unit reference
-    orgUnit.roleAssignment = roleAssignment._id;
-    await orgUnit.save();
+    // ✅ Update orgUnit reference
+    orgUnitDoc.roleAssignment = roleAssignment._id;
+    await orgUnitDoc.save();
 
-    res.status(201).json({ 
-      message: "Role assigned successfully", 
-      success: true, 
-      data: roleAssignment 
+    console.log("✅ Role assignment complete");
+
+    return res.status(200).json({
+      success: true,
+      message: "Role assigned successfully",
+      data: {
+        roleAssignment: roleAssignment,
+        roleDeclaration: roleDeclaration,
+        employee: employee,
+      }
     });
-  } catch (err) {
-    console.error("❌ AssignEmployeePost error:", err);
-    res.status(500).json({ 
-      message: "Server error", 
+
+  } catch (error) {
+    console.error("🔥 AssignEmployeePost error:", error);
+    return res.status(500).json({ 
       success: false, 
-      error: err.message 
+      message: "Server error",
+      error: error.message 
     });
   }
 };
@@ -1598,3 +1746,106 @@ export const fetchEmployeesByStatus = async (req, res) => {
   }
 };
 
+// ---------------------- Edit Draft Employee ----------------------
+export const EditEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const updateData = req.body;
+
+    console.log("📝 EditEmployee called for:", employeeId);
+    console.log("📦 Update data:", updateData);
+
+    // Validate employee exists
+    const employee = await EmployeeModel.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found"
+      });
+    }
+
+    // Check if employee is already submitted
+    if (employee.DraftStatus?.status === "Submitted") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot edit submitted employee. Please reject and create new draft."
+      });
+    }
+
+    // Handle file upload if present
+    let uploadedImage = null;
+    if (req.file) {
+      try {
+        // Delete old image if exists
+        if (employee.avatar?.public_id) {
+          await destroyImageFromCloudinary(employee.avatar.public_id);
+        }
+        
+        // Upload new image
+        uploadedImage = await uploadFileToCloudinary(
+          req.file,
+          "employees/profileImage"
+        );
+      } catch (uploadError) {
+        console.warn("⚠️ Image upload failed:", uploadError.message);
+      }
+    }
+
+    // Parse nested JSON fields if they're strings
+    const parseIfString = (field) => {
+      if (!field) return field;
+      return typeof field === "string" ? JSON.parse(field) : field;
+    };
+
+    // Build update object
+    const updates = {
+      ...(updateData.individualName && { individualName: updateData.individualName }),
+      ...(updateData.fatherName && { fatherName: updateData.fatherName }),
+      ...(updateData.qualification && { qualification: updateData.qualification }),
+      ...(updateData.dob && { dob: new Date(updateData.dob) }),
+      ...(updateData.govtId && { govtId: updateData.govtId }),
+      ...(updateData.passportNo && { passportNo: updateData.passportNo }),
+      ...(updateData.alienRegNo && { alienRegNo: updateData.alienRegNo }),
+      ...(updateData.officialEmail && { officialEmail: updateData.officialEmail }),
+      ...(updateData.personalEmail && { personalEmail: updateData.personalEmail }),
+      ...(updateData.previousOrgEmail && { previousOrgEmail: updateData.previousOrgEmail }),
+      ...(updateData.employmentStatus && { employmentStatus: updateData.employmentStatus }),
+      ...(updateData.address && { address: parseIfString(updateData.address) }),
+      ...(updateData.salary && { salary: parseIfString(updateData.salary) }),
+      ...(updateData.tenure && { tenure: parseIfString(updateData.tenure) }),
+      ...(updateData.transfers && { transfers: parseIfString(updateData.transfers) }),
+      ...(updateData.changeOfStatus && { changeOfStatus: parseIfString(updateData.changeOfStatus) }),
+      ...(updateData.employmentHistory && { employmentHistory: parseIfString(updateData.employmentHistory) }),
+      ...(updateData.bankingDetails && { bankingDetails: parseIfString(updateData.bankingDetails) }),
+      ...(uploadedImage && {
+        avatar: {
+          url: uploadedImage.secure_url,
+          public_id: uploadedImage.public_id,
+        }
+      }),
+    };
+
+    // Update employee
+    const updatedEmployee = await EmployeeModel.findByIdAndUpdate(
+      employeeId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+
+    console.log("✅ Employee updated successfully");
+
+    return res.status(200).json({
+      success: true,
+      message: "Employee updated successfully",
+      employee: updatedEmployee
+    });
+
+  } catch (error) {
+    console.error("🔥 EditEmployee error:", error.stack || error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update employee",
+      error: error.message
+    });
+  }
+};

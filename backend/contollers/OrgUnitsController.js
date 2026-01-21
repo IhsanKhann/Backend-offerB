@@ -1,3 +1,4 @@
+// FIXED OrgUnitsController.js
 import { OrgUnitModel } from "../models/HRModals/OrgUnit.js";
 import FinalizedEmployeesModel from "../models/HRModals/FinalizedEmployees.model.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
@@ -26,19 +27,26 @@ const deriveStatusFromLevel = (level) => {
     3: "Departments",
     4: "Branches",
     5: "Cells",
+    6: "Desks",
   };
   
-  return statusMapping[level] || "Cells";
+  return statusMapping[level] || "Desks";
 };
 
 /**
- * Helper: Build tree recursively
+ * ✅ FIXED: Build tree recursively with proper child handling
  */
 const buildTree = (units, parentId = null) => {
   return units
-    .filter(
-      (unit) => String(unit.parent) === String(parentId) || (!unit.parent && !parentId)
-    )
+    .filter((unit) => {
+      // Root level nodes
+      if (!parentId && !unit.parent) return true;
+      // Child nodes - compare as strings to handle ObjectId
+      if (parentId && unit.parent) {
+        return String(unit.parent) === String(parentId);
+      }
+      return false;
+    })
     .map((unit) => ({
       _id: unit._id,
       name: unit.name,
@@ -46,19 +54,69 @@ const buildTree = (units, parentId = null) => {
       status: unit.status,
       code: unit.code,
       level: unit.level,
-      children: buildTree(units, unit._id),
+      roleAssignment: unit.roleAssignment,
+      children: buildTree(units, unit._id), // Recursively build children
     }));
 };
 
-// ---------------------- Get All Org Units (Tree) ----------------------
+// ✅ FIXED: Get All Org Units (Tree) - Now properly returns nested structure
 export const getOrgUnits = async (req, res) => {
   try {
-    const units = await OrgUnitModel.find().lean();
+    // Fetch all org units and convert to plain objects
+    const units = await OrgUnitModel.find()
+      .populate('roleAssignment')
+      .lean();
+    
+    console.log(`📦 Fetched ${units.length} org units from database`);
+    
+    // Build hierarchical tree structure
     const tree = buildTree(units);
-    res.json(tree);
+    
+    console.log(`🌳 Built tree with ${tree.length} root nodes`);
+    
+    res.status(200).json({
+      success: true,
+      count: units.length,
+      rootCount: tree.length,
+      data: tree
+    });
   } catch (err) {
     console.error("❌ getOrgUnits error:", err);
-    res.status(500).json({ error: "Failed to fetch hierarchy" });
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to fetch hierarchy",
+      message: err.message 
+    });
+  }
+};
+
+// ✅ Get Single OrgUnit by ID
+export const getSingleOrgUnit = async (req, res) => {
+  try {
+    const { orgUnitId } = req.params;
+    
+    const orgUnit = await OrgUnitModel.findById(orgUnitId)
+      .populate('roleAssignment')
+      .populate('parent');
+    
+    if (!orgUnit) {
+      return res.status(404).json({
+        success: false,
+        message: "OrgUnit not found"
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: orgUnit
+    });
+  } catch (err) {
+    console.error("❌ getSingleOrgUnit error:", err);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch org unit",
+      message: err.message
+    });
   }
 };
 
@@ -70,13 +128,23 @@ export const createOrgUnit = async (req, res) => {
     // Validate required fields
     if (!name) {
       return res.status(400).json({ 
+        success: false,
         error: "Organization unit name is required" 
       });
     }
 
     if (!code) {
       return res.status(400).json({ 
+        success: false,
         error: "Department code (HR/Finance/BusinessOperation) is required" 
+      });
+    }
+
+    // Validate code
+    if (!["HR", "Finance", "BusinessOperation"].includes(code)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid department code. Must be HR, Finance, or BusinessOperation"
       });
     }
 
@@ -96,6 +164,8 @@ export const createOrgUnit = async (req, res) => {
 
     await unit.save();
 
+    console.log(`✅ Created OrgUnit: ${name} (Level: ${level}, Status: ${status})`);
+
     res.status(201).json({
       message: "Organization unit created successfully",
       success: true,
@@ -103,7 +173,11 @@ export const createOrgUnit = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ createOrgUnit error:", err);
-    res.status(500).json({ error: "Failed to create org unit" });
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to create org unit",
+      message: err.message 
+    });
   }
 };
 
@@ -117,22 +191,33 @@ export const updateOrgUnit = async (req, res) => {
     
     if (!unit) {
       return res.status(404).json({ 
+        success: false,
         error: "Organization unit not found" 
       });
     }
 
     // Update fields
     if (name) unit.name = name;
-    if (code) unit.code = code;
+    if (code) {
+      if (!["HR", "Finance", "BusinessOperation"].includes(code)) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid department code"
+        });
+      }
+      unit.code = code;
+    }
     
     // If parent changes, recalculate level and status
     if (parent !== undefined) {
-      unit.parent = parent;
+      unit.parent = parent || null;
       unit.level = await calculateLevel(parent);
       unit.status = deriveStatusFromLevel(unit.level);
     }
 
     await unit.save();
+
+    console.log(`✅ Updated OrgUnit: ${unit.name}`);
 
     res.status(200).json({
       message: "Organization unit updated successfully",
@@ -141,7 +226,11 @@ export const updateOrgUnit = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ updateOrgUnit error:", err);
-    res.status(500).json({ error: "Failed to update org unit" });
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to update org unit",
+      message: err.message 
+    });
   }
 };
 
@@ -155,7 +244,8 @@ export const deleteOrgUnit = async (req, res) => {
     
     if (children > 0) {
       return res.status(400).json({ 
-        error: "Cannot delete org unit with children. Delete children first." 
+        success: false,
+        error: `Cannot delete org unit with ${children} children. Delete children first.` 
       });
     }
 
@@ -167,11 +257,14 @@ export const deleteOrgUnit = async (req, res) => {
 
     if (activeAssignments > 0) {
       return res.status(400).json({ 
+        success: false,
         error: `Cannot delete org unit. ${activeAssignments} active role assignment(s) exist.` 
       });
     }
 
     await OrgUnitModel.findByIdAndDelete(orgUnitId);
+
+    console.log(`✅ Deleted OrgUnit: ${orgUnitId}`);
 
     res.status(200).json({
       message: "Organization unit deleted successfully",
@@ -179,7 +272,11 @@ export const deleteOrgUnit = async (req, res) => {
     });
   } catch (err) {
     console.error("❌ deleteOrgUnit error:", err);
-    res.status(500).json({ error: "Failed to delete org unit" });
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to delete org unit",
+      message: err.message 
+    });
   }
 };
 
@@ -195,47 +292,59 @@ const getDescendantUnitIds = async (parentId) => {
   return ids;
 };
 
-// ---------------------- Get Employees by Org Unit ----------------------
+// ✅ FIXED: Get Employees by Org Unit
 export const getEmployeesByOrgUnit = async (req, res) => {
   try {
     const { orgUnitId } = req.params;
+
+    console.log(`📋 Fetching employees for OrgUnit: ${orgUnitId}`);
 
     // Collect all relevant unitIds (including descendants)
     let orgUnitIds = [orgUnitId];
     const descendants = await getDescendantUnitIds(orgUnitId);
     orgUnitIds = orgUnitIds.concat(descendants);
 
+    console.log(`📦 Searching in ${orgUnitIds.length} org units (including descendants)`);
+
     // Find active role assignments in these org units
     const assignments = await RoleAssignmentModel.find({
       orgUnit: { $in: orgUnitIds },
       isActive: true,
     })
-      .populate("employeeId", "individualName personalEmail UserId")
-      .populate("roleId", "roleName code status")
-      .populate("orgUnit", "name code status");
+      .populate("employeeId", "individualName personalEmail UserId avatar")
+      .populate("roleId", "roleName code status salaryRules")
+      .populate("orgUnit", "name code status level");
+
+    console.log(`👥 Found ${assignments.length} active assignments`);
 
     const employees = assignments.map(a => ({
       _id: a.employeeId._id,
       individualName: a.employeeId.individualName,
       personalEmail: a.employeeId.personalEmail,
       UserId: a.employeeId.UserId,
+      avatar: a.employeeId.avatar,
       role: a.roleId,
       orgUnit: a.orgUnit,
       assignmentId: a._id,
       code: a.code,
       status: a.status,
+      effectiveFrom: a.effectiveFrom,
+      assignedBy: a.assignedBy
     }));
 
-    res.json({ 
+    res.status(200).json({ 
       success: true, 
       count: employees.length,
+      orgUnitId,
+      includesDescendants: descendants.length > 0,
       employees 
     });
   } catch (err) {
-    console.error("🔥 Error fetching employees by org unit:", err.message);
+    console.error("❌ Error fetching employees by org unit:", err.message);
     res.status(500).json({ 
       success: false, 
-      message: "Failed to fetch employees" 
+      message: "Failed to fetch employees",
+      error: err.message 
     });
   }
 };
@@ -245,21 +354,24 @@ export const getEmployeesByDepartmentAndStatus = async (req, res) => {
   try {
     const { code, status } = req.query;
 
+    console.log(`📋 Filtering employees - Code: ${code}, Status: ${status}`);
+
     // Build filter
     const filter = { isActive: true };
     if (code) filter.code = code;
     if (status) filter.status = status;
 
     const assignments = await RoleAssignmentModel.find(filter)
-      .populate("employeeId", "individualName personalEmail UserId")
+      .populate("employeeId", "individualName personalEmail UserId avatar")
       .populate("roleId", "roleName code status")
-      .populate("orgUnit", "name code status");
+      .populate("orgUnit", "name code status level");
 
     const employees = assignments.map(a => ({
       _id: a.employeeId._id,
       individualName: a.employeeId.individualName,
       personalEmail: a.employeeId.personalEmail,
       UserId: a.employeeId.UserId,
+      avatar: a.employeeId.avatar,
       role: a.roleId,
       orgUnit: a.orgUnit,
       assignmentId: a._id,
@@ -267,16 +379,20 @@ export const getEmployeesByDepartmentAndStatus = async (req, res) => {
       status: a.status,
     }));
 
-    res.json({ 
+    console.log(`👥 Found ${employees.length} employees matching filter`);
+
+    res.status(200).json({ 
       success: true, 
       count: employees.length,
+      filter,
       employees 
     });
   } catch (err) {
-    console.error("🔥 Error fetching employees by department:", err.message);
+    console.error("❌ Error fetching employees by department:", err.message);
     res.status(500).json({ 
       success: false, 
-      message: "Failed to fetch employees" 
+      message: "Failed to fetch employees",
+      error: err.message 
     });
   }
 };
@@ -288,6 +404,7 @@ export const getOrgUnitsByDepartment = async (req, res) => {
 
     if (!["HR", "Finance", "BusinessOperation"].includes(code)) {
       return res.status(400).json({ 
+        success: false,
         error: "Invalid department code" 
       });
     }
@@ -296,16 +413,20 @@ export const getOrgUnitsByDepartment = async (req, res) => {
       .populate("roleAssignment")
       .sort({ level: 1, name: 1 });
 
-    res.json({ 
+    console.log(`🏢 Found ${units.length} org units for department: ${code}`);
+
+    res.status(200).json({ 
       success: true, 
       count: units.length,
+      department: code,
       orgUnits: units 
     });
   } catch (err) {
-    console.error("🔥 Error fetching org units by department:", err.message);
+    console.error("❌ Error fetching org units by department:", err.message);
     res.status(500).json({ 
       success: false, 
-      message: "Failed to fetch org units" 
+      message: "Failed to fetch org units",
+      error: err.message 
     });
   }
 };

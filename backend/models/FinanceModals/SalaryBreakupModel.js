@@ -37,7 +37,7 @@ const SalaryRulesSchema = new mongoose.Schema({
 // --- NEW SALARY HISTORY FIELDS ---
 const BreakupFileSchema = new mongoose.Schema({
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee", required: true },
-  roleId: { type: mongoose.Schema.Types.ObjectId, ref: "AllRoles", required: true },
+  roleId: { type: mongoose.Schema.Types.ObjectId, ref: "Role", required: true },
 
   salaryRules: SalaryRulesSchema,
   calculatedBreakup: { type: CalculatedBreakupSchema, default: {} },

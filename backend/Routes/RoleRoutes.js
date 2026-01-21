@@ -18,7 +18,7 @@ router.use(authenticate);
 
 // Get all role declarations
 router.get(
-  "/roles",
+  "/roles/getAllRolesList",
 //   authorize("View_Roles"),
   getAllRolesList
 );
@@ -39,7 +39,7 @@ router.get(
 
 // Add new role declaration
 router.post(
-  "/roles",
+  "/roles/addRole",
 //   authorize("Add_Role"),
   addRole
 );
@@ -53,7 +53,7 @@ router.put(
 
 // Delete role declaration
 router.delete(
-  "/roles/:roleId",
+  "/roles/deleteRole/:roleId",
 //   authorize("Delete_Role"),
   deleteRole
 );

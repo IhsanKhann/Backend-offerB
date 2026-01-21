@@ -5,87 +5,51 @@ import {OrgUnitModel} from "../models/HRModals/OrgUnit.js";
 
 export const addRole = async (req, res) => {
   try {
-    const {
-      roleName,
-      description,
-      code,
-      status,
-      salaryRules,
-      permissions = []
+    const { 
+      roleName, 
+      description, 
+      category, 
+      salaryRules, 
+      permissions = [] 
     } = req.body;
 
-    // Validate required fields
     if (!roleName) {
-      return res.status(400).json({ 
-        message: "Role name is required", 
-        success: false 
-      });
-    }
-
-    if (!code) {
-      return res.status(400).json({ 
-        message: "Department code (HR/Finance/BusinessOperation) is required", 
-        success: false 
-      });
-    }
-
-    if (!status) {
-      return res.status(400).json({ 
-        message: "Status (hierarchy level) is required", 
-        success: false 
-      });
+      return res.status(400).json({ success: false, message: "Role name required" });
     }
 
     if (!salaryRules || typeof salaryRules.baseSalary !== "number") {
-      return res.status(400).json({ 
-        message: "Salary rules with base salary are required", 
-        success: false 
+      return res.status(400).json({
+        success: false,
+        message: "Salary rules with baseSalary are required",
       });
     }
 
-    // Check if role already exists
-    const existingRole = await RoleModel.findOne({ 
-      roleName: { $regex: new RegExp(`^${roleName}$`, "i") }
+    const exists = await RoleModel.findOne({
+      roleName: new RegExp(`^${roleName}$`, "i"),
     });
 
-    if (existingRole) {
-      return res.status(400).json({ 
-        message: "Role with this name already exists", 
-        success: false 
-      });
+    if (exists) {
+      return res.status(400).json({ success: false, message: "Role already exists" });
     }
 
-    // Create new role declaration
-    const newRole = new RoleModel({
+    const role = await RoleModel.create({
       roleName,
-      description: description || "",
-      code,
-      status,
+      description,
+      category,
       salaryRules: {
         baseSalary: salaryRules.baseSalary,
         salaryType: salaryRules.salaryType || "monthly",
-        allowances: Array.isArray(salaryRules.allowances) ? salaryRules.allowances : [],
-        deductions: Array.isArray(salaryRules.deductions) ? salaryRules.deductions : [],
-        terminalBenefits: Array.isArray(salaryRules.terminalBenefits) ? salaryRules.terminalBenefits : [],
+        allowances: salaryRules.allowances || [],
+        deductions: salaryRules.deductions || [],
+        terminalBenefits: salaryRules.terminalBenefits || [],
       },
-      permissions: permissions || [],
+      permissions,
       isActive: true,
     });
 
-    await newRole.save();
-
-    res.status(201).json({ 
-      message: "Role declaration created successfully", 
-      success: true, 
-      data: newRole 
-    });
+    res.status(201).json({ success: true, data: role });
   } catch (err) {
-    console.error("❌ addRole error:", err);
-    res.status(500).json({ 
-      message: "Server error", 
-      success: false, 
-      error: err.message 
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -134,48 +98,19 @@ export const deleteRole = async (req, res) => {
 export const updateRole = async (req, res) => {
   try {
     const { roleId } = req.params;
-    const {
-      roleName,
-      description,
-      code,
-      status,
-      salaryRules,
-      permissions,
-      isActive
-    } = req.body;
+    const updates = req.body;
 
     const role = await RoleModel.findById(roleId);
-    
     if (!role) {
-      return res.status(404).json({ 
-        message: "Role not found", 
-        success: false 
-      });
+      return res.status(404).json({ success: false, message: "Role not found" });
     }
 
-    // Update fields
-    if (roleName) role.roleName = roleName;
-    if (description !== undefined) role.description = description;
-    if (code) role.code = code;
-    if (status) role.status = status;
-    if (salaryRules) role.salaryRules = salaryRules;
-    if (permissions) role.permissions = permissions;
-    if (isActive !== undefined) role.isActive = isActive;
-
+    Object.assign(role, updates);
     await role.save();
 
-    res.status(200).json({ 
-      message: "Role declaration updated successfully", 
-      success: true, 
-      data: role 
-    });
+    res.status(200).json({ success: true, data: role });
   } catch (err) {
-    console.error("❌ updateRole error:", err);
-    res.status(500).json({ 
-      message: "Server error", 
-      success: false, 
-      error: err.message 
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
