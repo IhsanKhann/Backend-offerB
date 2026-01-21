@@ -3,8 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import api from "../api/axios.js";
 import { assignRolesDraft } from "../store/sliceRoles.jsx";
-import { addDraft, addEmployeeData,updateDraft } from "../store/sliceDraft.jsx";
-import RolesManager from "../components/RolesManager.jsx";
+import { addDraft, addEmployeeData, updateDraft } from "../store/sliceDraft.jsx";
 
 const AssignRolesForm = () => {
   const { employeeId } = useParams();
@@ -12,18 +11,26 @@ const AssignRolesForm = () => {
   const dispatch = useDispatch();
   const { isEditing, editingDraft } = useSelector((state) => state.draft);
 
-  const [fetchedPermissions,setFetchedPermissions] = useState([]);
+  const [fetchedPermissions, setFetchedPermissions] = useState([]);
   const [hierarchy, setHierarchy] = useState({ offices: [] });
 
   const [loading, setLoading] = useState(false);
   const [employeeError, setEmployeeError] = useState(null);
 
-  const [actionModal, setActionModal] = useState({ type: null, level: "", name: "", parentId: null, open: false });
+  const [actionModal, setActionModal] = useState({ 
+    type: null, 
+    level: "", 
+    name: "", 
+    parentId: null, 
+    open: false 
+  });
   const [actionLoading, setActionLoading] = useState(false);
 
   const employeeData = useSelector((state) => state.draft.employeeData);
   const [employee, setEmployee] = useState(null);
-  const [roleDropdown, setRoleDropdown] = useState("");
+  
+  // Updated: Now uses roleId instead of roleName
+  const [selectedRoleId, setSelectedRoleId] = useState("");
   const [RolesList, setRolesList] = useState([]);
   const [allPermissions, setAllPermissions] = useState([]);
 
@@ -35,7 +42,7 @@ const AssignRolesForm = () => {
   const [cellId, setCellId] = useState("");
   const [deskId, setDeskId] = useState("");
 
-  // hard coded: Hierarchy..
+  // Hierarchy levels
   const levelOrder = ["office", "group", "division", "department", "branch", "cell", "desk"];
   const backendLevels = {
     office: "offices",
@@ -47,7 +54,9 @@ const AssignRolesForm = () => {
     desk: "desks"
   };
 
-  // ---------------- Fetch Hierarchy ----------------
+  // ============================================
+  // FETCH HIERARCHY
+  // ============================================
   const fetchHierarchy = async () => {
     try {
       setLoading(true);
@@ -63,7 +72,9 @@ const AssignRolesForm = () => {
     }
   };
 
-  // ---------------- Fetch Employee ----------------
+  // ============================================
+  // FETCH EMPLOYEE
+  // ============================================
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
@@ -71,7 +82,9 @@ const AssignRolesForm = () => {
         if (res.data?.employee) {
           setEmployee(res.data.employee);
           dispatch(addEmployeeData({ employeeData: res.data.employee }));
-        } else setEmployeeError("No employee found. Please create one first.");
+        } else {
+          setEmployeeError("No employee found. Please create one first.");
+        }
       } catch (err) {
         console.error(err);
         setEmployeeError("Failed to fetch employee data.");
@@ -84,106 +97,65 @@ const AssignRolesForm = () => {
     fetchHierarchy();
   }, []);
 
-  // reminder -> fetch roles if needed.  
-  useEffect(()=>{
-  const fetchEmployeePermissions = async() => {
-    try{
+  // ============================================
+  // FETCH PERMISSIONS
+  // ============================================
+  useEffect(() => {
+    const fetchEmployeePermissions = async () => {
+      try {
         setLoading(true);
-        const response = await api.get("/permissions/AllPermissions"); // for the dropDown => fetch the Permissions..
+        const response = await api.get("/permissions/AllPermissions");
         setFetchedPermissions(response.data.Permissions);
-      }catch(error){
+      } catch (error) {
         console.log(error);
         setFetchedPermissions([]);
-      }
-      finally{
-          setLoading(false);
+      } finally {
+        setLoading(false);
       }
     };
     fetchEmployeePermissions();
-  },[])
+  }, []);
 
-  // allRoles used..
+  // ============================================
+  // FETCH GLOBAL ROLES
+  // ============================================
   const fetchRolesList = async () => {
-  try {
-    setLoading(true);
-    const response = await api.get("/roles/getAllRolesList"); // dropDown of the rules
-    
-    if (response.data && response.data.Roles) {
-      setRolesList(response.data.Roles);
-      console.log("roles fetched: ", response.data.Roles);
-    } else {
+    try {
+      setLoading(true);
+      const response = await api.get("/roles/getAllRolesList");
+      
+      if (response.data && response.data.Roles) {
+        setRolesList(response.data.Roles);
+        console.log("✅ Global roles fetched:", response.data.Roles.length);
+      } else {
+        setRolesList([]);
+        console.log("No roles found");
+      }
+    } catch (error) {
+      console.error("Error fetching roles:", error);
       setRolesList([]);
-      console.log("No roles found");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching roles:", error);
-    setRolesList([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-  useEffect(()=>{
+  useEffect(() => {
     fetchRolesList();
-  },[]);
+  }, []);
 
-// Add role with full data: allRoles used..
-const handleAddRole = async (newRole) => {
-  try {
-    setActionLoading(true);
-
-    const payload = {
-      roleName: newRole.name, // Map 'name' from form to 'roleName' for DB
-      description: newRole.description,
-      code: newRole.code || "HR", // Required by your schema
-      status: newRole.status || "Offices", // Required by your schema
-      salaryRules: {
-        baseSalary: Number(newRole.baseSalary) || 0,
-        salaryType: newRole.salaryType || "monthly",
-        terminalBenefits: newRole.terminalBenefits || [],
-        deductions: newRole.deductions || [],
-        allowances: newRole.allowances || [],
-      },
-    };
-
-    const response = await api.post("/roles/addRole", payload);
-
-    if (response.data.success) {
-      fetchRolesList(); // reload roles
-      setActionModal({ type: null, open: false }); // close modal
-    }
-  } catch (error) {
-    console.error("Error adding role:", error.response?.data || error.message);
-    alert("Failed to add role");
-  } finally {
-    setActionLoading(false);
-  }
-};
-
-// Delete role..AllRoles used..
-const handleDeleteRole = async (roleId) => {
-  try {
-    setActionLoading(true);
-    const response = await api.delete(`/roles/deleteRole/${roleId}`);
-    if (response.data.success) {
-      fetchRolesList(); // reload roles
-    }
-  } catch (error) {
-    console.error("Error deleting role:", error.response?.data || error.message);
-  } finally {
-    setActionLoading(false);
-  }
-};
-
-  // ---------------- Reset Dependent Fields ----------------
+  // ============================================
+  // RESET DEPENDENT FIELDS
+  // ============================================
   const resetDependentFields = (level) => {
     const index = levelOrder.indexOf(level);
     if (index === -1) return;
     
     if (level === "office") {
-      setGroupId(""); setDivisionId(""); setDepartmentId(""); setBranchId(""); setCellId(""); setDeskId("");
+      setGroupId(""); setDivisionId(""); setDepartmentId(""); 
+      setBranchId(""); setCellId(""); setDeskId("");
     } else if (level === "group") {
-      setDivisionId(""); setDepartmentId(""); setBranchId(""); setCellId(""); setDeskId("");
+      setDivisionId(""); setDepartmentId(""); setBranchId(""); 
+      setCellId(""); setDeskId("");
     } else if (level === "division") {
       setDepartmentId(""); setBranchId(""); setCellId(""); setDeskId("");
     } else if (level === "department") {
@@ -195,14 +167,15 @@ const handleDeleteRole = async (roleId) => {
     }
   };
 
-  // ---------------- Find Node by ID ----------------
+  // ============================================
+  // FIND NODE BY ID
+  // ============================================
   const findNodeById = (nodes, id) => {
     if (!nodes || !Array.isArray(nodes)) return null;
     
     for (const node of nodes) {
       if (node._id === id) return node;
       
-      // Check all possible child arrays
       const childKeys = ["offices", "groups", "divisions", "departments", "branches", "cells", "desks"];
       for (const key of childKeys) {
         if (node[key] && Array.isArray(node[key])) {
@@ -215,7 +188,9 @@ const handleDeleteRole = async (roleId) => {
     return null;
   };
 
-  // ---------------- Get Options for Each Level ----------------
+  // ============================================
+  // GET OPTIONS FOR EACH LEVEL
+  // ============================================
   const getOfficeOptions = () => hierarchy?.offices || [];
   
   const getGroupOptions = () => {
@@ -227,7 +202,6 @@ const handleDeleteRole = async (roleId) => {
   const getDivisionOptions = () => {
     let divisions = [];
     
-    // Divisions can be under office or group
     if (officeId) {
       const office = findNodeById(hierarchy.offices, officeId);
       if (office && office.divisions) divisions = divisions.concat(office.divisions);
@@ -244,7 +218,6 @@ const handleDeleteRole = async (roleId) => {
   const getDepartmentOptions = () => {
     let departments = [];
     
-    // Departments can be under office, group, or division
     if (officeId) {
       const office = findNodeById(hierarchy.offices, officeId);
       if (office && office.departments) departments = departments.concat(office.departments);
@@ -266,7 +239,6 @@ const handleDeleteRole = async (roleId) => {
   const getBranchOptions = () => {
     let branches = [];
     
-    // Branches can be under office or department
     if (officeId) {
       const office = findNodeById(hierarchy.offices, officeId);
       if (office && office.branches) branches = branches.concat(office.branches);
@@ -283,7 +255,6 @@ const handleDeleteRole = async (roleId) => {
   const getCellOptions = () => {
     let cells = [];
     
-    // Cells can be under office, group, division, department, or branch
     if (officeId) {
       const office = findNodeById(hierarchy.offices, officeId);
       if (office && office.cells) cells = cells.concat(office.cells);
@@ -315,7 +286,6 @@ const handleDeleteRole = async (roleId) => {
   const getDeskOptions = () => {
     let desks = [];
     
-    // Desks can be under office, group, division, department, branch, or cell
     if (officeId) {
       const office = findNodeById(hierarchy.offices, officeId);
       if (office && office.desks) desks = desks.concat(office.desks);
@@ -349,31 +319,28 @@ const handleDeleteRole = async (roleId) => {
     return desks;
   };
 
-  // ---------------- Get Parent Options for Create Modal ----------------
+  // ============================================
+  // GET PARENT OPTIONS FOR CREATE MODAL
+  // ============================================
   const getParentOptions = (level) => {
     if (level === "office") return [];
     
-    // For groups, parents can only be offices
     if (level === "group") {
       return getOfficeOptions();
     }
     
-    // For divisions, parents can be offices or groups
     if (level === "division") {
       return [...getOfficeOptions(), ...getGroupOptions()];
     }
     
-    // For departments, parents can be offices, groups, or divisions
     if (level === "department") {
       return [...getOfficeOptions(), ...getGroupOptions(), ...getDivisionOptions()];
     }
     
-    // For branches, parents can be offices or departments
     if (level === "branch") {
       return [...getOfficeOptions(), ...getDepartmentOptions()];
     }
     
-    // For cells, parents can be offices, groups, divisions, departments, or branches
     if (level === "cell") {
       return [
         ...getOfficeOptions(), 
@@ -384,7 +351,6 @@ const handleDeleteRole = async (roleId) => {
       ];
     }
     
-    // For desks, parents can be offices, groups, divisions, departments, branches, or cells
     if (level === "desk") {
       return [
         ...getOfficeOptions(), 
@@ -399,7 +365,9 @@ const handleDeleteRole = async (roleId) => {
     return [];
   };
 
-  // ---------------- Centralized Create Node ----------------
+  // ============================================
+  // CREATE HIERARCHY NODE
+  // ============================================
   const submitCreate = async (name, level, parentId) => {
     if (!name || !level) return alert("Enter name and select level");
     setActionLoading(true);
@@ -422,68 +390,116 @@ const handleDeleteRole = async (roleId) => {
     }
   };
 
-// ---------------- SUBMIT ----------------
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (!employeeData) {
-    alert("No employee found. Please create one first.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    // Get names instead of IDs
-    const office = officeId ? findNodeById(hierarchy.offices, officeId)?.name : null;
-    const group = groupId ? findNodeById(hierarchy.offices, groupId)?.name : null;
-    const division = divisionId ? findNodeById(hierarchy.offices, divisionId)?.name : null;
-    const department = departmentId ? findNodeById(hierarchy.offices, departmentId)?.name : null;
-    const branch = branchId ? findNodeById(hierarchy.offices, branchId)?.name : null;
-    const cell = cellId ? findNodeById(hierarchy.offices, cellId)?.name : null;
-    const desk = deskId ? findNodeById(hierarchy.offices, deskId)?.name : null;
-
-    // Resolve to backend orgUnitId
-    const orgUnitRes = await api.post("orgUnits/org-units/resolve", {
-      office, group, division, department, branch, cell, desk,
-    });
-
-    const orgUnitId = orgUnitRes.data?.orgUnitId;
-    if (!orgUnitId) throw new Error("OrgUnit resolution failed");
-
-    const rolesData = {
-      employeeId: employeeData._id,
-      roleName: roleDropdown,
-      // flag here..
-      orgUnit: orgUnitId,
-      permissions: allPermissions.map(p => p._id),
-    };
-
-    if (isEditing) {
-      dispatch(updateDraft({ draftId: editingDraft.draftId, roles: rolesData }));
-    } else {
-      dispatch(assignRolesDraft(rolesData));
-      dispatch(addDraft());
-      await api.post("/employees/roles/assign", rolesData);
+  // ============================================
+  // DELETE HIERARCHY NODE
+  // ============================================
+  const handleDeleteNode = async (nodeId, nodeName) => {
+    if (!window.confirm(`Delete ${nodeName}?`)) return;
+    try {
+      setActionLoading(true);
+      await api.delete(`/hierarchy/deleteNode/${nodeId}`);
+      alert("Node deleted successfully");
+      
+      // Reset the appropriate state
+      if (nodeId === officeId) setOfficeId("");
+      if (nodeId === groupId) setGroupId("");
+      if (nodeId === divisionId) setDivisionId("");
+      if (nodeId === departmentId) setDepartmentId("");
+      if (nodeId === branchId) setBranchId("");
+      if (nodeId === cellId) setCellId("");
+      if (nodeId === deskId) setDeskId("");
+      
+      await fetchHierarchy();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete node");
+    } finally {
+      setActionLoading(false);
     }
-    navigate("/DraftDashboard");
-  } catch (err) {
-    console.error(err);
-    alert("Failed to save draft.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-const handleCancel = () => navigate("/DraftDashboard");
+  // ============================================
+  // SUBMIT - ASSIGN ROLE
+  // ============================================
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
+    if (!employeeData) {
+      alert("No employee found. Please create one first.");
+      return;
+    }
+
+    if (!selectedRoleId) {
+      alert("Please select a role.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get names instead of IDs
+      const office = officeId ? findNodeById(hierarchy.offices, officeId)?.name : null;
+      const group = groupId ? findNodeById(hierarchy.offices, groupId)?.name : null;
+      const division = divisionId ? findNodeById(hierarchy.offices, divisionId)?.name : null;
+      const department = departmentId ? findNodeById(hierarchy.offices, departmentId)?.name : null;
+      const branch = branchId ? findNodeById(hierarchy.offices, branchId)?.name : null;
+      const cell = cellId ? findNodeById(hierarchy.offices, cellId)?.name : null;
+      const desk = deskId ? findNodeById(hierarchy.offices, deskId)?.name : null;
+
+      // Resolve to backend orgUnitId
+      const orgUnitRes = await api.post("/org-units/resolve", {
+        office, group, division, department, branch, cell, desk,
+      });
+
+      const orgUnitId = orgUnitRes.data?.orgUnitId;
+      if (!orgUnitId) throw new Error("OrgUnit resolution failed");
+
+      const rolesData = {
+        employeeId: employeeData._id,
+        roleId: selectedRoleId,
+        orgUnit: orgUnitId,
+        permissions: allPermissions.map(p => p._id),
+      };
+
+      if (isEditing) {
+        dispatch(updateDraft({ draftId: editingDraft.draftId, roles: rolesData }));
+      } else {
+        dispatch(assignRolesDraft(rolesData));
+        dispatch(addDraft());
+        await api.post("/employees/roles/assign", rolesData);
+      }
+      
+      navigate("/DraftDashboard");
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to save draft.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => navigate("/DraftDashboard");
+
+  // ============================================
+  // RENDER
+  // ============================================
   if (loading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
+  
   if (employeeError) return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
       <h2 className="text-xl text-red-600 mb-4">{employeeError}</h2>
-      <button onClick={() => navigate("/admin/dashboard")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-2">Admin Dashboard</button>
-      <button onClick={() => navigate("/register-employee")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create New Employee</button>
-      <button onClick={() => navigate("/Permission-handler")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"> Manage Permissions </button>
+      <button 
+        onClick={() => navigate("/admin/dashboard")} 
+        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 mb-2"
+      >
+        Admin Dashboard
+      </button>
+      <button 
+        onClick={() => navigate("/register-employee")} 
+        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+        Create New Employee
+      </button>
     </div>
   );
 
@@ -495,247 +511,238 @@ const handleCancel = () => navigate("/DraftDashboard");
         <p className="text-gray-600">ID: <span className="font-semibold">{employee?._id || "N/A"}</span></p>
       </div>
 
-    {/* Role Dropdown */}
-<div className="flex flex-col gap-2 mt-3">
-  <div className="flex items-center gap-2">
-    <label className="w-36 font-semibold">Employee Role</label>
-    <select
-      className="flex-1 border shadow-sm rounded px-3 py-2"
-      value={roleDropdown}
-      onChange={(e) => setRoleDropdown(e.target.value)}  // ✅ update state
-    >
-      <option value="">Select Role</option>
-     {/* Change role.name to role.roleName */}
-      {RolesList.length > 0 ? (
-        RolesList.map((role) => (
-          <option key={role._id} value={role.roleName}>
-            {role.roleName}
-          </option>
-        ))
-      ) : (
-        <option disabled>No roles available</option>
-      )}
-    </select>
-
-    {/* Role Manager for Add/Delete */}
-    <RolesManager
-      roles={RolesList}
-      onAddRole={handleAddRole}
-      onDeleteRole={handleDeleteRole}
-    />
+      {/* Role Dropdown */}
+      <div className="flex flex-col gap-2 mt-3">
+        <label className="font-semibold">Employee Role *</label>
+        <select
+          className="border shadow-sm rounded px-3 py-2"
+          value={selectedRoleId}
+          onChange={(e) => setSelectedRoleId(e.target.value)}
+          required
+        >
+          <option value="">Select Role</option>
+          {RolesList.length > 0 ? (
+            RolesList.map((role) => (
+              <option key={role._id} value={role._id}>
+                {role.roleName} ({role.category})
+              </option>
+            ))
+          ) : (
+            <option disabled>No roles available</option>
+          )}
+        </select>
+        <p className="text-xs text-gray-500">
+          {RolesList.length} global role(s) available
+        </p>
       </div>
-    </div>
-  
-      {/* Hierarchy Dropdowns */}
-      <h1 className="font-bold"> Assign Employee a Designation: </h1>
+
+      {/* Hierarchy Section */}
+      <h3 className="font-bold text-lg mt-6">Assign Organizational Position</h3>
+      
+      {/* Office */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Office</label>
-          <select className="flex-1 border shadow-sm rounded px-3 py-2" value={officeId} onChange={e => { 
-            setOfficeId(e.target.value); 
-            resetDependentFields("office"); 
-          }}>
+          <select 
+            className="flex-1 border shadow-sm rounded px-3 py-2" 
+            value={officeId} 
+            onChange={e => { 
+              setOfficeId(e.target.value); 
+              resetDependentFields("office"); 
+            }}
+          >
             <option value="">Select Office</option>
             {getOfficeOptions().map(opt => (
               <option key={opt._id} value={opt._id}>{opt.name}</option>
             ))}
           </select>
           {officeId && (
-            <button type="button" className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={async () => {
-              if (!window.confirm(`Delete office?`)) return;
-              try {
-                await api.delete(`/hierarchy/deleteNode/${officeId}`);
-                alert("Office deleted");
-                setOfficeId("");
-                fetchHierarchy();
-              } catch(err) { 
-                console.error(err); 
-                alert("Failed to delete"); 
-              }
-            }}>Delete</button>
+            <button 
+              type="button" 
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" 
+              onClick={() => handleDeleteNode(officeId, "office")}
+            >
+              Delete
+            </button>
           )}
         </div>
       </div>
 
+      {/* Group */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Group</label>
-          <select className="flex-1 border shadow-sm rounded px-3 py-2" value={groupId} onChange={e => { 
-            setGroupId(e.target.value); 
-            resetDependentFields("group"); 
-          }}>
+          <select 
+            className="flex-1 border shadow-sm rounded px-3 py-2" 
+            value={groupId} 
+            onChange={e => { 
+              setGroupId(e.target.value); 
+              resetDependentFields("group"); 
+            }}
+          >
             <option value="">Select Group</option>
             {getGroupOptions().map(opt => (
               <option key={opt._id} value={opt._id}>{opt.name}</option>
             ))}
           </select>
           {groupId && (
-            <button type="button" className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={async () => {
-              if (!window.confirm(`Delete group?`)) return;
-              try {
-                await api.delete(`/hierarchy/deleteNode/${groupId}`);
-                alert("Group deleted");
-                setGroupId("");
-                fetchHierarchy();
-              } catch(err) { 
-                console.error(err); 
-                alert("Failed to delete"); 
-              }
-            }}>Delete</button>
+            <button 
+              type="button" 
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" 
+              onClick={() => handleDeleteNode(groupId, "group")}
+            >
+              Delete
+            </button>
           )}
         </div>
       </div>
 
+      {/* Division */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Division</label>
-          <select className="flex-1 border shadow-sm rounded px-3 py-2" value={divisionId} onChange={e => { 
-            setDivisionId(e.target.value); 
-            resetDependentFields("division"); 
-          }}>
+          <select 
+            className="flex-1 border shadow-sm rounded px-3 py-2" 
+            value={divisionId} 
+            onChange={e => { 
+              setDivisionId(e.target.value); 
+              resetDependentFields("division"); 
+            }}
+          >
             <option value="">Select Division</option>
             {getDivisionOptions().map(opt => (
               <option key={opt._id} value={opt._id}>{opt.name}</option>
             ))}
           </select>
           {divisionId && (
-            <button type="button" className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={async () => {
-              if (!window.confirm(`Delete division?`)) return;
-              try {
-                await api.delete(`/hierarchy/deleteNode/${divisionId}`);
-                alert("Division deleted");
-                setDivisionId("");
-                fetchHierarchy();
-              } catch(err) { 
-                console.error(err); 
-                alert("Failed to delete"); 
-              }
-            }}>Delete</button>
+            <button 
+              type="button" 
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" 
+              onClick={() => handleDeleteNode(divisionId, "division")}
+            >
+              Delete
+            </button>
           )}
         </div>
       </div>
 
+      {/* Department */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Department</label>
-          <select className="flex-1 border shadow-sm rounded px-3 py-2" value={departmentId} onChange={e => { 
-            setDepartmentId(e.target.value); 
-            resetDependentFields("department"); 
-          }}>
+          <select 
+            className="flex-1 border shadow-sm rounded px-3 py-2" 
+            value={departmentId} 
+            onChange={e => { 
+              setDepartmentId(e.target.value); 
+              resetDependentFields("department"); 
+            }}
+          >
             <option value="">Select Department</option>
             {getDepartmentOptions().map(opt => (
               <option key={opt._id} value={opt._id}>{opt.name}</option>
             ))}
           </select>
           {departmentId && (
-            <button type="button" className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={async () => {
-              if (!window.confirm(`Delete department?`)) return;
-              try {
-                await api.delete(`/hierarchy/deleteNode/${departmentId}`);
-                alert("Department deleted");
-                setDepartmentId("");
-                fetchHierarchy();
-              } catch(err) { 
-                console.error(err); 
-                alert("Failed to delete"); 
-              }
-            }}>Delete</button>
+            <button 
+              type="button" 
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" 
+              onClick={() => handleDeleteNode(departmentId, "department")}
+            >
+              Delete
+            </button>
           )}
         </div>
       </div>
 
+      {/* Branch */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Branch</label>
-          <select className="flex-1 border shadow-sm rounded px-3 py-2" value={branchId} onChange={e => { 
-            setBranchId(e.target.value); 
-            resetDependentFields("branch"); 
-          }}>
+          <select 
+            className="flex-1 border shadow-sm rounded px-3 py-2" 
+            value={branchId} 
+            onChange={e => { 
+              setBranchId(e.target.value); 
+              resetDependentFields("branch"); 
+            }}
+          >
             <option value="">Select Branch</option>
             {getBranchOptions().map(opt => (
               <option key={opt._id} value={opt._id}>{opt.name}</option>
             ))}
           </select>
           {branchId && (
-            <button type="button" className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={async () => {
-              if (!window.confirm(`Delete branch?`)) return;
-              try {
-                await api.delete(`/hierarchy/deleteNode/${branchId}`);
-                alert("Branch deleted");
-                setBranchId("");
-                fetchHierarchy();
-              } catch(err) { 
-                console.error(err); 
-                alert("Failed to delete"); 
-              }
-            }}>Delete</button>
+            <button 
+              type="button" 
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" 
+              onClick={() => handleDeleteNode(branchId, "branch")}
+            >
+              Delete
+            </button>
           )}
         </div>
       </div>
 
+      {/* Cell */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Cell</label>
-          <select className="flex-1 border shadow-sm rounded px-3 py-2" value={cellId} onChange={e => { 
-            setCellId(e.target.value); 
-            resetDependentFields("cell"); 
-          }}>
+          <select 
+            className="flex-1 border shadow-sm rounded px-3 py-2" 
+            value={cellId} 
+            onChange={e => { 
+              setCellId(e.target.value); 
+              resetDependentFields("cell"); 
+            }}
+          >
             <option value="">Select Cell</option>
             {getCellOptions().map(opt => (
               <option key={opt._id} value={opt._id}>{opt.name}</option>
             ))}
           </select>
           {cellId && (
-            <button type="button" className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={async () => {
-              if (!window.confirm(`Delete cell?`)) return;
-              try {
-                await api.delete(`/hierarchy/deleteNode/${cellId}`);
-                alert("Cell deleted");
-                setCellId("");
-                fetchHierarchy();
-              } catch(err) { 
-                console.error(err); 
-                alert("Failed to delete"); 
-              }
-            }}>Delete</button>
+            <button 
+              type="button" 
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" 
+              onClick={() => handleDeleteNode(cellId, "cell")}
+            >
+              Delete
+            </button>
           )}
         </div>
       </div>
 
+      {/* Desk */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Desk</label>
-          <select className="flex-1 border shadow-sm rounded px-3 py-2" value={deskId} onChange={e => { 
-            setDeskId(e.target.value); 
-            resetDependentFields("desk"); 
-          }}>
+          <select 
+            className="flex-1 border shadow-sm rounded px-3 py-2" 
+            value={deskId} 
+            onChange={e => setDeskId(e.target.value)}
+          >
             <option value="">Select Desk</option>
             {getDeskOptions().map(opt => (
               <option key={opt._id} value={opt._id}>{opt.name}</option>
             ))}
           </select>
           {deskId && (
-            <button type="button" className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" onClick={async () => {
-              if (!window.confirm(`Delete desk?`)) return;
-              try {
-                await api.delete(`/hierarchy/deleteNode/${deskId}`);
-                alert("Desk deleted");
-                setDeskId("");
-                fetchHierarchy();
-              } catch(err) { 
-                console.error(err); 
-                alert("Failed to delete"); 
-              }
-            }}>Delete</button>
+            <button 
+              type="button" 
+              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" 
+              onClick={() => handleDeleteNode(deskId, "desk")}
+            >
+              Delete
+            </button>
           )}
         </div>
       </div>
-      
-      
+
       {/* Permissions Selector */}
-      <div className="flex flex-col gap-2">
-        <label className="font-semibold">Permissions</label>
-      <select
+      <div className="flex flex-col gap-2 mt-6">
+        <label className="font-semibold">Permission Overrides (Optional)</label>
+        <select
           value=""
           onChange={e => { 
             const selectedPermission = fetchedPermissions.find(p => p._id === e.target.value);
@@ -745,7 +752,7 @@ const handleCancel = () => navigate("/DraftDashboard");
           }}
           className="border rounded px-3 py-2 w-full"
         >
-          <option value="">Select Permission</option>
+          <option value="">Select Permission Override</option>
           {fetchedPermissions.map(p => (
             <option key={p._id} value={p._id}>{p.name}</option>
           ))}
@@ -754,46 +761,121 @@ const handleCancel = () => navigate("/DraftDashboard");
           {allPermissions.map(p => (
             <span key={p._id} className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
               {p.name} 
-              <span onClick={() => setAllPermissions(allPermissions.filter(x => x._id !== p._id))} className="cursor-pointer font-bold">×</span>
+              <span 
+                onClick={() => setAllPermissions(allPermissions.filter(x => x._id !== p._id))} 
+                className="cursor-pointer font-bold"
+              >
+                ×
+              </span>
             </span>
           ))}
         </div>
+        <p className="text-xs text-gray-500">
+          These permissions will override the default role permissions for this specific assignment.
+        </p>
       </div>
 
-      {/* Centralized Create Node */}
+      {/* Create Hierarchy Node Button */}
       <div className="mt-6">
-        <button type="button" onClick={() => setActionModal({ type: "create", name: "", level: "", parentId: null, open: true })} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700">
+        <button 
+          type="button" 
+          onClick={() => setActionModal({ 
+            type: "create", 
+            name: "", 
+            level: "", 
+            parentId: null, 
+            open: true 
+          })} 
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
           Create Hierarchy Node
         </button>
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end gap-4 pt-4">
-        <button type="button" onClick={handleCancel} className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">Cancel</button>
-        <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
+      <div className="flex justify-end gap-4 pt-4 border-t">
+        <button 
+          type="button" 
+          onClick={handleCancel} 
+          className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit"
+          disabled={!selectedRoleId || loading}
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? "Saving..." : "Save Assignment"}
+        </button>
       </div>
 
-      {/* Action Modal */}
+      {/* Create Node Modal */}
       {actionModal.open && actionModal.type === "create" && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
-            <h3 className="text-lg font-bold mb-3">Create Node</h3>
-            <select className="w-full border rounded px-3 py-2 mb-3" value={actionModal.level} onChange={e => setActionModal({ ...actionModal, level: e.target.value, parentId: null })}>
+            <h3 className="text-lg font-bold mb-3">Create Hierarchy Node</h3>
+            
+            {/* Level Selector */}
+            <select 
+              className="w-full border rounded px-3 py-2 mb-3" 
+              value={actionModal.level} 
+              onChange={e => setActionModal({ 
+                ...actionModal, 
+                level: e.target.value, 
+                parentId: null 
+              })}
+            >
               <option value="">Select Level</option>
               {levelOrder.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
+            
+            {/* Parent Selector (if not office) */}
             {actionModal.level && actionModal.level !== "office" && (
-              <select className="w-full border rounded px-3 py-2 mb-3" value={actionModal.parentId || ""} onChange={e => setActionModal({ ...actionModal, parentId: e.target.value })}>
+              <select 
+                className="w-full border rounded px-3 py-2 mb-3" 
+                value={actionModal.parentId || ""} 
+                onChange={e => setActionModal({ 
+                  ...actionModal, 
+                  parentId: e.target.value 
+                })}
+              >
                 <option value="">Select Parent</option>
                 {getParentOptions(actionModal.level).map(p => (
                   <option key={p._id} value={p._id}>{p.name}</option>
                 ))}
               </select>
             )}
-            <input type="text" className="w-full border rounded px-3 py-2 mb-3" value={actionModal.name} onChange={e => setActionModal({ ...actionModal, name: e.target.value })} placeholder="Enter name"/>
+            
+            {/* Node Name Input */}
+            <input 
+              type="text" 
+              className="w-full border rounded px-3 py-2 mb-3" 
+              value={actionModal.name} 
+              onChange={e => setActionModal({ 
+                ...actionModal, 
+                name: e.target.value 
+              })} 
+              placeholder="Enter name"
+            />
+            
+            {/* Modal Actions */}
             <div className="flex justify-end gap-3">
-              <button onClick={() => setActionModal({ type: null, open: false })} className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancel</button>
-              <button onClick={() => submitCreate(actionModal.name, actionModal.level, actionModal.parentId)} disabled={actionLoading} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+              <button 
+                onClick={() => setActionModal({ type: null, open: false })} 
+                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => submitCreate(
+                  actionModal.name, 
+                  actionModal.level, 
+                  actionModal.parentId
+                )} 
+                disabled={actionLoading} 
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+              >
                 {actionLoading ? "Creating..." : "Create"}
               </button>
             </div>
