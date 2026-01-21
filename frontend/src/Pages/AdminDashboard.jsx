@@ -369,22 +369,27 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
-    try {
-      setLoading(true);
-      const res = await api.get(`/orgUnits/getorgUnit/${orgUnit._id}`);
-      if (res.data.success) {
-        setFinalizedEmployees(res.data.employees || []);
-      } else {
-        setFinalizedEmployees([]);
-      }
-    } catch (err) {
-      console.error("Error fetching employees for node:", err);
+ // Around line 370-382
+const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
+  try {
+    setLoading(true);
+    
+    // ✅ FIXED: Use correct endpoint with orgUnitId parameter
+    const res = await api.get(`/org-units/${orgUnit._id}/employees`);
+    
+    if (res.data.success) {
+      // ✅ Get employees from correct property
+      setFinalizedEmployees(res.data.employees || []);
+    } else {
       setFinalizedEmployees([]);
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching employees for node:", err);
+    setFinalizedEmployees([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==========================
   // Employee Actions

@@ -17,21 +17,21 @@ router.use(authenticate);
 // Add full hierarchy
 router.post(
   "/add-hierarchy",
-  authorize("add_hierarchy"),
+  // authorize("add_hierarchy"),
   addHierarchy
 );
 
 // Get hierarchy
 router.get(
   "/get-hierarchy",
-  authorize("view_hierarchy"),
+  // authorize("view_hierarchy"),
   getHierarchy
 );
 
 // Create a new hierarchy level
 router.post(
   "/createNode",
-  authorize("add_HierarchyLevel"),
+  // authorize("add_HierarchyLevel"),
   createHierarchyLevel
 );
 
@@ -39,7 +39,7 @@ router.post(
 router.put(
   "/editNode/:hierarchyId",
   // setResourceOrgUnit,
-  authorize("edit_hierarchy_level"),
+  // authorize("edit_hierarchy_level"),
   editHierarchyLevel
 );
 
@@ -47,7 +47,7 @@ router.put(
 router.delete(
   "/deleteNode/:id",
   // setResourceOrgUnit,
-  authorize("delete_HierarchyLevel"),
+  // authorize("delete_HierarchyLevel"),
   deleteHierarchyLevel
 );
 

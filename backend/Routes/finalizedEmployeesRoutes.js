@@ -28,7 +28,7 @@ router.use(authenticate);
 // View all finalized employees
 router.get(
   "/all",
-  authorize("view_all_finalized_employees"),
+  // authorize("view_all_finalized_employees"),
   getFinalizedEmployees
 );
 
@@ -40,7 +40,7 @@ router.get("/allWithRoles",
 router.patch(
   "/approve/:finalizedEmployeeId",
   // setResourceOrgUnit,
-  authorize("approve_employee"),
+  // authorize("approve_employee"),
   ApproveEmployee
 );
 
@@ -48,7 +48,7 @@ router.patch(
 router.delete(
   "/reject/:finalizedEmployeeId",
   // setResourceOrgUnit,
-  authorize("reject_employee"),
+  // authorize("reject_employee"),
   RejectEmployee
 );
 
@@ -56,7 +56,7 @@ router.delete(
 router.delete(
   "/delete/:finalizedEmployeeId",
   // setResourceOrgUnit,
-  authorize("delete_finalized_employee"),
+  // authorize("delete_finalized_employee"),
   deleteEmployeeAndFinalized
 );
 
@@ -65,39 +65,39 @@ router.delete(
 router.get(
   "/getSingleFinalizedEmployee/:finalizedEmployeeId",
   // setResourceOrgUnit,
-  authorize("view_single_finalized_employee"),
+  // authorize("view_single_finalized_employee"),
   getSingleFinalizedEmployee
 );
 
 router.post("/suspend/:employeeId", 
-  authorize("suspend_employee"),
+  // authorize("suspend_employee"),
 suspendEmployee);
 
 router.patch("/restore-suspension/:employeeId", 
-  authorize("restore_suspended_employee"),
+  // authorize("restore_suspended_employee"),
 restoreSuspendedEmployee);
 
 
 router.post("/block/:employeeId", 
-  authorize("block_employee"),  
+  // authorize("block_employee"),  
 blockEmployee);
 
 router.patch("/restore-block/:employeeId", 
-  authorize("restore_blocked_employee"),  
+  // authorize("restore_blocked_employee"),  
 restoreBlockedEmployee);
 
 router.post("/terminate/:employeeId",
-  authorize("terminate_employee"),
+  // authorize("terminate_employee"),
   terminateEmployee
 );
 
 router.patch("/restore-terminate/:employeeId",
-  authorize("restore_terminate_employee"),
+  // authorize("restore_terminate_employee"),
   restoreTerminatedEmployee
 );
 
 router.get("/status/:status",
-  authorize("view_all_finalized_employees"),
+  // authorize("view_all_finalized_employees"),
   fetchEmployeesByStatus
 );
 

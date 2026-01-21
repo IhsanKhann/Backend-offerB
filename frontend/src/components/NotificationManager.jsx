@@ -9,13 +9,16 @@ const NotificationManager = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [stats, setStats] = useState(null);
+  const [availableRoles, setAvailableRoles] = useState([]);
 
-  // Form state
+  // ✅ REFACTORED: Form state with new targeting strategy
   const [formData, setFormData] = useState({
     eventType: "",
-    department: "",
-    roles: [],
-    userIds: [],
+    targetingStrategy: "department_roles",
+    targetRoles: [],
+    departmentFilter: null,
+    statusFilter: null,
+    targetUserIds: [],
     priority: "medium",
     template: {
       title: "",
@@ -24,7 +27,49 @@ const NotificationManager = () => {
     enabled: true,
   });
 
-  // Event types grouped by department
+  // ✅ Fetch global roles (independent of department)
+  const fetchRoles = async () => {
+    try {
+      const res = await api.get("/roles/getAllRolesList");
+      if (res.data.success) {
+        setAvailableRoles(Array.isArray(res.data.Roles) ? res.data.Roles : []);
+      }
+    } catch (err) {
+      console.error("Error fetching roles:", err);
+      setAvailableRoles([]);
+    }
+  };
+
+  // Fetch rules and stats
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [rulesRes, statsRes] = await Promise.all([
+        api.get("/notifications/rules"),
+        api.get("/notifications/stats"),
+      ]);
+
+      if (rulesRes.data.success) {
+        setRules(rulesRes.data.rules || []);
+      }
+
+      if (statsRes.data.success) {
+        setStats(statsRes.data.stats);
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      setRules([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchRoles();
+  }, []);
+
+  // Event types grouped by department (unchanged)
   const eventTypesByDepartment = {
     HR: [
       "HR_EMPLOYEE_ONBOARDED",
@@ -82,32 +127,13 @@ const NotificationManager = () => {
     ],
   };
 
-  // Fetch rules and stats
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [rulesRes, statsRes] = await Promise.all([
-        api.get("/notifications/rules"),
-        api.get("/notifications/stats"),
-      ]);
-
-      if (rulesRes.data.success) {
-        setRules(rulesRes.data.rules);
-      }
-
-      if (statsRes.data.success) {
-        setStats(statsRes.data.stats);
-      }
-    } catch (err) {
-      console.error("Error fetching data:", err);
-    } finally {
-      setLoading(false);
+  // ✅ Get event types based on department filter
+  const getAvailableEventTypes = () => {
+    if (!formData.departmentFilter) {
+      return eventTypesByDepartment.ALL;
     }
+    return eventTypesByDepartment[formData.departmentFilter] || [];
   };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   // Open modal for create/edit
   const openModal = (rule = null) => {
@@ -115,9 +141,11 @@ const NotificationManager = () => {
       setEditingRule(rule);
       setFormData({
         eventType: rule.eventType,
-        department: rule.department,
-        roles: rule.roles || [],
-        userIds: rule.userIds || [],
+        targetingStrategy: rule.targetingStrategy,
+        targetRoles: rule.targetRoles?.map(r => r._id || r) || [],
+        departmentFilter: rule.departmentFilter,
+        statusFilter: rule.statusFilter,
+        targetUserIds: rule.targetUserIds || [],
         priority: rule.priority,
         template: rule.template,
         enabled: rule.enabled,
@@ -126,9 +154,11 @@ const NotificationManager = () => {
       setEditingRule(null);
       setFormData({
         eventType: "",
-        department: "",
-        roles: [],
-        userIds: [],
+        targetingStrategy: "department_roles",
+        targetRoles: [],
+        departmentFilter: null,
+        statusFilter: null,
+        targetUserIds: [],
         priority: "medium",
         template: { title: "", message: "" },
         enabled: true,
@@ -149,7 +179,6 @@ const NotificationManager = () => {
 
     try {
       if (editingRule) {
-        // Update
         const res = await api.put(`/notifications/rules/${editingRule._id}`, formData);
         if (res.data.success) {
           setRules((prev) =>
@@ -158,7 +187,6 @@ const NotificationManager = () => {
           alert("Rule updated successfully!");
         }
       } else {
-        // Create
         const res = await api.post("/notifications/rules", formData);
         if (res.data.success) {
           setRules((prev) => [...prev, res.data.rule]);
@@ -238,7 +266,7 @@ const NotificationManager = () => {
               <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
             </div>
             
-            {stats.byDepartment.map((dept) => (
+            {stats.byDepartment && stats.byDepartment.map((dept) => (
               <div key={dept._id} className="bg-white p-4 rounded-lg shadow">
                 <p className="text-sm text-gray-600 capitalize">{dept._id}</p>
                 <p className="text-2xl font-bold text-gray-900">{dept.count}</p>
@@ -256,10 +284,13 @@ const NotificationManager = () => {
                   Event Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Department
+                  Strategy
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Roles
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Department
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Priority
@@ -273,65 +304,78 @@ const NotificationManager = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {rules.map((rule) => (
-                <tr key={rule._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {rule.eventType.replace(/_/g, " ")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                    {rule.department}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {rule.roles.length > 0 ? rule.roles.join(", ") : "All"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        rule.priority === "critical"
-                          ? "bg-red-100 text-red-800"
-                          : rule.priority === "high"
-                          ? "bg-orange-100 text-orange-800"
-                          : rule.priority === "medium"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {rule.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => toggleRule(rule._id)}
-                      className="flex items-center gap-1"
-                    >
-                      {rule.enabled ? (
-                        <FiToggleRight size={24} className="text-green-600" />
-                      ) : (
-                        <FiToggleLeft size={24} className="text-gray-400" />
-                      )}
-                      <span className="text-sm">
-                        {rule.enabled ? "Enabled" : "Disabled"}
-                      </span>
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => openModal(rule)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <FiEdit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => deleteRule(rule._id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <FiTrash2 size={18} />
-                      </button>
-                    </div>
+              {rules.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                    No notification rules found. Create one to get started!
                   </td>
                 </tr>
-              ))}
+              ) : (
+                rules.map((rule) => (
+                  <tr key={rule._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {rule.eventType.replace(/_/g, " ")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                      {rule.targetingStrategy?.replace(/_/g, " ")}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {rule.targetRoles?.length > 0 
+                        ? rule.targetRoles.map(r => r.roleName || r).join(", ") 
+                        : "N/A"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {rule.departmentFilter || "All"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
+                          rule.priority === "critical"
+                            ? "bg-red-100 text-red-800"
+                            : rule.priority === "high"
+                            ? "bg-orange-100 text-orange-800"
+                            : rule.priority === "medium"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
+                        {rule.priority}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => toggleRule(rule._id)}
+                        className="flex items-center gap-1"
+                      >
+                        {rule.enabled ? (
+                          <FiToggleRight size={24} className="text-green-600" />
+                        ) : (
+                          <FiToggleLeft size={24} className="text-gray-400" />
+                        )}
+                        <span className="text-sm">
+                          {rule.enabled ? "Enabled" : "Disabled"}
+                        </span>
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openModal(rule)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <FiEdit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => deleteRule(rule._id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -368,26 +412,64 @@ const NotificationManager = () => {
 
                   {/* Modal Body */}
                   <div className="p-6 space-y-4">
-                    {/* Department */}
+                    {/* Targeting Strategy */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Department *
+                        Targeting Strategy *
                       </label>
                       <select
                         required
-                        value={formData.department}
+                        value={formData.targetingStrategy}
                         onChange={(e) =>
-                          setFormData({ ...formData, department: e.target.value, eventType: "" })
+                          setFormData({ 
+                            ...formData, 
+                            targetingStrategy: e.target.value,
+                            targetRoles: [],
+                            departmentFilter: null,
+                            statusFilter: null,
+                            targetUserIds: []
+                          })
                         }
                         className="w-full border border-gray-300 rounded-lg px-3 py-2"
                       >
-                        <option value="">Select Department</option>
-                        <option value="HR">HR</option>
-                        <option value="Finance">Finance</option>
-                        <option value="BusinessOperation">Business Operation</option>
-                        <option value="ALL">All Departments</option>
+                        <option value="global_roles">Global Roles (Organization-wide)</option>
+                        <option value="department_roles">Department Roles (Filtered by Department)</option>
+                        <option value="department_all">All Department Members</option>
+                        <option value="specific_users">Specific Users</option>
                       </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formData.targetingStrategy === "global_roles" && "Notify all holders of selected roles, regardless of department"}
+                        {formData.targetingStrategy === "department_roles" && "Notify role holders only in the specified department"}
+                        {formData.targetingStrategy === "department_all" && "Notify all employees in the specified department"}
+                        {formData.targetingStrategy === "specific_users" && "Notify specific individual users"}
+                      </p>
                     </div>
+
+                    {/* Department Filter */}
+                    {(formData.targetingStrategy === "department_roles" || formData.targetingStrategy === "department_all") && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Department Filter *
+                        </label>
+                        <select
+                          required
+                          value={formData.departmentFilter || ""}
+                          onChange={(e) =>
+                            setFormData({ 
+                              ...formData, 
+                              departmentFilter: e.target.value || null,
+                              eventType: ""
+                            })
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                        >
+                          <option value="">Select Department</option>
+                          <option value="HR">HR</option>
+                          <option value="Finance">Finance</option>
+                          <option value="BusinessOperation">Business Operation</option>
+                        </select>
+                      </div>
+                    )}
 
                     {/* Event Type */}
                     <div>
@@ -401,36 +483,93 @@ const NotificationManager = () => {
                           setFormData({ ...formData, eventType: e.target.value })
                         }
                         className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                        disabled={!formData.department}
                       >
                         <option value="">Select Event Type</option>
-                        {formData.department &&
-                          eventTypesByDepartment[formData.department]?.map((event) => (
-                            <option key={event} value={event}>
-                              {event.replace(/_/g, " ")}
-                            </option>
-                          ))}
+                        {getAvailableEventTypes().map((event) => (
+                          <option key={event} value={event}>
+                            {event.replace(/_/g, " ")}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
-                    {/* Roles (comma-separated) */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Target Roles (comma-separated, leave empty for all)
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.roles.join(", ")}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            roles: e.target.value.split(",").map((r) => r.trim()).filter(Boolean),
-                          })
-                        }
-                        placeholder="e.g. HR Manager, Finance Manager"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                      />
-                    </div>
+                    {/* Target Roles */}
+                    {(formData.targetingStrategy === "global_roles" || formData.targetingStrategy === "department_roles") && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Target Roles *
+                        </label>
+                        <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto bg-white">
+                          {availableRoles.length === 0 ? (
+                            <div className="p-4 text-center text-gray-500 text-sm">
+                              No roles available
+                            </div>
+                          ) : (
+                            availableRoles.map((role) => (
+                              <label
+                                key={role._id}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={formData.targetRoles.includes(role._id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFormData({
+                                        ...formData,
+                                        targetRoles: [...formData.targetRoles, role._id],
+                                      });
+                                    } else {
+                                      setFormData({
+                                        ...formData,
+                                        targetRoles: formData.targetRoles.filter((id) => id !== role._id),
+                                      });
+                                    }
+                                  }}
+                                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900">
+                                    {role.roleName}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    Category: {role.category || "N/A"}
+                                  </div>
+                                </div>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Selected: {formData.targetRoles.length} role(s)
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Status Filter */}
+                    {formData.targetingStrategy === "department_roles" && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Hierarchy Level Filter (Optional)
+                        </label>
+                        <select
+                          value={formData.statusFilter || ""}
+                          onChange={(e) =>
+                            setFormData({ ...formData, statusFilter: e.target.value || null })
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                        >
+                          <option value="">All Levels</option>
+                          <option value="Offices">Offices</option>
+                          <option value="Groups">Groups</option>
+                          <option value="Divisions">Divisions</option>
+                          <option value="Departments">Departments</option>
+                          <option value="Branches">Branches</option>
+                          <option value="Cells">Cells</option>
+                          <option value="Desks">Desks</option>
+                        </select>
+                      </div>
+                    )}
 
                     {/* Priority */}
                     <div>
@@ -456,20 +595,20 @@ const NotificationManager = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Notification Title * (Use &#123;&#123;variable&#125;&#125; for dynamic values)
-                    </label>
-                    <input
+                      </label>
+                      <input
                         type="text"
                         required
                         value={formData.template.title}
                         onChange={(e) =>
-                            setFormData({
+                          setFormData({
                             ...formData,
                             template: { ...formData.template, title: e.target.value },
-                            })
+                          })
                         }
                         placeholder="e.g. Salary Processed for {{employeeName}}"
                         className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                        />
+                      />
                     </div>
 
                     {/* Template Message */}
@@ -477,19 +616,19 @@ const NotificationManager = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Notification Message *
                       </label>
-                     <textarea
+                      <textarea
                         required
                         value={formData.template.message}
                         onChange={(e) =>
-                            setFormData({
+                          setFormData({
                             ...formData,
                             template: { ...formData.template, message: e.target.value },
-                            })
+                          })
                         }
                         placeholder="e.g. Your salary for {{month}} {{year}} has been processed."
                         rows={4}
                         className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                        />
+                      />
                     </div>
 
                     {/* Enabled Toggle */}

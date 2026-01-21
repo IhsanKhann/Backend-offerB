@@ -16,7 +16,7 @@ const SalaryRulesSchema = new mongoose.Schema({
   terminalBenefits: { type: [ComponentSchema], default: [] },
 }, { _id: false });
 
-// Main Role Schema (Role Declaration)
+// Represents GLOBAL roles independent of department/hierarchy
 const RoleSchema = new mongoose.Schema(
   {
     // Basic role information
@@ -30,27 +30,20 @@ const RoleSchema = new mongoose.Schema(
       default: "",
     },
 
-    // Department code for notification isolation
-    code: {
+    // Role category (optional organizational grouping)
+    category: {
       type: String,
-      enum: ["HR", "Finance", "BusinessOperation"],
-      required: true,
+      enum: ["Executive", "Management", "Staff", "Support", "Technical"],
+      default: "Staff",
     },
 
-    // Organizational hierarchy level
-    status: {
-      type: String,
-      enum: ["Offices", "Groups", "Divisions", "Departments", "Branches", "Cells"],
-      required: true,
-    },
-
-    // Salary Rules (merged from AllRoles)
+    // Salary Rules (global defaults for this role)
     salaryRules: {
       type: SalaryRulesSchema,
       required: true,
     },
 
-    // Permissions
+    // Permissions (global capabilities for this role)
     permissions: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -63,6 +56,7 @@ const RoleSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
   },
   {
     timestamps: true,
@@ -71,9 +65,8 @@ const RoleSchema = new mongoose.Schema(
 
 // Indexes for better performance
 RoleSchema.index({ roleName: 1 });
-RoleSchema.index({ code: 1 });
-RoleSchema.index({ status: 1 });
-RoleSchema.index({ code: 1, status: 1 });
+RoleSchema.index({ category: 1 });
+RoleSchema.index({ isActive: 1 });
 
 const RoleModel = mongoose.model("Role", RoleSchema);
 export default RoleModel;

@@ -1,4 +1,5 @@
-// notifications/notificationFactory.js
+// ✅ REFACTORED: Notification Factory
+// Resolves recipients via active role assignments at runtime
 import Notification from "../models/BussinessOperationModals/Notifications.js";
 import NotificationRule from "../models/BussinessOperationModals/NotificationsRule.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
@@ -7,21 +8,18 @@ import RoleModel from "../models/HRModals/Role.model.js";
 import { getDepartmentFromEvent } from "../events/events.js";
 
 /**
- * Main notification factory function
+ * ✅ REFACTORED: Main notification factory function
  * Creates notifications based on event type and payload
  */
 export async function createNotificationsFromEvent(eventType, payload) {
   try {
     console.log(`📧 Creating notifications for event: ${eventType}`);
 
-    // Get department from event type
-    const eventDepartment = getDepartmentFromEvent(eventType);
-
     // Find matching notification rules
     const rules = await NotificationRule.find({
       eventType,
       enabled: true,
-    });
+    }).populate("targetRoles");
 
     if (!rules.length) {
       console.log(`⚠️ No notification rules found for event: ${eventType}`);
@@ -30,8 +28,8 @@ export async function createNotificationsFromEvent(eventType, payload) {
 
     for (const rule of rules) {
       try {
-        // Get target employees based on rule configuration
-        const targetEmployees = await getTargetEmployees(rule, payload);
+        // ✅ Resolve target employees based on targeting strategy
+        const targetEmployees = await resolveTargetEmployees(rule, payload);
 
         if (!targetEmployees.length) {
           console.log(`⚠️ No target employees found for rule: ${rule._id}`);
@@ -42,12 +40,15 @@ export async function createNotificationsFromEvent(eventType, payload) {
         const title = renderTemplate(rule.template.title, payload);
         const message = renderTemplate(rule.template.message, payload);
 
+        // Determine department for notification
+        const department = rule.departmentFilter || getDepartmentFromEvent(eventType) || "ALL";
+
         // Create notification
         await Notification.create({
           eventType,
           title,
           message,
-          department: rule.department,
+          department,
           priority: rule.priority,
           recipients: targetEmployees.map((emp) => ({
             userId: emp._id,
@@ -72,88 +73,136 @@ export async function createNotificationsFromEvent(eventType, payload) {
 }
 
 /**
- * Get target employees based on notification rule
+ * ✅ REFACTORED: Resolve target employees based on notification rule
+ * Resolves recipients via active role assignments at runtime
  */
-async function getTargetEmployees(rule, payload) {
-  let employees = [];
+async function resolveTargetEmployees(rule, payload) {
+  const strategy = rule.targetingStrategy;
 
-  try {
-    // 1. If specific userIds are defined, use those
-    if (rule.userIds?.length) {
-      employees = await FinalizedEmployeesModel.find({
-        _id: { $in: rule.userIds },
-      }).select("_id individualName personalEmail");
+  switch (strategy) {
+    case "global_roles":
+      return resolveGlobalRoles(rule, payload);
+    
+    case "department_roles":
+      return resolveDepartmentRoles(rule, payload);
+    
+    case "specific_users":
+      return resolveSpecificUsers(rule, payload);
+    
+    case "department_all":
+      return resolveDepartmentAll(rule, payload);
+    
+    default:
+      console.warn(`Unknown targeting strategy: ${strategy}`);
+      return [];
+  }
+}
 
-      return employees;
-    }
+/**
+ * ✅ Resolve global roles (organization-wide)
+ * Example: All "Chairman" role holders regardless of department
+ */
+async function resolveGlobalRoles(rule, payload) {
+  if (!rule.targetRoles?.length) return [];
 
-    // 2. If roles are defined, find by department, status, and role
-    if (rule.roles?.length) {
-      // Find role declarations matching the rule
-      const roleDeclarations = await RoleModel.find({
-        roleName: { $in: rule.roles },
-        code: rule.department,
-      });
+  const roleIds = rule.targetRoles.map(r => r._id || r);
 
-      if (!roleDeclarations.length) {
-        return [];
-      }
+  // Find ALL active assignments for these roles
+  const assignments = await RoleAssignmentModel.find({
+    roleId: { $in: roleIds },
+    isActive: true,
+    effectiveFrom: { $lte: new Date() },
+    $or: [
+      { effectiveUntil: null },
+      { effectiveUntil: { $gte: new Date() }}
+    ]
+  })
+  .populate("employeeId", "_id individualName personalEmail")
+  .lean();
 
-      const roleIds = roleDeclarations.map((r) => r._id);
+  return assignments
+    .map(a => a.employeeId)
+    .filter(emp => emp !== null);
+}
 
-      // Find active role assignments
-      const assignments = await RoleAssignmentModel.find({
-        roleId: { $in: roleIds },
-        code: rule.department,
-        isActive: true,
-      }).populate("employeeId", "_id individualName personalEmail");
+/**
+ * ✅ Resolve department-filtered roles
+ * Example: All "Finance Manager" role holders in Finance department
+ */
+async function resolveDepartmentRoles(rule, payload) {
+  if (!rule.targetRoles?.length) return [];
 
-      employees = assignments
-        .map((a) => a.employeeId)
-        .filter((emp) => emp !== null);
+  const roleIds = rule.targetRoles.map(r => r._id || r);
+  
+  // Build filter
+  const filter = {
+    roleId: { $in: roleIds },
+    isActive: true,
+    effectiveFrom: { $lte: new Date() },
+    $or: [
+      { effectiveUntil: null },
+      { effectiveUntil: { $gte: new Date() }}
+    ]
+  };
 
-      return employees;
-    }
+  // ✅ Apply department filter if specified
+  if (rule.departmentFilter) {
+    filter.departmentCode = rule.departmentFilter;
+  }
 
-    // 3. If no specific targeting, send to all employees in department
-    if (rule.department && rule.department !== "ALL") {
-      const assignments = await RoleAssignmentModel.find({
-        code: rule.department,
-        isActive: true,
-      }).populate("employeeId", "_id individualName personalEmail");
+  // ✅ Apply status filter if specified
+  if (rule.statusFilter) {
+    filter.status = rule.statusFilter;
+  }
 
-      employees = assignments
-        .map((a) => a.employeeId)
-        .filter((emp) => emp !== null);
+  const assignments = await RoleAssignmentModel.find(filter)
+    .populate("employeeId", "_id individualName personalEmail")
+    .lean();
 
-      return employees;
-    }
+  return assignments
+    .map(a => a.employeeId)
+    .filter(emp => emp !== null);
+}
 
-    // 4. If department is ALL, send to everyone (careful!)
-    if (rule.department === "ALL") {
-      employees = await FinalizedEmployeesModel.find({}).select(
-        "_id individualName personalEmail"
-      );
+/**
+ * ✅ Resolve specific users
+ */
+async function resolveSpecificUsers(rule, payload) {
+  if (!rule.targetUserIds?.length) return [];
 
-      return employees;
-    }
+  const employees = await FinalizedEmployeesModel.find({
+    _id: { $in: rule.targetUserIds }
+  })
+  .select("_id individualName personalEmail")
+  .lean();
 
-    // 5. Check for specific employee targeting in payload
-    if (payload.targetEmployeeId) {
-      const employee = await FinalizedEmployeesModel.findById(
-        payload.targetEmployeeId
-      ).select("_id individualName personalEmail");
+  return employees;
+}
 
-      if (employee) {
-        employees = [employee];
-      }
-    }
-
-    return employees;
-  } catch (error) {
-    console.error("❌ Error getting target employees:", error);
+/**
+ * ✅ Resolve all employees in department
+ */
+async function resolveDepartmentAll(rule, payload) {
+  if (!rule.departmentFilter) {
+    console.warn("department_all strategy requires departmentFilter");
     return [];
   }
+
+  const assignments = await RoleAssignmentModel.find({
+    departmentCode: rule.departmentFilter,
+    isActive: true,
+    effectiveFrom: { $lte: new Date() },
+    $or: [
+      { effectiveUntil: null },
+      { effectiveUntil: { $gte: new Date() }}
+    ]
+  })
+  .populate("employeeId", "_id individualName personalEmail")
+  .lean();
+
+  return assignments
+    .map(a => a.employeeId)
+    .filter(emp => emp !== null);
 }
 
 /**
@@ -179,82 +228,35 @@ function renderTemplate(template, payload) {
 }
 
 /**
- * Send notification to specific department
+ * ✅ HELPER: Send notification to global role holders
  */
-export async function notifyDepartment(department, eventType, payload) {
+export async function notifyGlobalRole(roleName, eventType, payload) {
   try {
-    console.log(`📧 Sending notification to department: ${department}`);
-
-    // Find all active employees in the department
-    const assignments = await RoleAssignmentModel.find({
-      code: department,
-      isActive: true,
-    }).populate("employeeId", "_id individualName personalEmail");
-
-    const employees = assignments
-      .map((a) => a.employeeId)
-      .filter((emp) => emp !== null);
-
-    if (!employees.length) {
-      console.log(`⚠️ No employees found in department: ${department}`);
-      return;
-    }
-
-    // Create notification
-    await Notification.create({
-      eventType,
-      title: payload.title || "Department Notification",
-      message: payload.message || "",
-      department,
-      priority: payload.priority || "medium",
-      recipients: employees.map((emp) => ({
-        userId: emp._id,
-        read: false,
-      })),
-      actionUrl: payload.actionUrl || null,
-      metadata: payload,
-      status: "sent",
-    });
-
-    console.log(
-      `✅ Department notification sent to ${employees.length} employees`
-    );
-  } catch (error) {
-    console.error("❌ notifyDepartment error:", error);
-    throw error;
-  }
-}
-
-/**
- * Send notification to specific role within department
- */
-export async function notifyRole(department, roleName, eventType, payload) {
-  try {
-    console.log(
-      `📧 Sending notification to role: ${roleName} in ${department}`
-    );
+    console.log(`📧 Sending notification to global role: ${roleName}`);
 
     // Find role declaration
-    const role = await RoleModel.findOne({
-      roleName,
-      code: department,
-    });
-
+    const role = await RoleModel.findOne({ roleName, isActive: true });
     if (!role) {
-      console.log(`⚠️ Role not found: ${roleName} in ${department}`);
+      console.log(`⚠️ Role not found: ${roleName}`);
       return;
     }
 
-    // Find active role assignments
+    // Find ALL active assignments (regardless of department)
     const assignments = await RoleAssignmentModel.find({
       roleId: role._id,
-      code: department,
       isActive: true,
-    }).populate("employeeId", "_id individualName personalEmail");
+      effectiveFrom: { $lte: new Date() },
+      $or: [
+        { effectiveUntil: null },
+        { effectiveUntil: { $gte: new Date() }}
+      ]
+    })
+    .populate("employeeId", "_id individualName personalEmail")
+    .lean();
 
     const employees = assignments
-      .map((a) => a.employeeId)
-      .filter((emp) => emp !== null);
+      .map(a => a.employeeId)
+      .filter(emp => emp !== null);
 
     if (!employees.length) {
       console.log(`⚠️ No employees found with role: ${roleName}`);
@@ -266,7 +268,7 @@ export async function notifyRole(department, roleName, eventType, payload) {
       eventType,
       title: payload.title || "Role Notification",
       message: payload.message || "",
-      department,
+      department: "ALL",
       priority: payload.priority || "medium",
       recipients: employees.map((emp) => ({
         userId: emp._id,
@@ -277,48 +279,56 @@ export async function notifyRole(department, roleName, eventType, payload) {
       status: "sent",
     });
 
-    console.log(
-      `✅ Role notification sent to ${employees.length} employees`
-    );
+    console.log(`✅ Global role notification sent to ${employees.length} employees`);
   } catch (error) {
-    console.error("❌ notifyRole error:", error);
+    console.error("❌ notifyGlobalRole error:", error);
     throw error;
   }
 }
 
 /**
- * Send notification to specific status (hierarchy level)
+ * ✅ HELPER: Send notification to role holders in specific department
  */
-export async function notifyStatus(department, status, eventType, payload) {
+export async function notifyDepartmentRole(roleName, departmentCode, eventType, payload) {
   try {
-    console.log(
-      `📧 Sending notification to status: ${status} in ${department}`
-    );
+    console.log(`📧 Sending notification to role: ${roleName} in ${departmentCode}`);
 
-    // Find active role assignments with matching status
+    // Find role declaration
+    const role = await RoleModel.findOne({ roleName, isActive: true });
+    if (!role) {
+      console.log(`⚠️ Role not found: ${roleName}`);
+      return;
+    }
+
+    // Find assignments in specific department
     const assignments = await RoleAssignmentModel.find({
-      code: department,
-      status,
+      roleId: role._id,
+      departmentCode,
       isActive: true,
-    }).populate("employeeId", "_id individualName personalEmail");
+      effectiveFrom: { $lte: new Date() },
+      $or: [
+        { effectiveUntil: null },
+        { effectiveUntil: { $gte: new Date() }}
+      ]
+    })
+    .populate("employeeId", "_id individualName personalEmail")
+    .lean();
 
     const employees = assignments
-      .map((a) => a.employeeId)
-      .filter((emp) => emp !== null);
+      .map(a => a.employeeId)
+      .filter(emp => emp !== null);
 
     if (!employees.length) {
-      console.log(
-        `⚠️ No employees found with status: ${status} in ${department}`
-      );
+      console.log(`⚠️ No employees found with role: ${roleName} in ${departmentCode}`);
       return;
     }
 
     // Create notification
     await Notification.create({
       eventType,
-      title: payload.title || "Status Notification",
+      title: payload.title || "Role Notification",
       message: payload.message || "",
-      department,
+      department: departmentCode,
       priority: payload.priority || "medium",
       recipients: employees.map((emp) => ({
         userId: emp._id,
@@ -329,25 +339,75 @@ export async function notifyStatus(department, status, eventType, payload) {
       status: "sent",
     });
 
-    console.log(
-      `✅ Status notification sent to ${employees.length} employees`
-    );
+    console.log(`✅ Department role notification sent to ${employees.length} employees`);
   } catch (error) {
-    console.error("❌ notifyStatus error:", error);
+    console.error("❌ notifyDepartmentRole error:", error);
     throw error;
   }
 }
 
 /**
- * Send notification to specific employee
+ * ✅ HELPER: Send notification to all employees in department
+ */
+export async function notifyDepartment(departmentCode, eventType, payload) {
+  try {
+    console.log(`📧 Sending notification to department: ${departmentCode}`);
+
+    // Find all active employees in the department
+    const assignments = await RoleAssignmentModel.find({
+      departmentCode,
+      isActive: true,
+      effectiveFrom: { $lte: new Date() },
+      $or: [
+        { effectiveUntil: null },
+        { effectiveUntil: { $gte: new Date() }}
+      ]
+    })
+    .populate("employeeId", "_id individualName personalEmail")
+    .lean();
+
+    const employees = assignments
+      .map(a => a.employeeId)
+      .filter(emp => emp !== null);
+
+    if (!employees.length) {
+      console.log(`⚠️ No employees found in department: ${departmentCode}`);
+      return;
+    }
+
+    // Create notification
+    await Notification.create({
+      eventType,
+      title: payload.title || "Department Notification",
+      message: payload.message || "",
+      department: departmentCode,
+      priority: payload.priority || "medium",
+      recipients: employees.map((emp) => ({
+        userId: emp._id,
+        read: false,
+      })),
+      actionUrl: payload.actionUrl || null,
+      metadata: payload,
+      status: "sent",
+    });
+
+    console.log(`✅ Department notification sent to ${employees.length} employees`);
+  } catch (error) {
+    console.error("❌ notifyDepartment error:", error);
+    throw error;
+  }
+}
+
+/**
+ * ✅ HELPER: Send notification to specific employee
  */
 export async function notifyEmployee(employeeId, eventType, payload) {
   try {
     console.log(`📧 Sending notification to employee: ${employeeId}`);
 
-    const employee = await FinalizedEmployeesModel.findById(employeeId).select(
-      "_id individualName personalEmail"
-    );
+    const employee = await FinalizedEmployeesModel.findById(employeeId)
+      .select("_id individualName personalEmail")
+      .lean();
 
     if (!employee) {
       console.log(`⚠️ Employee not found: ${employeeId}`);
@@ -358,9 +418,9 @@ export async function notifyEmployee(employeeId, eventType, payload) {
     const assignment = await RoleAssignmentModel.findOne({
       employeeId,
       isActive: true,
-    });
+    }).lean();
 
-    const department = assignment?.code || "ALL";
+    const department = assignment?.departmentCode || "ALL";
 
     // Create notification
     await Notification.create({
@@ -369,12 +429,10 @@ export async function notifyEmployee(employeeId, eventType, payload) {
       message: payload.message || "",
       department,
       priority: payload.priority || "medium",
-      recipients: [
-        {
-          userId: employee._id,
-          read: false,
-        },
-      ],
+      recipients: [{
+        userId: employee._id,
+        read: false,
+      }],
       actionUrl: payload.actionUrl || null,
       metadata: payload,
       status: "sent",
@@ -386,3 +444,8 @@ export async function notifyEmployee(employeeId, eventType, payload) {
     throw error;
   }
 }
+
+// Legacy exports for backward compatibility
+export { resolveTargetEmployees as getTargetEmployees };
+export const notifyRole = notifyGlobalRole;
+export const notifyStatus = notifyDepartmentRole;

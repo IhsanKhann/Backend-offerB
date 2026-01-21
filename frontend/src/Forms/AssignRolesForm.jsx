@@ -106,7 +106,7 @@ const AssignRolesForm = () => {
   const fetchRolesList = async () => {
   try {
     setLoading(true);
-    const response = await api.get("/allRoles/getAllRolesList"); // dropDown of the rules
+    const response = await api.get("/roles/getAllRolesList"); // dropDown of the rules
     
     if (response.data && response.data.Roles) {
       setRolesList(response.data.Roles);
@@ -132,10 +132,11 @@ const handleAddRole = async (newRole) => {
   try {
     setActionLoading(true);
 
-    // Construct payload
     const payload = {
-      name: newRole.name,
+      roleName: newRole.name, // Map 'name' from form to 'roleName' for DB
       description: newRole.description,
+      code: newRole.code || "HR", // Required by your schema
+      status: newRole.status || "Offices", // Required by your schema
       salaryRules: {
         baseSalary: Number(newRole.baseSalary) || 0,
         salaryType: newRole.salaryType || "monthly",
@@ -145,7 +146,7 @@ const handleAddRole = async (newRole) => {
       },
     };
 
-    const response = await api.post("/allRoles/addRole", payload);
+    const response = await api.post("/roles/addRole", payload);
 
     if (response.data.success) {
       fetchRolesList(); // reload roles
@@ -163,7 +164,7 @@ const handleAddRole = async (newRole) => {
 const handleDeleteRole = async (roleId) => {
   try {
     setActionLoading(true);
-    const response = await api.delete(`/allRoles/deleteRole/${roleId}`);
+    const response = await api.delete(`/roles/deleteRole/${roleId}`);
     if (response.data.success) {
       fetchRolesList(); // reload roles
     }
@@ -504,10 +505,11 @@ const handleCancel = () => navigate("/DraftDashboard");
       onChange={(e) => setRoleDropdown(e.target.value)}  // ✅ update state
     >
       <option value="">Select Role</option>
+     {/* Change role.name to role.roleName */}
       {RolesList.length > 0 ? (
         RolesList.map((role) => (
-          <option key={role._id} value={role.name}>
-            {role.name}
+          <option key={role._id} value={role.roleName}>
+            {role.roleName}
           </option>
         ))
       ) : (

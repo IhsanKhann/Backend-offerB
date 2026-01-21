@@ -30,6 +30,8 @@ import BusinessTables from "./Pages/Finance/BussinessTable.jsx";
 import SalaryHistoryPage from "./Pages/Finance/SalariesHistoryPage.jsx";
 
 import Sellers from "./Pages/Finance/Sellers.jsx";
+import RoleManager from "./components/RolesManagerAdvanced.jsx";
+
 // Account Statements:
 import AccountStatements from "./Pages/Finance/AccountStatements.jsx";
 import PaidStatements from "./Pages/Finance/AccountStatementsPaid.jsx";
@@ -331,6 +333,14 @@ const router = createBrowserRouter([
    element: (
      <ProtectedRoute>
         <NotificationManager />
+     </ProtectedRoute> 
+   ),
+  },
+   {
+   path: "/RolesManagerAdvanced",
+   element: (
+     <ProtectedRoute>
+        <RoleManager />
      </ProtectedRoute> 
    ),
   },
