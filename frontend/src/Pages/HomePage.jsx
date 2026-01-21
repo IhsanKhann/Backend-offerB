@@ -1,164 +1,240 @@
-import { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api/axios.js";
-import { FiLogOut, FiUser } from "react-icons/fi";
-import NotificationBell from "../components/NotificationsBell.jsx";
+import api from "../api/axios";
 
-function HomePage() {
+const HomePage = () => {
   const navigate = useNavigate();
-  const [message, setMessage] = useState("");
-  const [profile, setProfile] = useState(null);
+  const [userAssignment, setUserAssignment] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchResponse = async () => {
+    const fetchUserAssignment = async () => {
       try {
-        const response = await api.get("/hello");
-        setMessage(response.data.message);
+        const employeeId = localStorage.getItem("employeeId");
+        
+        if (!employeeId) {
+          navigate("/login");
+          return;
+        }
+
+        const response = await api.get(`/roles/assignment/${employeeId}`);
+        
+        if (response.data.success) {
+          setUserAssignment(response.data.data);
+        }
       } catch (error) {
-        console.error("Fetch error:", error);
-        setMessage("Failed to fetch from backend");
+        console.error("Error fetching user assignment:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    const fetchProfile = async () => {
-      try {
-        const res = await api.get("/auth/me");
-        if (res.data.success) setProfile(res.data.employee);
-      } catch (err) {
-        console.error("Error fetching profile", err);
+    fetchUserAssignment();
+  }, [navigate]);
+
+  const getDashboards = () => {
+    if (!userAssignment) return [];
+
+    const allDashboards = [
+      {
+        name: "HR Dashboard",
+        code: "HR",
+        path: "/hr-dashboard",
+        icon: "👥",
+        description: "Manage employees, recruitment, and HR operations"
+      },
+      {
+        name: "Finance Dashboard",
+        code: "Finance",
+        path: "/finance-dashboard",
+        icon: "💰",
+        description: "Financial reporting, budgets, and transactions"
+      },
+      {
+        name: "Business Operations Dashboard",
+        code: "BusinessOperation",
+        path: "/business-operations-dashboard",
+        icon: "📊",
+        description: "Operations management and business analytics"
       }
-    };
+    ];
 
-    fetchResponse();
-    fetchProfile();
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await api.post("/auth/logout", {});
-      localStorage.removeItem("accessToken");
-      window.location.reload();
-    } catch (error) {
-      console.error(error);
+    if (userAssignment.departmentCode === "All") {
+      return allDashboards;
     }
+
+    return allDashboards.filter(
+      dashboard => dashboard.code === userAssignment.departmentCode
+    );
   };
 
-  // Department Gradients
-  const gradients = {
-    hr: "bg-gradient-to-r from-indigo-500 to-indigo-600",
-    finance: "bg-gradient-to-r from-blue-500 to-blue-600",
-    business: "bg-gradient-to-r from-purple-500 to-purple-600",
+  const getStatusDisplay = () => {
+    if (!userAssignment) return "";
+    
+    if (userAssignment.status === "All") {
+      return "Executive Level - Full Access";
+    }
+    
+    return userAssignment.status;
   };
 
-  // HR / Admin Division Cards
-  const hrCards = [
-    { title: "My Profile", desc: "View and edit your profile", onClick: () => navigate("/profile"), icon: <FiUser size={24} /> },
-    { title: "Employee Registration", desc: "Register new employees", onClick: () => navigate("/register-employee") },
-    { title: "Draft Dashboard", desc: "Manage employee drafts", onClick: () => navigate("/DraftDashboard") },
-    { title: "Admin Dashboard", desc: "Access admin reports", onClick: () => navigate("/admin/dashboard") },
-    { title: "Assign Roles", desc: "Assign roles to employees", onClick: () => navigate("/assign-roles") },
-    { title: "Permissions Management", desc: "Manage system permissions", onClick: () => navigate("/Permission-handler") },
-    { title: "Notification Manager", desc: "Manage notification rules", onClick: () => navigate("/notification-manager") },
-    { title: "Roles Manager Advanced", desc: "Roles Manager Advanced page", onClick: () => navigate("/RolesManagerAdvanced"),}
-  ];
+  const getAccessLevel = () => {
+    if (!userAssignment) return "";
 
-  // Finance Division Cards
-  const financeCards = [
-    { title: "Salary Dashboard", desc: "View/manage employee salaries", onClick: () => navigate("/salary-dashboard") },
-    { title: "Account Statements", desc: "Track statements and payments", onClick: () => navigate("/accountStatements") },
-    { title: "Paid Statements", desc: "View paid account statements", onClick: () => navigate("/accountStatements/paid") },
-    { title: "Sellers Dashboard", desc: "Manage all sellers", onClick: () => navigate("/sellerDashboard") },
-    { title: "Bidder Dashboard", desc: "Manage all bidders", onClick: () => navigate("/bidderDashboard") },
-    { title: "Business Tables", desc: "View business breakup tables", onClick: () => navigate("/BussinessBreakupTables") },
-    { title: "Salary History", desc: "View salary history", onClick: () => navigate("/salary/history") },
-    { title: "Summary Table", desc: "View salary summary tables", onClick: () => navigate("/summary-table") },
-    { title: "Rule Table", desc: "View salary rules", onClick: () => navigate("/tables") },
-    { title: "Breakup Summary", desc: "View salary breakup", onClick: () => navigate("/salary/breakup") },
-    { title: "Salary Rules Table", desc: "View salary rules table", onClick: () => navigate("/salary/rulesTable") },
-  ];
+    const isExecutive = userAssignment.departmentCode === "All" || 
+                        userAssignment.status === "All";
+    
+    if (isExecutive) {
+      if (userAssignment.departmentCode === "All" && userAssignment.status === "All") {
+        return "Top-Level Executive (Unrestricted Access)";
+      } else if (userAssignment.departmentCode === "All") {
+        return "Cross-Department Executive";
+      } else if (userAssignment.status === "All") {
+        return "Department-Wide Executive";
+      }
+    }
 
-  // Business Operations Division Cards
-  const businessCards = [
-    { title: "Expense Dashboard", desc: "Manage all expenses", onClick: () => navigate("/expenseDashboard") },
-    { title: "Calculated Expense Reports", desc: "View calculated expense reports", onClick: () => navigate("/expenseDashboard/CalculatedExpenseReports") },
-    { title: "Paid Expense Reports", desc: "View paid expense reports", onClick: () => navigate("/expenseDashboard/PaidExpenseReports") },
-    { title: "Paid Expenses", desc: "Manage paid expenses", onClick: () => navigate("/expenseDashboard/PaidExpenses") },
-    { title: "Unpaid Expenses", desc: "Manage unpaid expenses", onClick: () => navigate("/expenseDashboard/UnPaidExpenses") },
-    { title: "Commission Dashboard", desc: "View commission stats", onClick: () => navigate("/commissionDashboard") },
-    { title: "Commission Reports", desc: "View commission reports", onClick: () => navigate("/commissionDashboard/Reports") },
-    { title: "Commission Transactions", desc: "Manage commission transactions", onClick: () => navigate("/commissionDashboard/Transactions") },
-  ];
+    return `${userAssignment.departmentCode} - ${userAssignment.status}`;
+  };
 
-  // Helper to render cards
-  const renderCards = (cards, gradient) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {cards.map((card, idx) => (
-        <div
-          key={idx}
-          onClick={card.onClick}
-          className={`cursor-pointer ${gradient} text-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between`}
-        >
-          <div className="flex items-center gap-2 mb-4">
-            {card.icon && card.icon}
-            <h2 className="text-xl font-semibold">{card.title}</h2>
-          </div>
-          <p className="text-sm opacity-90">{card.desc}</p>
-          <div className="mt-4 text-sm font-medium opacity-90">→ Click to open</div>
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-xl">Loading your dashboard...</div>
+      </div>
+    );
+  }
+
+  if (!userAssignment) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="text-xl text-red-600">
+          No role assignment found. Please contact HR.
         </div>
-      ))}
-    </div>
-  );
+      </div>
+    );
+  }
+
+  const dashboards = getDashboards();
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      {/* Top Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10 flex items-center justify-between">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900">OfferBerries Dashboard</h1>
-          <p className="text-gray-600 text-lg">{message || "Loading welcome message..."}</p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {profile && (
-            <div
-              className="flex items-center gap-2 cursor-pointer bg-white shadow-lg rounded-xl p-3 hover:shadow-xl transition-shadow"
-              onClick={() => navigate("/profile")}
-            >
-              <FiUser size={28} className="text-indigo-600" />
-              <p className="font-semibold text-gray-900">{profile.individualName}</p>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Welcome to Your Dashboard
+          </h1>
+          
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-700">Role:</span>
+              <span className="text-gray-600">
+                {userAssignment.roleId?.roleName || "N/A"}
+              </span>
+              {(userAssignment.departmentCode === "All" || 
+                userAssignment.status === "All") && (
+                <span className="ml-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
+                  EXECUTIVE
+                </span>
+              )}
             </div>
-          )}
-          <div className="bg-white shadow-lg rounded-xl p-2">
-            <NotificationBell />
+            
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-700">Access Level:</span>
+              <span className="text-gray-600">{getAccessLevel()}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-700">Department:</span>
+              <span className="text-gray-600">
+                {userAssignment.departmentCode === "All" 
+                  ? "All Departments" 
+                  : userAssignment.departmentCode}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-700">Status:</span>
+              <span className="text-gray-600">{getStatusDisplay()}</span>
+            </div>
+
+            {userAssignment.orgUnit && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-700">Location:</span>
+                <span className="text-gray-600">
+                  {userAssignment.orgUnit.name}
+                </span>
+              </div>
+            )}
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition duration-200"
-          >
-            <FiLogOut className="mr-2" /> Logout
-          </button>
         </div>
-      </div>
 
-      {/* HR/Admin */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">HR & Admin Division</h2>
-        {renderCards(hrCards, gradients.hr)}
-      </div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Your Dashboards
+            {userAssignment.departmentCode === "All" && (
+              <span className="ml-3 text-sm font-normal text-gray-600">
+                (All departments accessible)
+              </span>
+            )}
+          </h2>
+        </div>
 
-      {/* Finance */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Finance Division</h2>
-        {renderCards(financeCards, gradients.finance)}
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {dashboards.map((dashboard) => (
+            <div
+              key={dashboard.code}
+              onClick={() => navigate(dashboard.path)}
+              className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200 border-2 border-transparent hover:border-blue-500"
+            >
+              <div className="text-4xl mb-4">{dashboard.icon}</div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">
+                {dashboard.name}
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                {dashboard.description}
+              </p>
+              <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                Open Dashboard
+              </button>
+            </div>
+          ))}
+        </div>
 
-      {/* Business Operations */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Business Operations Division</h2>
-        {renderCards(businessCards, gradients.business)}
+        {dashboards.length === 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <p className="text-yellow-800">
+              No dashboards available for your current assignment.
+              Please contact your administrator.
+            </p>
+          </div>
+        )}
+
+        {userAssignment.departmentCode === "All" && (
+          <div className="mt-8 bg-purple-50 border border-purple-200 rounded-lg p-6">
+            <h3 className="text-lg font-bold text-purple-900 mb-2">
+              🎯 Executive Access Enabled
+            </h3>
+            <p className="text-purple-800">
+              You have unrestricted access to all department dashboards and can view 
+              all organizational data without filtering restrictions.
+            </p>
+          </div>
+        )}
+
+        {userAssignment.status === "All" && userAssignment.departmentCode !== "All" && (
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 className="text-lg font-bold text-blue-900 mb-2">
+              🏢 Department-Wide Access
+            </h3>
+            <p className="text-blue-800">
+              You have full access to all levels within the {userAssignment.departmentCode} department.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
 
 export default HomePage;

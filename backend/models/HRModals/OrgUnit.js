@@ -9,37 +9,20 @@ const OrgUnitSchema = new mongoose.Schema({
   parent: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "OrgUnit",
-    default: null // root nodes have null parent
+    default: null
   },
 
-  // Reference to Role Assignment (not Role Declaration)
   roleAssignment: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "RoleAssignment",
     required: false
   },
 
-  // Status - derived from hierarchy level
-  status: {
-    type: String,
-    enum: ["Offices", "Groups", "Divisions", "Departments", "Branches", "Cells"],
-    required: true,
-  },
-
-  // Department code for notification isolation
-  code: {
-    type: String,
-    enum: ["HR", "Finance", "BusinessOperation"],
-    required: true,
-  },
-
-  // Hierarchy metadata
   level: {
     type: Number,
-    default: 0, // 0 = root, 1 = first level, etc.
+    default: 0,
   },
 
-  // Additional metadata
   description: {
     type: String,
     default: "",
@@ -54,14 +37,11 @@ const OrgUnitSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-// Indexes for performance
 OrgUnitSchema.index({ parent: 1 });
-OrgUnitSchema.index({ code: 1 });
-OrgUnitSchema.index({ status: 1 });
-OrgUnitSchema.index({ code: 1, status: 1 });
 OrgUnitSchema.index({ level: 1 });
+OrgUnitSchema.index({ name: 1 });
+OrgUnitSchema.index({ isActive: 1 });
 
-// Virtual for children
 OrgUnitSchema.virtual('children', {
   ref: 'OrgUnit',
   localField: '_id',

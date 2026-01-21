@@ -1,5 +1,6 @@
 // login,  logout.
 import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
+import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
@@ -330,26 +331,55 @@ export const refreshToken = async (req, res) => {
     }
 };
 
+// userController.js - Fixed getLoggedInUser
 export const getLoggedInUser = async (req, res) => {
   try {
-    const user = req.user; // req.user is populated by the auth middleware
+    const user = req.user;
 
     if (!user) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+      return res.status(401).json({ 
+        status: false, 
+        message: "Unauthorized" 
+      });
     }
 
-    // Fetch full user data from database using both _id and email for safety
-    const employee = await FinalizedEmployee.findOne({
-      $or: [{ _id: user._id }, { personalEmail: user.personalEmail }]
+    const assignment = await RoleAssignmentModel.findOne({
+      employeeId: user._id,
+      isActive: true
+    })
+    .populate('roleId')
+    .populate('orgUnit');
+
+    // ✅ Handle "All" department code
+    let department = assignment?.departmentCode || null;
+    
+    let accessibleDepartments = [];
+    if (department === "All") {
+      accessibleDepartments = ["HR", "Finance", "BusinessOperation"];
+    } else if (department) {
+      accessibleDepartments = [department];
+    }
+
+    const userResponse = {
+      ...user.toObject(),
+      department: department,
+      accessibleDepartments: accessibleDepartments,
+      role: assignment?.roleId || null,
+      orgUnit: assignment?.orgUnit || null,
+      status: assignment?.status || null
+    };
+
+    return res.status(200).json({
+      status: true,
+      user: userResponse
     });
 
-    if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
-    }
-
-    return res.status(200).json({ success: true, employee });
   } catch (err) {
     console.error("getLoggedInUser error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({ 
+      status: false, 
+      message: "Server error",
+      error: err.message 
+    });
   }
 };

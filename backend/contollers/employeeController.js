@@ -792,30 +792,24 @@ export const AssignEmployeePost = async (req, res) => {
   try {
     const {
       employeeId,
-      roleId,       // ✅ NEW: ID of the global role declaration
-      roleName,     // ✅ LEGACY: Keep for backward compatibility
-      orgUnit,      // OrgUnit ID
-      departmentCode,  // ✅ NEW: Optional department code override
-      status,       // ✅ NEW: Optional status override
+      roleId,
+      orgUnit,
+      departmentCode,
       permissions = []
     } = req.body;
 
-    console.log("📝 AssignEmployeePost received:", { 
+    console.log("📌 AssignEmployeePost received:", { 
       employeeId, 
       roleId, 
-      roleName, 
       orgUnit,
-      departmentCode,
-      status
+      departmentCode
     });
 
-    // ============================================
-    // 1. VALIDATE EMPLOYEE
-    // ============================================
-    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+    // Validate employeeId
+    if (!employeeId || !mongoose.Types.ObjectId.isValid(employeeId)) {
       return res.status(400).json({ 
         success: false, 
-        message: "Invalid employeeId" 
+        message: "Invalid or missing employeeId" 
       });
     }
 
@@ -827,13 +821,11 @@ export const AssignEmployeePost = async (req, res) => {
       });
     }
 
-    // ============================================
-    // 2. VALIDATE ORGUNIT
-    // ============================================
-    if (!mongoose.Types.ObjectId.isValid(orgUnit)) {
+    // Validate orgUnit
+    if (!orgUnit || !mongoose.Types.ObjectId.isValid(orgUnit)) {
       return res.status(400).json({ 
         success: false, 
-        message: "Invalid orgUnitId" 
+        message: "Invalid or missing orgUnit" 
       });
     }
 
@@ -845,44 +837,41 @@ export const AssignEmployeePost = async (req, res) => {
       });
     }
 
-    // ============================================
-    // 3. FIND/CREATE ROLE DECLARATION
-    // ============================================
-    let roleDeclaration;
-
-    if (roleId) {
-      // ✅ NEW WAY: Use roleId to find global role declaration
-      roleDeclaration = await RoleModel.findById(roleId);
-      if (!roleDeclaration) {
-        return res.status(404).json({
-          success: false,
-          message: "Role declaration not found"
-        });
-      }
-      console.log("✅ Found role by ID:", roleDeclaration.roleName);
-    } else if (roleName) {
-      // ✅ LEGACY WAY: Use roleName to find role
-      roleDeclaration = await RoleModel.findOne({ 
-        roleName: { $regex: new RegExp(`^${roleName}$`, "i") }
-      });
-
-      if (!roleDeclaration) {
-        return res.status(404).json({
-          success: false,
-          message: `Role "${roleName}" not found. Please create it first using the Role Manager.`
-        });
-      }
-      console.log("✅ Found role by name:", roleDeclaration.roleName);
-    } else {
+    // Validate departmentCode
+    if (!departmentCode) {
       return res.status(400).json({
         success: false,
-        message: "Either roleId or roleName must be provided"
+        message: "departmentCode is required"
       });
     }
 
-    // ============================================
-    // 4. DEACTIVATE EXISTING ASSIGNMENTS
-    // ============================================
+    const validDepartments = ["HR", "Finance", "BusinessOperation", "All"];
+    if (!validDepartments.includes(departmentCode)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid departmentCode. Must be one of: ${validDepartments.join(", ")}`
+      });
+    }
+
+    // Validate roleId
+    if (!roleId || !mongoose.Types.ObjectId.isValid(roleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or missing roleId"
+      });
+    }
+
+    const roleDeclaration = await RoleModel.findById(roleId);
+    if (!roleDeclaration) {
+      return res.status(404).json({
+        success: false,
+        message: "Role declaration not found"
+      });
+    }
+
+    console.log("✅ Found role by ID:", roleDeclaration.roleName);
+
+    // Deactivate existing assignments
     const existingAssignments = await RoleAssignmentModel.find({
       employeeId: employee._id,
       isActive: true
@@ -899,45 +888,26 @@ export const AssignEmployeePost = async (req, res) => {
       );
     }
 
-    // ============================================
-    // 5. CREATE NEW ROLE ASSIGNMENT
-    // ============================================
-    
-    // Determine department code and status
-    const assignmentDepartmentCode = departmentCode || orgUnitDoc.code || null;
-    const assignmentStatus = status || orgUnitDoc.status || null;
-
+    // Create new role assignment
     const roleAssignment = new RoleAssignmentModel({
       employeeId: employee._id,
       roleId: roleDeclaration._id,
-      
-      // ✅ CONTEXTUAL DATA (from orgUnit or override)
-      departmentId: null, // Can be set if you have a Department model
-      departmentCode: assignmentDepartmentCode,
-      status: assignmentStatus,
+      departmentCode: departmentCode,
       orgUnit: orgUnitDoc._id,
-      
-      // ✅ TIME VALIDITY
       effectiveFrom: new Date(),
-      effectiveUntil: null, // indefinite
-      
-      // ✅ METADATA
+      effectiveUntil: null,
       assignedBy: req.user?._id || null,
       assignedAt: new Date(),
       notes: "",
       isActive: true,
-      
-      // ✅ OVERRIDES (if provided)
       permissionOverrides: permissions.length > 0 ? permissions : undefined
     });
 
     await roleAssignment.save();
     console.log("✅ Created role assignment:", roleAssignment._id);
 
-    // ============================================
-    // 6. UPDATE EMPLOYEE REFERENCES
-    // ============================================
-    employee.role = roleDeclaration._id; // Reference to GLOBAL role declaration
+    // Update employee references
+    employee.role = roleDeclaration._id;
     employee.orgUnit = orgUnitDoc._id;
     
     if (employee.DraftStatus) {
@@ -947,16 +917,11 @@ export const AssignEmployeePost = async (req, res) => {
     await employee.save();
     console.log("✅ Updated employee references");
 
-    // ============================================
-    // 7. UPDATE ORGUNIT REFERENCE
-    // ============================================
+    // Update orgUnit reference
     orgUnitDoc.roleAssignment = roleAssignment._id;
     await orgUnitDoc.save();
     console.log("✅ Updated orgUnit reference");
 
-    // ============================================
-    // 8. RETURN SUCCESS
-    // ============================================
     return res.status(200).json({
       success: true,
       message: "Role assigned successfully",
@@ -966,10 +931,10 @@ export const AssignEmployeePost = async (req, res) => {
           employeeId: roleAssignment.employeeId,
           roleId: roleAssignment.roleId,
           departmentCode: roleAssignment.departmentCode,
-          status: roleAssignment.status,
           orgUnit: roleAssignment.orgUnit,
           effectiveFrom: roleAssignment.effectiveFrom,
-          isActive: roleAssignment.isActive
+          isActive: roleAssignment.isActive,
+          isExecutiveAccess: departmentCode === "All"
         },
         roleDeclaration: {
           _id: roleDeclaration._id,
