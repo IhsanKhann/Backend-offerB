@@ -1,12 +1,9 @@
-// FIXED OrgUnitsController.js
+import mongoose from "mongoose";
 import { OrgUnitModel } from "../models/HRModals/OrgUnit.js";
 import FinalizedEmployeesModel from "../models/HRModals/FinalizedEmployees.model.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
 import RoleModel from "../models/HRModals/Role.model.js";
 
-/**
- * Helper: Calculate level in hierarchy
- */
 const calculateLevel = async (parentId) => {
   if (!parentId) return 0;
   
@@ -16,32 +13,10 @@ const calculateLevel = async (parentId) => {
   return parent.level + 1;
 };
 
-/**
- * Helper: Derive status from level
- */
-const deriveStatusFromLevel = (level) => {
-  const statusMapping = {
-    0: "Offices",
-    1: "Groups",
-    2: "Divisions",
-    3: "Departments",
-    4: "Branches",
-    5: "Cells",
-    6: "Desks",
-  };
-  
-  return statusMapping[level] || "Desks";
-};
-
-/**
- * ✅ FIXED: Build tree recursively with proper child handling
- */
 const buildTree = (units, parentId = null) => {
   return units
     .filter((unit) => {
-      // Root level nodes
       if (!parentId && !unit.parent) return true;
-      // Child nodes - compare as strings to handle ObjectId
       if (parentId && unit.parent) {
         return String(unit.parent) === String(parentId);
       }
@@ -51,25 +26,20 @@ const buildTree = (units, parentId = null) => {
       _id: unit._id,
       name: unit.name,
       parent: unit.parent,
-      status: unit.status,
-      code: unit.code,
       level: unit.level,
       roleAssignment: unit.roleAssignment,
-      children: buildTree(units, unit._id), // Recursively build children
+      children: buildTree(units, unit._id),
     }));
 };
 
-// ✅ FIXED: Get All Org Units (Tree) - Now properly returns nested structure
 export const getOrgUnits = async (req, res) => {
   try {
-    // Fetch all org units and convert to plain objects
     const units = await OrgUnitModel.find()
       .populate('roleAssignment')
       .lean();
     
     console.log(`📦 Fetched ${units.length} org units from database`);
     
-    // Build hierarchical tree structure
     const tree = buildTree(units);
     
     console.log(`🌳 Built tree with ${tree.length} root nodes`);
@@ -90,13 +60,18 @@ export const getOrgUnits = async (req, res) => {
   }
 };
 
-// ✅ Get Single OrgUnit by ID
 export const getSingleOrgUnit = async (req, res) => {
   try {
     const { orgUnitId } = req.params;
     
     const orgUnit = await OrgUnitModel.findById(orgUnitId)
-      .populate('roleAssignment')
+      .populate({
+        path: 'roleAssignment',
+        populate: {
+          path: 'roleId',
+          select: 'roleName category'
+        }
+      })
       .populate('parent');
     
     if (!orgUnit) {
@@ -120,12 +95,10 @@ export const getSingleOrgUnit = async (req, res) => {
   }
 };
 
-// ---------------------- Create Org Unit ----------------------
 export const createOrgUnit = async (req, res) => {
   try {
-    const { name, parent, code } = req.body;
+    const { name, parent } = req.body;
 
-    // Validate required fields
     if (!name) {
       return res.status(400).json({ 
         success: false,
@@ -133,38 +106,17 @@ export const createOrgUnit = async (req, res) => {
       });
     }
 
-    if (!code) {
-      return res.status(400).json({ 
-        success: false,
-        error: "Department code (HR/Finance/BusinessOperation) is required" 
-      });
-    }
-
-    // Validate code
-    if (!["HR", "Finance", "BusinessOperation"].includes(code)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid department code. Must be HR, Finance, or BusinessOperation"
-      });
-    }
-
-    // Calculate level
     const level = await calculateLevel(parent);
-    
-    // Auto-derive status from level
-    const status = deriveStatusFromLevel(level);
 
     const unit = new OrgUnitModel({ 
       name, 
       parent: parent || null,
-      code,
-      status,
       level,
     });
 
     await unit.save();
 
-    console.log(`✅ Created OrgUnit: ${name} (Level: ${level}, Status: ${status})`);
+    console.log(`✅ Created OrgUnit: ${name} (Level: ${level})`);
 
     res.status(201).json({
       message: "Organization unit created successfully",
@@ -181,11 +133,10 @@ export const createOrgUnit = async (req, res) => {
   }
 };
 
-// ---------------------- Update Org Unit ----------------------
 export const updateOrgUnit = async (req, res) => {
   try {
     const { orgUnitId } = req.params;
-    const { name, parent, code } = req.body;
+    const { name, parent } = req.body;
 
     const unit = await OrgUnitModel.findById(orgUnitId);
     
@@ -196,23 +147,11 @@ export const updateOrgUnit = async (req, res) => {
       });
     }
 
-    // Update fields
     if (name) unit.name = name;
-    if (code) {
-      if (!["HR", "Finance", "BusinessOperation"].includes(code)) {
-        return res.status(400).json({
-          success: false,
-          error: "Invalid department code"
-        });
-      }
-      unit.code = code;
-    }
     
-    // If parent changes, recalculate level and status
     if (parent !== undefined) {
       unit.parent = parent || null;
       unit.level = await calculateLevel(parent);
-      unit.status = deriveStatusFromLevel(unit.level);
     }
 
     await unit.save();
@@ -234,12 +173,10 @@ export const updateOrgUnit = async (req, res) => {
   }
 };
 
-// ---------------------- Delete Org Unit ----------------------
 export const deleteOrgUnit = async (req, res) => {
   try {
     const { orgUnitId } = req.params;
 
-    // Check if unit has children
     const children = await OrgUnitModel.countDocuments({ parent: orgUnitId });
     
     if (children > 0) {
@@ -249,7 +186,6 @@ export const deleteOrgUnit = async (req, res) => {
       });
     }
 
-    // Check if any active role assignments exist
     const activeAssignments = await RoleAssignmentModel.countDocuments({ 
       orgUnit: orgUnitId, 
       isActive: true 
@@ -280,7 +216,6 @@ export const deleteOrgUnit = async (req, res) => {
   }
 };
 
-// ---------------------- Get Descendant Unit IDs ----------------------
 const getDescendantUnitIds = async (parentId) => {
   const children = await OrgUnitModel.find({ parent: parentId }).lean();
   let ids = children.map((c) => c._id);
@@ -292,28 +227,25 @@ const getDescendantUnitIds = async (parentId) => {
   return ids;
 };
 
-// ✅ FIXED: Get Employees by Org Unit
 export const getEmployeesByOrgUnit = async (req, res) => {
   try {
     const { orgUnitId } = req.params;
 
     console.log(`📋 Fetching employees for OrgUnit: ${orgUnitId}`);
 
-    // Collect all relevant unitIds (including descendants)
     let orgUnitIds = [orgUnitId];
     const descendants = await getDescendantUnitIds(orgUnitId);
     orgUnitIds = orgUnitIds.concat(descendants);
 
     console.log(`📦 Searching in ${orgUnitIds.length} org units (including descendants)`);
 
-    // Find active role assignments in these org units
     const assignments = await RoleAssignmentModel.find({
       orgUnit: { $in: orgUnitIds },
       isActive: true,
     })
       .populate("employeeId", "individualName personalEmail UserId avatar")
-      .populate("roleId", "roleName code status salaryRules")
-      .populate("orgUnit", "name code status level");
+      .populate("roleId", "roleName category")
+      .populate("orgUnit", "name level");
 
     console.log(`👥 Found ${assignments.length} active assignments`);
 
@@ -326,10 +258,11 @@ export const getEmployeesByOrgUnit = async (req, res) => {
       role: a.roleId,
       orgUnit: a.orgUnit,
       assignmentId: a._id,
-      code: a.code,
+      departmentCode: a.departmentCode,
       status: a.status,
       effectiveFrom: a.effectiveFrom,
-      assignedBy: a.assignedBy
+      assignedBy: a.assignedBy,
+      isExecutiveAccess: a.departmentCode === "All" || a.status === "All"
     }));
 
     res.status(200).json({ 
@@ -349,22 +282,26 @@ export const getEmployeesByOrgUnit = async (req, res) => {
   }
 };
 
-// ---------------------- Get Employees by Department & Status ----------------------
 export const getEmployeesByDepartmentAndStatus = async (req, res) => {
   try {
     const { code, status } = req.query;
 
     console.log(`📋 Filtering employees - Code: ${code}, Status: ${status}`);
 
-    // Build filter
     const filter = { isActive: true };
-    if (code) filter.code = code;
-    if (status) filter.status = status;
+    
+    if (code && code !== "All") {
+      filter.departmentCode = code;
+    }
+    
+    if (status && status !== "All") {
+      filter.status = status;
+    }
 
     const assignments = await RoleAssignmentModel.find(filter)
       .populate("employeeId", "individualName personalEmail UserId avatar")
-      .populate("roleId", "roleName code status")
-      .populate("orgUnit", "name code status level");
+      .populate("roleId", "roleName category")
+      .populate("orgUnit", "name level");
 
     const employees = assignments.map(a => ({
       _id: a.employeeId._id,
@@ -375,8 +312,9 @@ export const getEmployeesByDepartmentAndStatus = async (req, res) => {
       role: a.roleId,
       orgUnit: a.orgUnit,
       assignmentId: a._id,
-      code: a.code,
+      departmentCode: a.departmentCode,
       status: a.status,
+      isExecutiveAccess: a.departmentCode === "All" || a.status === "All"
     }));
 
     console.log(`👥 Found ${employees.length} employees matching filter`);
@@ -397,20 +335,38 @@ export const getEmployeesByDepartmentAndStatus = async (req, res) => {
   }
 };
 
-// ---------------------- Get Org Units by Department ----------------------
 export const getOrgUnitsByDepartment = async (req, res) => {
   try {
     const { code } = req.params;
 
-    if (!["HR", "Finance", "BusinessOperation"].includes(code)) {
+    const validDepartments = ["HR", "Finance", "BusinessOperation", "All"];
+    
+    if (!validDepartments.includes(code)) {
       return res.status(400).json({ 
         success: false,
-        error: "Invalid department code" 
+        error: `Invalid department code. Must be one of: ${validDepartments.join(", ")}` 
       });
     }
 
-    const units = await OrgUnitModel.find({ code })
-      .populate("roleAssignment")
+    let filter = {};
+    
+    if (code !== "All") {
+      const assignments = await RoleAssignmentModel.find({ 
+        departmentCode: code,
+        isActive: true 
+      }).distinct('orgUnit');
+      
+      filter._id = { $in: assignments };
+    }
+
+    const units = await OrgUnitModel.find(filter)
+      .populate({
+        path: 'roleAssignment',
+        populate: {
+          path: 'roleId',
+          select: 'roleName category'
+        }
+      })
       .sort({ level: 1, name: 1 });
 
     console.log(`🏢 Found ${units.length} org units for department: ${code}`);

@@ -78,7 +78,7 @@ app.use("/api/hierarchy", HierarchyRouter);
 app.use('/api/org-units', orgUnitRoutes);
 app.use("/api/permissions", PermissionRouter);
 app.use("/api/finalizedEmployees", FinalizedEmployeesRouter);
-app.use("/api", roleRoutes);
+app.use("/api/roles", roleRoutes);
 // changed /api/allRoles..
 
 app.use("/api/leaves", LeavesRouter);
