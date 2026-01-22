@@ -8,7 +8,6 @@ import {
   updateOrgUnit,
   deleteOrgUnit,
   getEmployeesByOrgUnit,
-  getEmployeesByDepartmentAndStatus,
   getOrgUnitsByDepartment,
 } from "../contollers/OrgUnitsController.js";
 
@@ -44,7 +43,5 @@ orgUnitRouter.delete("/:orgUnitId", deleteOrgUnit);
 // Get employees by org unit (includes descendants)
 orgUnitRouter.get("/:orgUnitId/employees", getEmployeesByOrgUnit);
 
-// Get employees by department and status (for notifications)
-orgUnitRouter.get("/employees/filter", getEmployeesByDepartmentAndStatus);
 
 export default orgUnitRouter;

@@ -1,240 +1,234 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../api/axios";
+import { useState, useEffect } from "react";
+import { FiLogOut, FiUser, FiBriefcase, FiDollarSign, FiTrendingUp } from "react-icons/fi";
+import api from "../api/axios.js";
 
-const HomePage = () => {
-  const navigate = useNavigate();
-  const [userAssignment, setUserAssignment] = useState(null);
+function HomePage() {
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [activeDashboard, setActiveDashboard] = useState("HR");
+
+  const navigate = (path) => {
+    console.log("Navigate to:", path);
+    window.location.href = path;
+  };
 
   useEffect(() => {
-    const fetchUserAssignment = async () => {
+    const fetchProfile = async () => {
       try {
-        const employeeId = localStorage.getItem("employeeId");
+        const res = await api.get("/auth/me");
+        const userData = res.data.user;
+        console.log("✅ User loaded:", userData);
+        console.log("✅ Department:", userData.department);
+        console.log("✅ Accessible Departments:", userData.accessibleDepartments);
         
-        if (!employeeId) {
-          navigate("/login");
-          return;
+        setProfile(userData);
+
+        // Set initial dashboard based on accessible departments
+        if (userData.accessibleDepartments && userData.accessibleDepartments.length > 0) {
+          setActiveDashboard(userData.accessibleDepartments[0]);
+        } else if (userData.department) {
+          setActiveDashboard(userData.department);
         }
 
-        const response = await api.get(`/roles/assignment/${employeeId}`);
-        
-        if (response.data.success) {
-          setUserAssignment(response.data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching user assignment:", error);
-      } finally {
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+        console.error("Response:", err.response?.data);
         setLoading(false);
       }
     };
 
-    fetchUserAssignment();
-  }, [navigate]);
+    fetchProfile();
+  }, []);
 
-  const getDashboards = () => {
-    if (!userAssignment) return [];
-
-    const allDashboards = [
-      {
-        name: "HR Dashboard",
-        code: "HR",
-        path: "/hr-dashboard",
-        icon: "👥",
-        description: "Manage employees, recruitment, and HR operations"
-      },
-      {
-        name: "Finance Dashboard",
-        code: "Finance",
-        path: "/finance-dashboard",
-        icon: "💰",
-        description: "Financial reporting, budgets, and transactions"
-      },
-      {
-        name: "Business Operations Dashboard",
-        code: "BusinessOperation",
-        path: "/business-operations-dashboard",
-        icon: "📊",
-        description: "Operations management and business analytics"
-      }
-    ];
-
-    if (userAssignment.departmentCode === "All") {
-      return allDashboards;
-    }
-
-    return allDashboards.filter(
-      dashboard => dashboard.code === userAssignment.departmentCode
-    );
-  };
-
-  const getStatusDisplay = () => {
-    if (!userAssignment) return "";
-    
-    if (userAssignment.status === "All") {
-      return "Executive Level - Full Access";
-    }
-    
-    return userAssignment.status;
-  };
-
-  const getAccessLevel = () => {
-    if (!userAssignment) return "";
-
-    const isExecutive = userAssignment.departmentCode === "All" || 
-                        userAssignment.status === "All";
-    
-    if (isExecutive) {
-      if (userAssignment.departmentCode === "All" && userAssignment.status === "All") {
-        return "Top-Level Executive (Unrestricted Access)";
-      } else if (userAssignment.departmentCode === "All") {
-        return "Cross-Department Executive";
-      } else if (userAssignment.status === "All") {
-        return "Department-Wide Executive";
-      }
-    }
-
-    return `${userAssignment.departmentCode} - ${userAssignment.status}`;
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    window.location.href = "/login";
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl">Loading your dashboard...</div>
-      </div>
-    );
-  }
-
-  if (!userAssignment) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="text-xl text-red-600">
-          No role assignment found. Please contact HR.
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
-  const dashboards = getDashboards();
+  // Dashboard configurations
+  const dashboards = {
+    HR: {
+      title: "HR & Administration",
+      icon: <FiBriefcase size={32} />,
+      gradient: "from-indigo-500 to-indigo-600",
+      cards: [
+        { title: "Employee Registration", desc: "Register new employees", path: "/register-employee" },
+        { title: "Draft Dashboard", desc: "Manage employee drafts", path: "/DraftDashboard" },
+        { title: "Admin Dashboard", desc: "Access admin reports", path: "/admin/dashboard" },
+        { title: "Assign Roles", desc: "Assign roles to employees", path: "/assign-roles" },
+        { title: "Permissions Management", desc: "Manage system permissions", path: "/Permission-handler" },
+        { title: "Notification Manager", desc: "Manage notification rules", path: "/notification-manager" },
+        { title: "Leave Applications", desc: "Review leave requests", path: "/leave-applications" },
+      ]
+    },
+    Finance: {
+      title: "Finance & Accounting",
+      icon: <FiDollarSign size={32} />,
+      gradient: "from-blue-500 to-blue-600",
+      cards: [
+        { title: "Salary Dashboard", desc: "View/manage employee salaries", path: "/salary-dashboard" },
+        { title: "Account Statements", desc: "Track statements and payments", path: "/accountStatements" },
+        { title: "Paid Statements", desc: "View paid account statements", path: "/accountStatements/paid" },
+        { title: "Sellers Dashboard", desc: "Manage all sellers", path: "/sellerDashboard" },
+        { title: "Bidder Dashboard", desc: "Manage all bidders", path: "/bidderDashboard" },
+        { title: "Business Tables", desc: "View business breakup tables", path: "/BussinessBreakupTables" },
+        { title: "Salary History", desc: "View salary history", path: "/salary/history" },
+        { title: "Summary Table", desc: "View salary summary tables", path: "/summary-table" },
+        { title: "Rule Table", desc: "View salary rules", path: "/tables" },
+        { title: "Breakup Summary", desc: "View salary breakup", path: "/salary/breakup" },
+      ]
+    },
+    BusinessOperation: {
+      title: "Business Operations",
+      icon: <FiTrendingUp size={32} />,
+      gradient: "from-purple-500 to-purple-600",
+      cards: [
+        { title: "Expense Dashboard", desc: "Manage all expenses", path: "/expenseDashboard" },
+        { title: "Calculated Expense Reports", desc: "View calculated expense reports", path: "/expenseDashboard/CalculatedExpenseReports" },
+        { title: "Paid Expense Reports", desc: "View paid expense reports", path: "/expenseDashboard/PaidExpenseReports" },
+        { title: "Paid Expenses", desc: "Manage paid expenses", path: "/expenseDashboard/PaidExpenses" },
+        { title: "Unpaid Expenses", desc: "Manage unpaid expenses", path: "/expenseDashboard/UnPaidExpenses" },
+        { title: "Commission Dashboard", desc: "View commission stats", path: "/commissionDashboard" },
+        { title: "Commission Reports", desc: "View commission reports", path: "/commissionDashboard/Reports" },
+        { title: "Commission Transactions", desc: "Manage commission transactions", path: "/commissionDashboard/Transactions" },
+      ]
+    }
+  };
+
+  // Determine accessible dashboards
+  const accessibleDashboards = profile?.department === "All" 
+    ? ["HR", "Finance", "BusinessOperation"]
+    : profile?.accessibleDepartments || [profile?.department || "HR"];
+
+  const canSwitchDashboards = accessibleDashboards.length > 1;
+  const currentDashboard = dashboards[activeDashboard] || dashboards.HR;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Welcome to Your Dashboard
-          </h1>
-          
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-700">Role:</span>
-              <span className="text-gray-600">
-                {userAssignment.roleId?.roleName || "N/A"}
-              </span>
-              {(userAssignment.departmentCode === "All" || 
-                userAssignment.status === "All") && (
-                <span className="ml-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-semibold">
-                  EXECUTIVE
-                </span>
-              )}
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-700">Access Level:</span>
-              <span className="text-gray-600">{getAccessLevel()}</span>
-            </div>
+    <div className="min-h-screen bg-gray-100 py-8">
+      {/* Top Header with Profile */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900">OfferBerries</h1>
+            <p className="text-gray-600 text-lg mt-2">
+              Welcome back, {profile?.individualName}
+            </p>
+          </div>
 
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-700">Department:</span>
-              <span className="text-gray-600">
-                {userAssignment.departmentCode === "All" 
-                  ? "All Departments" 
-                  : userAssignment.departmentCode}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-700">Status:</span>
-              <span className="text-gray-600">{getStatusDisplay()}</span>
-            </div>
-
-            {userAssignment.orgUnit && (
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-700">Location:</span>
-                <span className="text-gray-600">
-                  {userAssignment.orgUnit.name}
-                </span>
+          <div className="flex items-center gap-4">
+            {/* Profile Section */}
+            {profile && (
+              <div
+                className="flex items-center gap-2 cursor-pointer bg-white shadow-lg rounded-xl p-3 hover:shadow-xl transition-shadow"
+                onClick={() => navigate("/profile")}
+              >
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-600 flex items-center justify-center">
+                  <FiUser size={24} className="text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{profile.individualName}</p>
+                  <p className="text-xs text-gray-500">{profile.role?.roleName || "Employee"}</p>
+                </div>
               </div>
             )}
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition duration-200"
+            >
+              <FiLogOut className="mr-2" />
+              Logout
+            </button>
           </div>
         </div>
+      </div>
 
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Your Dashboards
-            {userAssignment.departmentCode === "All" && (
-              <span className="ml-3 text-sm font-normal text-gray-600">
-                (All departments accessible)
-              </span>
-            )}
-          </h2>
+      {/* Dashboard Selector - Only shown if user has access to multiple dashboards */}
+      {canSwitchDashboards && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Select Dashboard</h2>
+            <div className="flex gap-4 flex-wrap">
+              {accessibleDashboards.map((dept) => (
+                <button
+                  key={dept}
+                  onClick={() => setActiveDashboard(dept)}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                    activeDashboard === dept
+                      ? `bg-gradient-to-r ${dashboards[dept].gradient} text-white shadow-lg`
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {dashboards[dept].icon}
+                  <span>{dashboards[dept].title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Dashboard Cards */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-6 flex items-center gap-3">
+          {currentDashboard.icon}
+          <h2 className="text-3xl font-bold text-gray-800">{currentDashboard.title}</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {dashboards.map((dashboard) => (
+        {/* Dashboard Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {currentDashboard.cards.map((card, idx) => (
             <div
-              key={dashboard.code}
-              onClick={() => navigate(dashboard.path)}
-              className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200 border-2 border-transparent hover:border-blue-500"
+              key={idx}
+              onClick={() => navigate(card.path)}
+              className={`cursor-pointer bg-gradient-to-r ${currentDashboard.gradient} text-white rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between transform hover:-translate-y-1`}
             >
-              <div className="text-4xl mb-4">{dashboard.icon}</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
-                {dashboard.name}
-              </h3>
-              <p className="text-gray-600 text-sm mb-4">
-                {dashboard.description}
-              </p>
-              <button className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                Open Dashboard
-              </button>
+              <div>
+                <h2 className="text-xl font-semibold mb-2">{card.title}</h2>
+                <p className="text-sm opacity-90">{card.desc}</p>
+              </div>
+              <div className="mt-4 text-sm font-medium opacity-90">→ Click to open</div>
             </div>
           ))}
         </div>
+      </div>
 
-        {dashboards.length === 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-            <p className="text-yellow-800">
-              No dashboards available for your current assignment.
-              Please contact your administrator.
-            </p>
+      {/* Status Footer */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <div className="bg-white rounded-xl shadow-md p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${currentDashboard.gradient}`}></div>
+            <span className="text-sm font-medium text-gray-600">
+              Current View: <span className="font-bold text-gray-900">{currentDashboard.title}</span>
+            </span>
+            {profile?.department === "All" && (
+              <span className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full font-medium">
+                Full Access (All Departments)
+              </span>
+            )}
           </div>
-        )}
-
-        {userAssignment.departmentCode === "All" && (
-          <div className="mt-8 bg-purple-50 border border-purple-200 rounded-lg p-6">
-            <h3 className="text-lg font-bold text-purple-900 mb-2">
-              🎯 Executive Access Enabled
-            </h3>
-            <p className="text-purple-800">
-              You have unrestricted access to all department dashboards and can view 
-              all organizational data without filtering restrictions.
-            </p>
-          </div>
-        )}
-
-        {userAssignment.status === "All" && userAssignment.departmentCode !== "All" && (
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-bold text-blue-900 mb-2">
-              🏢 Department-Wide Access
-            </h3>
-            <p className="text-blue-800">
-              You have full access to all levels within the {userAssignment.departmentCode} department.
-            </p>
-          </div>
-        )}
+          {canSwitchDashboards && (
+            <span className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-medium">
+              Executive Access
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
-};
+}
 
 export default HomePage;

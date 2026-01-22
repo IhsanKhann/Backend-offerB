@@ -91,7 +91,18 @@ export const getPermissionsForUser = async (user) => {
   const role = assignment.roleId;
   const userDepartment = assignment.departmentCode;
 
-  // Filter permissions by department scope
+  // 🔥 FIX: If user has "All" department, return ALL active permissions
+  if (userDepartment === "All") {
+    const allPermissions = role.permissions;
+    const permSet = new Set();
+    allPermissions.forEach(perm => {
+      permSet.add(perm.name);
+      if (perm.action) permSet.add(perm.action);
+    });
+    return permSet;
+  }
+
+  // Filter permissions by department scope (for regular department users)
   const effectivePermissions = role.permissions.filter(perm => {
     return perm.statusScope.includes("ALL") || 
            perm.statusScope.includes(userDepartment);
@@ -183,7 +194,7 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    // ✅ NEW: Attach role assignment with department info
+    // ✅ Attach role assignment with department info
     const assignment = await RoleAssignmentModel.findOne({
       employeeId: user._id,
       isActive: true
@@ -250,10 +261,10 @@ export const checkAuth = async (req, res) => {
     const userResponse = {
       ...user.toObject(),
       department: department, // "All", "HR", "Finance", or "BusinessOperation"
-      accessibleDepartments: accessibleDepartments, // Array of accessible departments
+      departmentCode: department, // ✅ ADDED: Also send as departmentCode for consistency
+      accessibleDepartments: accessibleDepartments,
       role: assignment?.roleId || null,
       orgUnit: assignment?.orgUnit || null,
-      status: assignment?.status || null
     };
 
     return res.status(200).json({ 
@@ -270,20 +281,61 @@ export const checkAuth = async (req, res) => {
   }
 };
 
+// ========================================
+// 🔥 SUPERUSER AUTHORIZATION MIDDLEWARE
+// ========================================
 export const authorize = (requiredPermission, options = {}) => {
   return async (req, res, next) => {
     try {
       const user = req.user;
       const userAssignment = req.userAssignment;
+      const userDepartment = req.userDepartment;
 
+      // Debug bypass (remove in production)
       if (req.headers["x-disable-auth"] === "true") {
         console.log("⚠️ Authorization bypassed for this request");
         return next();
       }
 
+      // ========================================
+      // 🔥 SUPERUSER BYPASS
+      // Users with departmentCode = "All" bypass ALL checks
+      // ========================================
+      if (userDepartment === "All") {
+        console.log(`\n🔓 SUPERUSER ACCESS GRANTED`);
+        console.log(`   User: ${user.individualName}`);
+        console.log(`   Department: ${userDepartment}`);
+        console.log(`   Permission: ${requiredPermission}`);
+        console.log(`   ✅ All checks bypassed - Superuser access\n`);
+
+        // Attach metadata for logging/auditing
+        req.permission = { 
+          name: requiredPermission,
+          isSuperuserAccess: true 
+        };
+        req.effectiveScope = {
+          department: "All",
+          hierarchy: "ORGANIZATION",
+          orgUnit: req.userOrgUnit,
+          isSuperuser: true
+        };
+
+        return next(); // ✅ BYPASS ALL PERMISSION CHECKS
+      }
+
+      // ========================================
+      // REGULAR USER AUTHORIZATION (Non-Superuser)
+      // ========================================
+      
+      // STEP 1: Check if user has the permission
       const userPermissions = await getPermissionsForUser(user);
 
       if (!userPermissions.has(requiredPermission)) {
+        console.log(`❌ Permission denied: User lacks '${requiredPermission}'`);
+        console.log(`   User: ${user.individualName}`);
+        console.log(`   Department: ${userDepartment}`);
+        console.log(`   Available permissions:`, Array.from(userPermissions));
+        
         return res.status(403).json({
           success: false,
           message: `Forbidden: Missing permission '${requiredPermission}'`,
@@ -291,6 +343,7 @@ export const authorize = (requiredPermission, options = {}) => {
         });
       }
 
+      // STEP 2: Get permission details from DB
       const permission = await PermissionModel.findOne({
         $or: [
           { name: requiredPermission },
@@ -307,21 +360,26 @@ export const authorize = (requiredPermission, options = {}) => {
         });
       }
 
-      // ✅ Handle "All" department - bypass department check
-      const userDepartment = req.userDepartment;
-      
-      if (userDepartment !== "All") {
-        if (!permission.appliesToDepartment(userDepartment)) {
-          return res.status(403).json({
-            success: false,
-            message: `Forbidden: This action is not available for ${userDepartment} department`,
-            hint: `This permission is only available for: ${permission.statusScope.join(', ')}`
-          });
-        }
-      }
-      // If userDepartment is "All", skip department scope check
+      // STEP 3: Check department scope
+      console.log(`\n🔍 Authorization Check for: ${requiredPermission}`);
+      console.log(`   User: ${user.individualName}`);
+      console.log(`   User Department: ${userDepartment}`);
+      console.log(`   Permission Scope: ${permission.statusScope}`);
 
-      // Hierarchy scope checking remains the same...
+      if (!permission.appliesToDepartment(userDepartment)) {
+        console.log(`❌ Department scope check failed`);
+        console.log(`   User department '${userDepartment}' not in scope: ${permission.statusScope}`);
+        
+        return res.status(403).json({
+          success: false,
+          message: `Forbidden: This action is not available for ${userDepartment} department`,
+          hint: `This permission is only available for: ${permission.statusScope.join(', ')}`
+        });
+      }
+
+      console.log(`✅ Department scope check passed`);
+
+      // STEP 4: Check hierarchy scope
       const targetEmployeeId = req.params.employeeId || 
                                req.params.finalizedEmployeeId ||
                                req.body.employeeId ||
@@ -377,11 +435,6 @@ export const authorize = (requiredPermission, options = {}) => {
             break;
 
           case "DEPARTMENT":
-            // ✅ If user has "All" access, allow
-            if (userDepartment === "All") {
-              break;
-            }
-            
             if (userDepartment !== targetDepartment) {
               return res.status(403).json({
                 success: false,
@@ -392,6 +445,7 @@ export const authorize = (requiredPermission, options = {}) => {
             break;
 
           case "ORGANIZATION":
+            // Always allowed
             break;
 
           default:
@@ -402,6 +456,7 @@ export const authorize = (requiredPermission, options = {}) => {
         }
       }
 
+      // STEP 5: Attach metadata and proceed
       req.permission = permission;
       req.effectiveScope = {
         department: userDepartment,
@@ -409,7 +464,7 @@ export const authorize = (requiredPermission, options = {}) => {
         orgUnit: req.userOrgUnit
       };
 
-      console.log(`✅ Authorization passed: ${requiredPermission} for ${user.individualName}`);
+      console.log(`✅ Authorization passed: ${requiredPermission} for ${user.individualName}\n`);
       next();
 
     } catch (err) {
