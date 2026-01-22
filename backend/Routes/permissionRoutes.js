@@ -21,59 +21,59 @@ router.use(authenticate);
 // Get a specific employee's permissions
 router.get(
   "/getPermissions/:employeeId",
-  // authorize("view_employee_permissions"),
+  authorize("view_employee_permissions"),
   getEmployeePermissions
 );
 
 // Remove a permission (system-level)
 router.delete(
   "/removePermission/:permissionId",
-  // authorize("delete_Permissions"),
+  authorize("delete_Permissions"),
   removePermission
 );
 
 // Update a permission (system-level)
 router.put(
   "/updatePermission/:permissionId",
-  // authorize("update_Permissions"),
+  authorize("update_Permissions"),
   updatePermission
 );
 
 router.post("/addPermissionsInBulk",
-  // authorize("add_permission_in_bulk"),
+  authorize("add_permission_in_bulk"),
   addEmployeePermissionsBulk
 );
 
 router.delete("/removePermissionsInBulk",
-  // authorize("remove_permission_in_bulk"),
+  authorize("remove_permission_in_bulk"),
   removeEmployeePermissionsBulk
 );
 
 // Add permission to employee
 router.post(
   "/addEmployeePermission",
-  // authorize("assign_permission_to_employee"),
+  authorize("assign_permission_to_employee"),
   addEmployeePermission
 );
 
 // Remove a permission from an employee
 router.post(
   "/removeEmployeePermission",
-  // authorize("remove_permission_from_employee"),
+  authorize("remove_permission_from_employee"),
   removeEmployeePermission
 );
 
 // View all permissions (system-level)
 router.get(
   "/AllPermissions",
-  // authorize("view_Permissions"),
+  authorize("view_Permissions"),
   AllPermissions
 );
 
 // Create/add a new permission (system-level)
 router.post(
   "/createPermission",
-  // authorize("add_Permissions"),
+  authorize("add_Permissions"),
   createPermission
 );
 

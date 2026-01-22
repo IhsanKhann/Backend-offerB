@@ -50,6 +50,7 @@ const PermissionSchema = new mongoose.Schema({
    * - ["HR"]: Only HR department
    * - ["HR", "Finance"]: HR and Finance only
    * - [] or null: Same as ["ALL"]
+   * - []
    */
   statusScope: {
     type: [String],

@@ -1,23 +1,28 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { Provider } from "react-redux";
+import store from "./store/store.jsx";
+import "./index.css";
 
+// Components
+import ProtectedRoute from "./components/ProtectedRoutes.jsx";
 import HomePage from "./Pages/HomePage.jsx";
+import LoginPage from "./Pages/loginPage.jsx";
+import { ResetPasswordPage, ForgetUserId } from "./components/ResetLoginPage.jsx";
+import NotificationManager from "./components/NotificationManager.jsx";
+
+// HR / Administration Pages
 import EmployeeRegistrationForm from "./Forms/EmployeeRegistration.jsx";
 import AssignRolesForm from "./Forms/AssignRolesForm.jsx";
 import AdminDashboard from "./Pages/AdminDashboard.jsx";
-import LoginPage from "./Pages/loginPage.jsx";
-import ProtectedRoute from "./components/ProtectedRoutes.jsx";
 import DraftDashboard from "./Pages/DraftsDashboard.jsx";
 import PermissionHandler from "./Pages/PermissionsHandler.jsx";
-import ProfilePage from "./Pages/EmployeeProfile.jsx";
-import { EmployeesPermissions } from "./components/PermissionsManager.jsx";
-import { ResetPasswordPage, ForgetUserId } from "./components/ResetLoginPage.jsx";
 import LeaveApplications from "./Pages/LeaveApplications.jsx";
+import RoleManager from "./components/RolesManagerAdvanced.jsx";
+import { EmployeesPermissions } from "./components/PermissionsManager.jsx";
 
-import NotificationManager from "./components/NotificationManager.jsx";
-
-// finance:
+// Finance Pages
 import SummaryTable from "./Pages/Finance/SummaryTable.jsx";
 import RuleTable from "./Pages/Finance/Table.jsx";
 import SalaryDashboard from "./Pages/Finance/SalaryDashboard.jsx";
@@ -28,323 +33,191 @@ import SellerDashboard from "./Pages/Finance/SellerDashboard.jsx";
 import BuyerBreakupSummary from "./Pages/Finance/BuyerBreakup.jsx";
 import BusinessTables from "./Pages/Finance/BussinessTable.jsx";
 import SalaryHistoryPage from "./Pages/Finance/SalariesHistoryPage.jsx";
-
 import Sellers from "./Pages/Finance/Sellers.jsx";
-import RoleManager from "./components/RolesManagerAdvanced.jsx";
-
-// Account Statements:
 import AccountStatements from "./Pages/Finance/AccountStatements.jsx";
 import PaidStatements from "./Pages/Finance/AccountStatementsPaid.jsx";
 import BidderDashboard from "./Pages/Finance/BidderDashboard.jsx";
 
+// Business Operation Pages
+import ExpenseDashboard from "./Pages/BussinessOperation/ExpenseDashboard.jsx";
 import CalculatedExpenseReports from "./Pages/BussinessOperation/ExpenseReports-calculated.jsx";
 import PaidExpenseReports from "./Pages/BussinessOperation/ExpenseReports-paid.jsx";
 import PaidExpenses from "./Pages/BussinessOperation/ExpenseTransactions-Paid.jsx";
-import UnpaidExpenses from "./Pages/BussinessOperation/ExpenseTransactions-Unpaid.jsx"
-
+import UnpaidExpenses from "./Pages/BussinessOperation/ExpenseTransactions-Unpaid.jsx";
 import CommissionDashboard from "./Pages/BussinessOperation/CommissionDashboard.jsx";
 import CommissionReports from "./Pages/BussinessOperation/CommissionReportsPage.jsx";
 import CommissionTransactions from "./Pages/BussinessOperation/CommissionTransactions.jsx";
 
-import "./index.css";
-import store from "./store/store.jsx";
-import { Provider } from "react-redux";
-
-import ExpenseDashboard from "./Pages/BussinessOperation/ExpenseDashboard.jsx";
+// Other Pages
+import ProfilePage from "./Pages/EmployeeProfile.jsx";
 
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: (
-      <ProtectedRoute>
-        <HomePage />
-      </ProtectedRoute>
-    ),
-  },
+  // ==========================================
+  // PUBLIC & SHARED ROUTES
+  // ==========================================
   { path: "/login", element: <LoginPage /> },
-  {
-    path: "/register-employee",
-    element: (
-      <ProtectedRoute>
-        <EmployeeRegistrationForm />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/assign-roles/:employeeId",
-    element: (
-      <ProtectedRoute>
-        <AssignRolesForm />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/assign-roles",
-    element: (
-      <ProtectedRoute>
-        <AssignRolesForm />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/DraftDashboard",
-    element: (
-      <ProtectedRoute>
-        <DraftDashboard />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/admin/dashboard",
-    element: (
-      <ProtectedRoute>
-        <AdminDashboard />
-      </ProtectedRoute>
-    ),
-  },
   { path: "/reset-password", element: <ResetPasswordPage /> },
   { path: "/forget-UserId", element: <ForgetUserId /> },
   {
-    path: "/Permission-handler",
-    element: (
-      <ProtectedRoute>
-        <PermissionHandler />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/employees-permissions",
-    element: (
-      <ProtectedRoute>
-        <EmployeesPermissions />
-      </ProtectedRoute>
-    ),
+    path: "/",
+    element: <ProtectedRoute><HomePage /></ProtectedRoute>,
   },
   {
     path: "/profile",
-    element: (
-      <ProtectedRoute>
-        <ProfilePage />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute><ProfilePage /></ProtectedRoute>,
     children: [
       { path: "about", element: <ProfilePage section="about" /> },
       { path: "allowance", element: <ProfilePage section="allowance" /> },
       { path: "leave", element: <ProfilePage section="leave" /> },
       { path: "retirement", element: <ProfilePage section="retirement" /> },
       { path: "loan", element: <ProfilePage section="loan" /> },
-      { path: "", element: <ProfilePage section="about" /> }, // default
+      { path: "", element: <ProfilePage section="about" /> },
     ],
+  },
+
+  // ==========================================
+  // HR & ADMINISTRATION (DECIDED)
+  // ==========================================
+  {
+    path: "/register-employee",
+    element: <ProtectedRoute allowedDepartments={["HR", "All"]}><EmployeeRegistrationForm /></ProtectedRoute>,
+  },
+  {
+    path: "/assign-roles/:employeeId",
+    element: <ProtectedRoute allowedDepartments={["HR", "All"]}><AssignRolesForm /></ProtectedRoute>,
+  },
+  {
+    path: "/assign-roles",
+    element: <ProtectedRoute allowedDepartments={["HR", "All"]}><AssignRolesForm /></ProtectedRoute>,
+  },
+  {
+    path: "/DraftDashboard",
+    element: <ProtectedRoute allowedDepartments={["HR", "All"]}><DraftDashboard /></ProtectedRoute>,
+  },
+  {
+    path: "/admin/dashboard",
+    element: <ProtectedRoute allowedDepartments={["HR", "All"]}><AdminDashboard /></ProtectedRoute>,
+  },
+  {
+    path: "/Permission-handler",
+    element: <ProtectedRoute allowedDepartments={["HR", "All"]}><PermissionHandler /></ProtectedRoute>,
+  },
+  {
+    path: "/notification-manager",
+    element: <ProtectedRoute allowedDepartments={["HR", "All"]}><NotificationManager /></ProtectedRoute>,
   },
   {
     path: "/leave-applications",
-    element: (
-      <ProtectedRoute>
-        <LeaveApplications />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute allowedDepartments={["HR", "All"]}><LeaveApplications /></ProtectedRoute>,
+  },
+
+  // ==========================================
+  // FINANCE (DECIDED)
+  // ==========================================
+  {
+    path: "/salary-dashboard",
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><SalaryDashboard /></ProtectedRoute>,
+  },
+  {
+    path: "/accountStatements",
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><AccountStatements /></ProtectedRoute>,
+  },
+  {
+    path: "/accountStatements/paid",
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><PaidStatements /></ProtectedRoute>,
+  },
+  {
+    path: "/sellerDashboard",
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><SellerDashboard /></ProtectedRoute>,
+  },
+  {
+    path: "/bidderDashboard",
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><BidderDashboard /></ProtectedRoute>,
+  },
+  {
+    path: "/BussinessBreakupTables",
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><BusinessTables /></ProtectedRoute>,
+  },
+  {
+    path: "/salary/history/:employeeId",
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><SalaryHistoryPage /></ProtectedRoute>,
   },
   {
     path: "/summary-table",
-    element: (
-      <ProtectedRoute>
-        <SummaryTable />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><SummaryTable /></ProtectedRoute>,
   },
   {
     path: "/tables",
-    element: (
-      <ProtectedRoute>
-        <RuleTable />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><RuleTable /></ProtectedRoute>,
   },
   {
-    path: "/salary-dashboard",
-    element: (
-      <ProtectedRoute>
-        <SalaryDashboard />
-      </ProtectedRoute>
-    ),
+    path: "/salary/breakup/:employeeId?",
+    element: <ProtectedRoute allowedDepartments={["Finance", "All"]}><BreakupSummary /></ProtectedRoute>,
+  },
+
+  // ==========================================
+  // BUSINESS OPERATIONS (DECIDED)
+  // ==========================================
+  {
+    path: "/expenseDashboard",
+    element: <ProtectedRoute allowedDepartments={["BusinessOperation", "All"]}><ExpenseDashboard /></ProtectedRoute>,
   },
   {
-   path: "/salary/breakup/:employeeId",
-   element: (
-     <ProtectedRoute>
-       <BreakupSummary />
-     </ProtectedRoute> 
-   ),
+    path: "/expenseDashboard/CalculatedExpenseReports",
+    element: <ProtectedRoute allowedDepartments={["BusinessOperation", "All"]}><CalculatedExpenseReports /></ProtectedRoute>,
   },
   {
-   path: "/salary/breakup",
-   element: (
-     <ProtectedRoute>
-       <BreakupSummary />
-     </ProtectedRoute> 
-   ),
+    path: "/expenseDashboard/PaidExpenseReports",
+    element: <ProtectedRoute allowedDepartments={["BusinessOperation", "All"]}><PaidExpenseReports /></ProtectedRoute>,
   },
   {
-   path: "/salary/rulesTable",
-   element: (
-     <ProtectedRoute>
-       <SalaryRulesTable />
-     </ProtectedRoute> 
-   ),
+    path: "/expenseDashboard/PaidExpenses",
+    element: <ProtectedRoute allowedDepartments={["BusinessOperation", "All"]}><PaidExpenses /></ProtectedRoute>,
   },
   {
-   path: "/paymentDashboard",
-   element: (
-     <ProtectedRoute>
-       <TransactionTestPage />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/sellerDashboard",
-   element: (
-     <ProtectedRoute>
-       <SellerDashboard />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/buyer-breakup/:buyerId",
-   element: (
-     <ProtectedRoute>
-       <BuyerBreakupSummary />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/BussinessBreakupTables",
-   element: (
-     <ProtectedRoute>
-       <BusinessTables />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/accountStatements",
-   element: (
-     <ProtectedRoute>
-       <AccountStatements />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/accountStatements/paid",
-   element: (
-     <ProtectedRoute>
-       <PaidStatements />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/sellers",
-   element: (
-     <ProtectedRoute>
-       <Sellers />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/bidderDashboard",
-   element: (
-     <ProtectedRoute>
-       <BidderDashboard />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/salary/history/:employeeId",
-   element: (
-     <ProtectedRoute>
-        <SalaryHistoryPage />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/expenseDashboard",
-   element: (
-     <ProtectedRoute>
-        <ExpenseDashboard />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/expenseDashboard/CalculatedExpenseReports",
-   element: (
-     <ProtectedRoute>
-        <CalculatedExpenseReports />
-     </ProtectedRoute> 
-   ),
-  },
-   {
-   path: "/expenseDashboard/PaidExpenseReports",
-   element: (
-     <ProtectedRoute>
-        <PaidExpenseReports />
-     </ProtectedRoute> 
-   ),
+    path: "/expenseDashboard/UnPaidExpenses",
+    element: <ProtectedRoute allowedDepartments={["BusinessOperation", "All"]}><UnpaidExpenses /></ProtectedRoute>,
   },
   {
-   path: "/expenseDashboard/PaidExpenses",
-   element: (
-     <ProtectedRoute>
-        <PaidExpenses />
-     </ProtectedRoute> 
-   ),
+    path: "/commissionDashboard",
+    element: <ProtectedRoute allowedDepartments={["BusinessOperation", "All"]}><CommissionDashboard /></ProtectedRoute>,
   },
-   {
-   path: "/expenseDashboard/UnPaidExpenses",
-   element: (
-     <ProtectedRoute>
-        <UnpaidExpenses />
-     </ProtectedRoute> 
-   ),
+  {
+    path: "/commissionDashboard/Reports",
+    element: <ProtectedRoute allowedDepartments={["BusinessOperation", "All"]}><CommissionReports /></ProtectedRoute>,
   },
-       {
-   path: "/commissionDashboard",
-   element: (
-     <ProtectedRoute>
-        <CommissionDashboard />
-     </ProtectedRoute> 
-   ),
+  {
+    path: "/commissionDashboard/Transactions",
+    element: <ProtectedRoute allowedDepartments={["BusinessOperation", "All"]}><CommissionTransactions /></ProtectedRoute>,
   },
-     {
-   path: "/commissionDashboard/Reports",
-   element: (
-     <ProtectedRoute>
-        <CommissionReports />
-     </ProtectedRoute> 
-   ),
+
+  // ==========================================
+  // PENDING / TO BE DECIDED (UNMARKED)
+  // ==========================================
+  {
+    path: "/employees-permissions",
+    element: <ProtectedRoute><EmployeesPermissions /></ProtectedRoute>,
   },
-     {
-   path: "/commissionDashboard/Transactions",
-   element: (
-     <ProtectedRoute>
-        <CommissionTransactions />
-     </ProtectedRoute> 
-   ),
+  {
+    path: "/salary/rulesTable",
+    element: <ProtectedRoute><SalaryRulesTable /></ProtectedRoute>,
   },
-   {
-   path: "/notification-manager",
-   element: (
-     <ProtectedRoute>
-        <NotificationManager />
-     </ProtectedRoute> 
-   ),
+  {
+    path: "/paymentDashboard",
+    element: <ProtectedRoute><TransactionTestPage /></ProtectedRoute>,
   },
-   {
-   path: "/RolesManagerAdvanced",
-   element: (
-     <ProtectedRoute>
-        <RoleManager />
-     </ProtectedRoute> 
-   ),
+  {
+    path: "/buyer-breakup/:buyerId",
+    element: <ProtectedRoute><BuyerBreakupSummary /></ProtectedRoute>,
   },
-    
+  {
+    path: "/sellers",
+    element: <ProtectedRoute><Sellers /></ProtectedRoute>,
+  },
+  {
+    path: "/RolesManagerAdvanced",
+    element: <ProtectedRoute><RoleManager /></ProtectedRoute>,
+  },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
