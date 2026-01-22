@@ -29,8 +29,7 @@ const AssignRolesForm = () => {
   const employeeData = useSelector((state) => state.draft.employeeData);
   const [employee, setEmployee] = useState(null);
 
-  const [departmentCode, setDepartmentCode] = useState("");
-  
+  const [departmentCode, setDepartmentCode] = useState("");  
   const [selectedRoleId, setSelectedRoleId] = useState("");
   const [RolesList, setRolesList] = useState([]);
   const [allPermissions, setAllPermissions] = useState([]);
@@ -54,6 +53,9 @@ const AssignRolesForm = () => {
     desk: "desks"
   };
 
+  // ============================================
+  // FETCH HIERARCHY
+  // ============================================
   const fetchHierarchy = async () => {
     try {
       setLoading(true);
@@ -69,6 +71,9 @@ const AssignRolesForm = () => {
     }
   };
 
+  // ============================================
+  // FETCH EMPLOYEE
+  // ============================================
   useEffect(() => {
     const fetchEmployee = async () => {
       try {
@@ -91,6 +96,9 @@ const AssignRolesForm = () => {
     fetchHierarchy();
   }, []);
 
+  // ============================================
+  // FETCH PERMISSIONS
+  // ============================================
   useEffect(() => {
     const fetchEmployeePermissions = async () => {
       try {
@@ -107,6 +115,9 @@ const AssignRolesForm = () => {
     fetchEmployeePermissions();
   }, []);
 
+  // ============================================
+  // FETCH GLOBAL ROLES
+  // ============================================
   const fetchRolesList = async () => {
     try {
       setLoading(true);
@@ -131,6 +142,9 @@ const AssignRolesForm = () => {
     fetchRolesList();
   }, []);
 
+  // ============================================
+  // RESET DEPENDENT FIELDS
+  // ============================================
   const resetDependentFields = (level) => {
     const index = levelOrder.indexOf(level);
     if (index === -1) return;
@@ -152,6 +166,9 @@ const AssignRolesForm = () => {
     }
   };
 
+  // ============================================
+  // FIND NODE BY ID
+  // ============================================
   const findNodeById = (nodes, id) => {
     if (!nodes || !Array.isArray(nodes)) return null;
     
@@ -170,6 +187,9 @@ const AssignRolesForm = () => {
     return null;
   };
 
+  // ============================================
+  // GET OPTIONS FOR EACH LEVEL
+  // ============================================
   const getOfficeOptions = () => hierarchy?.offices || [];
   
   const getGroupOptions = () => {
@@ -298,6 +318,9 @@ const AssignRolesForm = () => {
     return desks;
   };
 
+  // ============================================
+  // GET PARENT OPTIONS FOR CREATE MODAL
+  // ============================================
   const getParentOptions = (level) => {
     if (level === "office") return [];
     
@@ -341,6 +364,9 @@ const AssignRolesForm = () => {
     return [];
   };
 
+  // ============================================
+  // CREATE HIERARCHY NODE
+  // ============================================
   const submitCreate = async (name, level, parentId) => {
     if (!name || !level) return alert("Enter name and select level");
     setActionLoading(true);
@@ -363,6 +389,9 @@ const AssignRolesForm = () => {
     }
   };
 
+  // ============================================
+  // DELETE HIERARCHY NODE
+  // ============================================
   const handleDeleteNode = async (nodeId, nodeName) => {
     if (!window.confirm(`Delete ${nodeName}?`)) return;
     try {
@@ -387,6 +416,9 @@ const AssignRolesForm = () => {
     }
   };
 
+  // ============================================
+  // SUBMIT - ASSIGN ROLE (NO STATUS FIELD)
+  // ============================================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -400,35 +432,31 @@ const AssignRolesForm = () => {
       return;
     }
 
-    if (!departmentCode) {
-      alert("Please select a department code.");
-      return;
-    }
-
     try {
       setLoading(true);
 
-      let orgUnitId = null;
+      const office = officeId ? findNodeById(hierarchy.offices, officeId)?.name : null;
+      const group = groupId ? findNodeById(hierarchy.offices, groupId)?.name : null;
+      const division = divisionId ? findNodeById(hierarchy.offices, divisionId)?.name : null;
+      const department = departmentId ? findNodeById(hierarchy.offices, departmentId)?.name : null;
+      const branch = branchId ? findNodeById(hierarchy.offices, branchId)?.name : null;
+      const cell = cellId ? findNodeById(hierarchy.offices, cellId)?.name : null;
+      const desk = deskId ? findNodeById(hierarchy.offices, deskId)?.name : null;
 
-      if (deskId) orgUnitId = deskId;
-      else if (cellId) orgUnitId = cellId;
-      else if (branchId) orgUnitId = branchId;
-      else if (departmentId) orgUnitId = departmentId;
-      else if (divisionId) orgUnitId = divisionId;
-      else if (groupId) orgUnitId = groupId;
-      else if (officeId) orgUnitId = officeId;
+      const orgUnitRes = await api.post("/org-units/resolve", {
+        office, group, division, department, branch, cell, desk,
+      });
 
-      if (!orgUnitId) {
-        alert("Please select at least one organizational unit.");
-        return;
-      }
+      const orgUnitId = orgUnitRes.data?.orgUnitId;
+      if (!orgUnitId) throw new Error("OrgUnit resolution failed");
 
+      // NO STATUS FIELD - ONLY departmentCode
       const rolesData = {
         employeeId: employeeData._id,
         roleId: selectedRoleId,
         orgUnit: orgUnitId,
-        departmentCode: departmentCode,
         permissions: allPermissions.map(p => p._id),
+        departmentCode: departmentCode,
       };
 
       if (isEditing) {
@@ -436,7 +464,7 @@ const AssignRolesForm = () => {
       } else {
         dispatch(assignRolesDraft(rolesData));
         dispatch(addDraft());
-        await api.post("/employees/roles/assign", rolesData);
+        await api.post("/roles/assign", rolesData);
       }
       
       navigate("/DraftDashboard");
@@ -450,6 +478,9 @@ const AssignRolesForm = () => {
 
   const handleCancel = () => navigate("/DraftDashboard");
 
+  // ============================================
+  // RENDER
+  // ============================================
   if (loading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
   
   if (employeeError) return (
@@ -478,6 +509,7 @@ const AssignRolesForm = () => {
         <p className="text-gray-600">ID: <span className="font-semibold">{employee?._id || "N/A"}</span></p>
       </div>
 
+      {/* Role Dropdown */}
       <div className="flex flex-col gap-2 mt-3">
         <label className="font-semibold">Employee Role *</label>
         <select
@@ -502,6 +534,7 @@ const AssignRolesForm = () => {
         </p>
       </div>
 
+      {/* Department Code */}
       <div className="flex flex-col gap-2 mt-4">
         <label className="font-semibold">Department Code *</label>
         <select
@@ -514,16 +547,14 @@ const AssignRolesForm = () => {
           <option value="HR">HR</option>
           <option value="Finance">Finance</option>
           <option value="BusinessOperation">Business Operation</option>
-          <option value="All">All (Executive Access)</option>
+          <option value="All">All</option>
         </select>
-        <p className="text-xs text-gray-500">
-          {departmentCode === "All" ? "Executive-level access to all departments" : "Department-specific access"}
-        </p>
       </div>
 
+      {/* Hierarchy Section */}
       <h3 className="font-bold text-lg mt-6">Assign Organizational Position</h3>
-      <p className="text-sm text-gray-600">Select the specific organizational unit where this employee will be positioned. The hierarchy level is automatically determined by your selection.</p>
       
+      {/* Office */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Office</label>
@@ -552,6 +583,7 @@ const AssignRolesForm = () => {
         </div>
       </div>
 
+      {/* Group */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Group</label>
@@ -580,6 +612,7 @@ const AssignRolesForm = () => {
         </div>
       </div>
 
+      {/* Division */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Division</label>
@@ -608,6 +641,7 @@ const AssignRolesForm = () => {
         </div>
       </div>
 
+      {/* Department */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Department</label>
@@ -636,6 +670,7 @@ const AssignRolesForm = () => {
         </div>
       </div>
 
+      {/* Branch */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Branch</label>
@@ -664,6 +699,7 @@ const AssignRolesForm = () => {
         </div>
       </div>
 
+      {/* Cell */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Cell</label>
@@ -692,6 +728,7 @@ const AssignRolesForm = () => {
         </div>
       </div>
 
+      {/* Desk */}
       <div className="flex flex-col gap-2 mt-3">
         <div className="flex items-center gap-2">
           <label className="w-36 font-semibold">Desk</label>
@@ -717,6 +754,7 @@ const AssignRolesForm = () => {
         </div>
       </div>
 
+      {/* Permissions Selector */}
       <div className="flex flex-col gap-2 mt-6">
         <label className="font-semibold">Permission Overrides (Optional)</label>
         <select
@@ -752,6 +790,7 @@ const AssignRolesForm = () => {
         </p>
       </div>
 
+      {/* Create Hierarchy Node Button */}
       <div className="mt-6">
         <button 
           type="button" 
@@ -768,6 +807,7 @@ const AssignRolesForm = () => {
         </button>
       </div>
 
+      {/* Actions */}
       <div className="flex justify-end gap-4 pt-4 border-t">
         <button 
           type="button" 
@@ -778,19 +818,20 @@ const AssignRolesForm = () => {
         </button>
         <button 
           type="submit"
-          disabled={!selectedRoleId || !departmentCode || loading}
+          disabled={!selectedRoleId || loading}
           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Saving..." : "Save Assignment"}
         </button>
       </div>
 
+      {/* Create Node Modal */}
       {actionModal.open && actionModal.type === "create" && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
             <h3 className="text-lg font-bold mb-3">Create Hierarchy Node</h3>
             
-            <select 
+           <select 
               className="w-full border rounded px-3 py-2 mb-3" 
               value={actionModal.level} 
               onChange={e => setActionModal({ 
@@ -800,51 +841,67 @@ const AssignRolesForm = () => {
               })}
             >
               <option value="">Select Level</option>
-              {levelOrder.map(l => <option key={l} value={l}>{l}</option>)}
+              <option value="office">Office</option>
+              <option value="group">Group</option>
+              <option value="division">Division</option>
+              <option value="department">Department</option>
+              <option value="branch">Branch</option>
+              <option value="cell">Cell</option>
+              <option value="desk">Desk</option>
             </select>
-            
-            {actionModal.level && actionModal.level !== "office" && (
-              <select 
-                className="w-full border rounded px-3 py-2 mb-3" 
-                value={actionModal.parentId || ""} 
-                onChange={e => setActionModal({ 
-                  ...actionModal, 
-                  parentId: e.target.value 
-                })}
+
+            <input
+              type="text"
+              placeholder="Enter name"
+              className="w-full border rounded px-3 py-2 mb-3"
+              value={actionModal.name}
+              onChange={e =>
+                setActionModal({ ...actionModal, name: e.target.value })
+              }
+            />
+
+            {actionModal.level && getParentOptions(actionModal.level).length > 0 && (
+              <select
+                className="w-full border rounded px-3 py-2 mb-4"
+                value={actionModal.parentId || ""}
+                onChange={e =>
+                  setActionModal({
+                    ...actionModal,
+                    parentId: e.target.value || null
+                  })
+                }
               >
                 <option value="">Select Parent</option>
-                {getParentOptions(actionModal.level).map(p => (
-                  <option key={p._id} value={p._id}>{p.name}</option>
+                {getParentOptions(actionModal.level).map(parent => (
+                  <option key={parent._id} value={parent._id}>
+                    {parent.name}
+                  </option>
                 ))}
               </select>
             )}
-            
-            <input 
-              type="text" 
-              className="w-full border rounded px-3 py-2 mb-3" 
-              value={actionModal.name} 
-              onChange={e => setActionModal({ 
-                ...actionModal, 
-                name: e.target.value 
-              })} 
-              placeholder="Enter name"
-            />
-            
+
             <div className="flex justify-end gap-3">
-              <button 
-                onClick={() => setActionModal({ type: null, open: false })} 
+              <button
+                type="button"
+                onClick={() =>
+                  setActionModal({ type: null, open: false })
+                }
                 className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
               >
                 Cancel
               </button>
-              <button 
-                onClick={() => submitCreate(
-                  actionModal.name, 
-                  actionModal.level, 
-                  actionModal.parentId
-                )} 
-                disabled={actionLoading} 
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() =>
+                  submitCreate(
+                    actionModal.name,
+                    actionModal.level,
+                    actionModal.parentId
+                  )
+                }
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
               >
                 {actionLoading ? "Creating..." : "Create"}
               </button>

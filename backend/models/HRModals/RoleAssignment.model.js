@@ -20,12 +20,6 @@ const RoleAssignmentSchema = new mongoose.Schema(
       required: true,
     },
 
-    status: {
-      type: String,
-      enum: ["Offices", "Groups", "Divisions", "Departments", "Branches", "Cells", "Desks", "All"],
-      required: true,
-    },
-
     orgUnit: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "OrgUnit",
@@ -81,7 +75,6 @@ const RoleAssignmentSchema = new mongoose.Schema(
 RoleAssignmentSchema.index({ employeeId: 1 });
 RoleAssignmentSchema.index({ roleId: 1 });
 RoleAssignmentSchema.index({ departmentCode: 1 });
-RoleAssignmentSchema.index({ status: 1 });
 RoleAssignmentSchema.index({ orgUnit: 1 });
 RoleAssignmentSchema.index({ employeeId: 1, isActive: 1 });
 RoleAssignmentSchema.index({ roleId: 1, isActive: 1 });
@@ -103,11 +96,11 @@ RoleAssignmentSchema.virtual('isExpired').get(function() {
 });
 
 RoleAssignmentSchema.virtual('isExecutiveAccess').get(function() {
-  return this.departmentCode === "All" || this.status === "All";
+  return this.departmentCode === "All";
 });
 
 RoleAssignmentSchema.virtual('isDepartmentWide').get(function() {
-  return this.status === "All" && this.departmentCode !== "All";
+  return this.departmentCode !== "All";
 });
 
 RoleAssignmentSchema.methods.deactivate = async function() {

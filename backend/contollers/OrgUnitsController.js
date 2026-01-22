@@ -259,10 +259,9 @@ export const getEmployeesByOrgUnit = async (req, res) => {
       orgUnit: a.orgUnit,
       assignmentId: a._id,
       departmentCode: a.departmentCode,
-      status: a.status,
       effectiveFrom: a.effectiveFrom,
       assignedBy: a.assignedBy,
-      isExecutiveAccess: a.departmentCode === "All" || a.status === "All"
+      isExecutiveAccess: a.departmentCode === "All"
     }));
 
     res.status(200).json({ 
@@ -282,20 +281,16 @@ export const getEmployeesByOrgUnit = async (req, res) => {
   }
 };
 
-export const getEmployeesByDepartmentAndStatus = async (req, res) => {
+export const getEmployeesByDepartment = async (req, res) => {
   try {
-    const { code, status } = req.query;
+    const { code } = req.query;
 
-    console.log(`📋 Filtering employees - Code: ${code}, Status: ${status}`);
+    console.log(`📋 Filtering employees - Department Code: ${code}`);
 
     const filter = { isActive: true };
     
     if (code && code !== "All") {
       filter.departmentCode = code;
-    }
-    
-    if (status && status !== "All") {
-      filter.status = status;
     }
 
     const assignments = await RoleAssignmentModel.find(filter)
@@ -313,8 +308,7 @@ export const getEmployeesByDepartmentAndStatus = async (req, res) => {
       orgUnit: a.orgUnit,
       assignmentId: a._id,
       departmentCode: a.departmentCode,
-      status: a.status,
-      isExecutiveAccess: a.departmentCode === "All" || a.status === "All"
+      isExecutiveAccess: a.departmentCode === "All"
     }));
 
     console.log(`👥 Found ${employees.length} employees matching filter`);

@@ -234,11 +234,14 @@ export const checkAuth = async (req, res) => {
       isActive: true
     })
     .populate('roleId')
-    .populate('orgUnit');
+    .populate('orgUnit')
+    .populate('departmentCode');
 
     // ✅ Handle "All" department code
     let department = assignment?.departmentCode || null;
-    
+    console.log("Department from the Role Assignment: ", department);
+    console.log("Assignment document id: ", assignment._id);
+
     // Convert "All" to array of all departments for frontend
     let accessibleDepartments = [];
     if (department === "All") {

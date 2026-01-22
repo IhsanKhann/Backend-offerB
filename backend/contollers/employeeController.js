@@ -888,7 +888,7 @@ export const AssignEmployeePost = async (req, res) => {
       );
     }
 
-    // Create new role assignment
+    // Create new role assignment (NO STATUS FIELD)
     const roleAssignment = new RoleAssignmentModel({
       employeeId: employee._id,
       roleId: roleDeclaration._id,
