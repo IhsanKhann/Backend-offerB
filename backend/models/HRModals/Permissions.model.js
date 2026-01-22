@@ -179,10 +179,26 @@ PermissionSchema.virtual('isOrganizationWide').get(function() {
 /**
  * Check if this permission applies to a given department
  */
-PermissionSchema.methods.appliesToDepartment = function(departmentCode) {
+PermissionSchema.methods.appliesToDepartment = function (departmentCode) {
   if (!departmentCode) return false;
-  return this.statusScope.includes("ALL") || 
-         this.statusScope.includes(departmentCode);
+
+  // 🔥 SUPER-DEPARTMENT ACCESS
+  if (departmentCode === "ALL") {
+    return true;
+  }
+
+  // Permission applies to everyone
+  if (!this.statusScope || this.statusScope.length === 0) {
+    return true;
+  }
+
+  // Explicit ALL permission
+  if (this.statusScope.includes("ALL")) {
+    return true;
+  }
+
+  // Normal department match
+  return this.statusScope.includes(departmentCode);
 };
 
 /**

@@ -15,12 +15,17 @@ const ProtectedRoute = ({ children, allowedDepartments = [] }) => {
         const res = await api.get("/auth/check-auth");
         if (res.data.status) {
           setAuthenticated(true);
-          // Match the field from your Mongoose Schema: departmentCode
-          setUserDepartment(res.data.user.departmentCode);
+          // ✅ FIXED: Match the field from backend response (department, not departmentCode)
+          setUserDepartment(res.data.user.department);
+          
+          // Debug logging (remove in production)
+          console.log("User department:", res.data.user.department);
+          console.log("Accessible departments:", res.data.user.accessibleDepartments);
         } else {
           setAuthenticated(false);
         }
       } catch (err) {
+        console.error("Auth verification failed:", err);
         setAuthenticated(false);
       } finally {
         setLoading(false);
@@ -47,11 +52,20 @@ const ProtectedRoute = ({ children, allowedDepartments = [] }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // 3. Authenticated but Unauthorized Department: Show Professional "Access Denied"
+  // 3. ✅ FIXED: Improved access check logic
   const hasAccess = 
-    allowedDepartments.length === 0 || 
-    allowedDepartments.includes(userDepartment) || 
-    userDepartment === "All"; // Executive Access override
+    allowedDepartments.length === 0 ||           // No restrictions (public route)
+    userDepartment === "All" ||                   // Executive access (bypass all checks)
+    allowedDepartments.includes(userDepartment); // Department match
+
+  // Debug logging (remove in production)
+  if (!hasAccess) {
+    console.log("Access denied:", {
+      userDepartment,
+      allowedDepartments,
+      hasAccess
+    });
+  }
 
   if (!hasAccess) {
     return (
@@ -64,7 +78,7 @@ const ProtectedRoute = ({ children, allowedDepartments = [] }) => {
           <div className="p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Restricted</h2>
             <p className="text-gray-600 mb-6">
-              Your account currenty belongs to the <span className="font-bold text-blue-600">{userDepartment}</span> department. 
+              Your account currently belongs to the <span className="font-bold text-blue-600">{userDepartment}</span> department. 
               This section is restricted to <span className="font-medium text-gray-800">{allowedDepartments.join(" or ")}</span> personnel only.
             </p>
 
