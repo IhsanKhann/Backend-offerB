@@ -41,6 +41,9 @@ function HomePage() {
     fetchProfile();
   }, []);
 
+  // ==========================================
+  // PENDING / TO BE DECIDED (UNMARKED)
+  // ==========================================
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     window.location.href = "/login";
@@ -71,6 +74,8 @@ function HomePage() {
         { title: "Permissions Management", desc: "Manage system permissions", path: "/Permission-handler" },
         { title: "Notification Manager", desc: "Manage notification rules", path: "/notification-manager" },
         { title: "Leave Applications", desc: "Review leave requests", path: "/leave-applications" },
+        { title: "Employee Permissions", desc: "Permissions for Employees", path: "/employees-permissions" },    
+        { title: "Roles Manager Advanced", desc: "Grouping of the roles and the assignments", path: "/RolesManagerAdvanced" },
       ]
     },
     Finance: {
@@ -79,12 +84,16 @@ function HomePage() {
       gradient: "from-blue-500 to-blue-600",
       cards: [
         { title: "Salary Dashboard", desc: "View/manage employee salaries", path: "/salary-dashboard" },
+        { title: "Salaries Rules", desc: "Rules for salaries with base salary, allowences and deductions ", path: "/salary/rulesTable" },  
+        { title: "Salary History", desc: "View salary history", path: "/salary/history" }, 
+        
+        { title: "Sellers Dashboard", desc: "Manage all sellers", path: "/sellerDashboard" },
+        { title: "Sellers", desc: "Sellers and Actions for them", path: "/sellers" },
+
         { title: "Account Statements", desc: "Track statements and payments", path: "/accountStatements" },
         { title: "Paid Statements", desc: "View paid account statements", path: "/accountStatements/paid" },
-        { title: "Sellers Dashboard", desc: "Manage all sellers", path: "/sellerDashboard" },
-        { title: "Bidder Dashboard", desc: "Manage all bidders", path: "/bidderDashboard" },
         { title: "Business Tables", desc: "View business breakup tables", path: "/BussinessBreakupTables" },
-        { title: "Salary History", desc: "View salary history", path: "/salary/history" },
+       
         { title: "Summary Table", desc: "View salary summary tables", path: "/summary-table" },
         { title: "Rule Table", desc: "View salary rules", path: "/tables" },
         { title: "Breakup Summary", desc: "View salary breakup", path: "/salary/breakup" },

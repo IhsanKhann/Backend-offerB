@@ -50,6 +50,7 @@ import CommissionTransactions from "./Pages/BussinessOperation/CommissionTransac
 
 // Other Pages
 import ProfilePage from "./Pages/EmployeeProfile.jsx";
+import { all } from "axios";
 
 const router = createBrowserRouter([
   // ==========================================
@@ -196,11 +197,15 @@ const router = createBrowserRouter([
   // ==========================================
   {
     path: "/employees-permissions",
-    element: <ProtectedRoute><EmployeesPermissions /></ProtectedRoute>,
+    element: <ProtectedRoute allowedDepartments={["HR", "All" ]}>
+        <EmployeesPermissions />
+      </ProtectedRoute>,
   },
   {
     path: "/salary/rulesTable",
-    element: <ProtectedRoute><SalaryRulesTable /></ProtectedRoute>,
+    element: <ProtectedRoute allowedDepartments={["Finance", "All" ]}>
+        <SalaryRulesTable />
+      </ProtectedRoute>,
   },
   {
     path: "/paymentDashboard",
@@ -212,11 +217,15 @@ const router = createBrowserRouter([
   },
   {
     path: "/sellers",
-    element: <ProtectedRoute><Sellers /></ProtectedRoute>,
+    element: <ProtectedRoute  allowedDepartments={["Finance", "All" ]}> 
+      <Sellers />
+    </ProtectedRoute>,
   },
   {
     path: "/RolesManagerAdvanced",
-    element: <ProtectedRoute><RoleManager /></ProtectedRoute>,
+    element: <ProtectedRoute  allowedDepartments={["Finance", "HR" ]}>
+        <RoleManager /> 
+      </ProtectedRoute>,
   },
 ]);
 
