@@ -753,7 +753,7 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
       <Sidebar
         fetchEmployeesByNode={fetchEmployeesByNode}
         navItems={navItems}
-        title="Admin Panel"
+        title="AdminDashboard"
       />
     </div>
 

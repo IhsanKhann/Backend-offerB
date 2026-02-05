@@ -10,7 +10,7 @@ import FinalizedEmployeeModel from "../models/HRModals/FinalizedEmployees.model.
 import {OrgUnitModel} from "../models/HRModals/OrgUnit.js";
 import { PermissionModel } from "../models/HRModals/Permissions.model.js";
 import CounterModel from "../models/HRModals/Counter.model.js";
-
+import {BranchModel} from "../models/HRModals/BranchModel.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
 
 // ------------helpers ---------------------
@@ -167,46 +167,31 @@ export const getAllEmployees = async (req, res) => {
 export const getSingleEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
+    
+    console.log("ID: ", employeeId);
 
-    if (!employeeId) {
+    if (!employeeId || !mongoose.Types.ObjectId.isValid(employeeId)) {
       return res.status(400).json({
-        status: false,
-        message: "employeeId not provided",
+        success: false,
+        message: "Invalid or missing employee ID",
       });
     }
 
-    const employee = await EmployeeModel.findById(employeeId)
-      .populate({
-        path: "role",
-        select: "roleName permissions",
-        populate: {
-          path: "permissions",
-          select: "name description", // pick the fields you want from permissions
-        },
-      })
-      .populate({
-        path: "orgUnit",
-        select: "name level", // optional if you want orgUnit info
-      });
+    const employee = await EmployeeModel.findById(employeeId);
 
     if (!employee) {
       return res.status(404).json({
-        status: false,
+        success: false,
         message: "Employee not found",
       });
     }
 
-    return res.status(200).json({
-      status: true,
-      message: "Employee found",
-      employee,
-    });
-
+    res.json({ success: true, data: employee });
   } catch (error) {
     console.error("Error fetching employee:", error);
-    return res.status(500).json({
-      status: false,
-      message: "Internal server error",
+    res.status(500).json({
+      success: false,
+      message: "Server error",
     });
   }
 };
@@ -795,6 +780,7 @@ export const AssignEmployeePost = async (req, res) => {
       roleId,
       orgUnit,
       departmentCode,
+      branchId, // ✅ ADDED: Accept branchId
       permissions = []
     } = req.body;
 
@@ -802,10 +788,11 @@ export const AssignEmployeePost = async (req, res) => {
       employeeId, 
       roleId, 
       orgUnit,
-      departmentCode
+      departmentCode,
+      branchId
     });
 
-    // Validate employeeId
+    // ✅ FIX: Validate employeeId
     if (!employeeId || !mongoose.Types.ObjectId.isValid(employeeId)) {
       return res.status(400).json({ 
         success: false, 
@@ -821,7 +808,7 @@ export const AssignEmployeePost = async (req, res) => {
       });
     }
 
-    // Validate orgUnit
+    // ✅ FIX: Validate orgUnit
     if (!orgUnit || !mongoose.Types.ObjectId.isValid(orgUnit)) {
       return res.status(400).json({ 
         success: false, 
@@ -837,7 +824,7 @@ export const AssignEmployeePost = async (req, res) => {
       });
     }
 
-    // Validate departmentCode
+    // ✅ FIX: Validate departmentCode
     if (!departmentCode) {
       return res.status(400).json({
         success: false,
@@ -845,7 +832,7 @@ export const AssignEmployeePost = async (req, res) => {
       });
     }
 
-    const validDepartments = ["HR", "Finance", "BusinessOperation", "All"];
+    const validDepartments = ["HR", "Finance", "BusinessOperation", "IT", "Compliance", "All"];
     if (!validDepartments.includes(departmentCode)) {
       return res.status(400).json({
         success: false,
@@ -853,7 +840,7 @@ export const AssignEmployeePost = async (req, res) => {
       });
     }
 
-    // Validate roleId
+    // ✅ FIX: Validate roleId
     if (!roleId || !mongoose.Types.ObjectId.isValid(roleId)) {
       return res.status(400).json({
         success: false,
@@ -870,6 +857,18 @@ export const AssignEmployeePost = async (req, res) => {
     }
 
     console.log("✅ Found role by ID:", roleDeclaration.roleName);
+
+    // ✅ FIX: Validate branch if provided
+    let branch = null;
+    if (branchId) {
+      branch = await BranchModel.findById(branchId);
+      if (!branch) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid branchId"
+        });
+      }
+    }
 
     // Deactivate existing assignments
     const existingAssignments = await RoleAssignmentModel.find({
@@ -888,12 +887,13 @@ export const AssignEmployeePost = async (req, res) => {
       );
     }
 
-    // Create new role assignment (NO STATUS FIELD)
+    // ✅ FIX: Create role assignment with branchId
     const roleAssignment = new RoleAssignmentModel({
       employeeId: employee._id,
       roleId: roleDeclaration._id,
       departmentCode: departmentCode,
       orgUnit: orgUnitDoc._id,
+      branchId: branchId || null, // ✅ ADDED
       effectiveFrom: new Date(),
       effectiveUntil: null,
       assignedBy: req.user?._id || null,
@@ -917,11 +917,6 @@ export const AssignEmployeePost = async (req, res) => {
     await employee.save();
     console.log("✅ Updated employee references");
 
-    // Update orgUnit reference
-    orgUnitDoc.roleAssignment = roleAssignment._id;
-    await orgUnitDoc.save();
-    console.log("✅ Updated orgUnit reference");
-
     return res.status(200).json({
       success: true,
       message: "Role assigned successfully",
@@ -932,6 +927,7 @@ export const AssignEmployeePost = async (req, res) => {
           roleId: roleAssignment.roleId,
           departmentCode: roleAssignment.departmentCode,
           orgUnit: roleAssignment.orgUnit,
+          branchId: roleAssignment.branchId,
           effectiveFrom: roleAssignment.effectiveFrom,
           isActive: roleAssignment.isActive,
           isExecutiveAccess: departmentCode === "All"
@@ -1779,3 +1775,4 @@ export const EditEmployee = async (req, res) => {
     });
   }
 };
+

@@ -11,6 +11,7 @@ import HomePage from "./Pages/HomePage.jsx";
 import LoginPage from "./Pages/loginPage.jsx";
 import { ResetPasswordPage, ForgetUserId } from "./components/ResetLoginPage.jsx";
 import NotificationManager from "./components/NotificationManager.jsx";
+import HierarchyTree from "./components/HieararchyTree.jsx";
 
 // HR / Administration Pages
 import EmployeeRegistrationForm from "./Forms/EmployeeRegistration.jsx";
@@ -20,7 +21,7 @@ import DraftDashboard from "./Pages/DraftsDashboard.jsx";
 import PermissionHandler from "./Pages/PermissionsHandler.jsx";
 import LeaveApplications from "./Pages/LeaveApplications.jsx";
 import RoleManager from "./components/RolesManagerAdvanced.jsx";
-import { EmployeesPermissions } from "./components/PermissionsManager.jsx";
+import EmployeesPermissions  from "./components/PermissionsManager.jsx";
 
 // Finance Pages
 import SummaryTable from "./Pages/Finance/SummaryTable.jsx";
@@ -227,6 +228,13 @@ const router = createBrowserRouter([
         <RoleManager /> 
       </ProtectedRoute>,
   },
+   {
+    path: "/organization",
+    element: <ProtectedRoute  allowedDepartments={["Finance", "HR" ]}>
+        <HierarchyTree />
+      </ProtectedRoute>,
+  },
+  
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(

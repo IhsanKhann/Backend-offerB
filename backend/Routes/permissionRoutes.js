@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
-import { setResourceOrgUnit } from "../middlewares/authUtility.js";
+import { checkHierarchy } from "../middlewares/hierarchyGuard.js";
 import {
     getEmployeePermissions,
     AllPermissions,
@@ -9,59 +9,25 @@ import {
     removeEmployeePermission,
     addEmployeePermission,
     updatePermission,
-
     addEmployeePermissionsBulk,
     removeEmployeePermissionsBulk,
+    previewInheritance,
 
+    getPermissionStatistics,
+    getEmployeePermissionsDetailed,
+    getAllEmployeesWithPermissions,
+    getFinalizedEmployeesWithRolesEnhanced,
 } from "../contollers/permissionControllers.js";
 
 const router = express.Router();
 router.use(authenticate);
 
-// Get a specific employee's permissions
-router.get(
-  "/getPermissions/:employeeId",
-  authorize("view_employee_permissions"),
-  getEmployeePermissions
-);
+// ========================================
+// SYSTEM-LEVEL PERMISSION MANAGEMENT
+// (No hierarchy checks needed - operates on permission templates)
+// ========================================
 
-// Remove a permission (system-level)
-router.delete(
-  "/removePermission/:permissionId",
-  authorize("delete_Permissions"),
-  removePermission
-);
-
-// Update a permission (system-level)
-router.put(
-  "/updatePermission/:permissionId",
-  authorize("update_Permissions"),
-  updatePermission
-);
-
-router.post("/addPermissionsInBulk",
-  authorize("add_permission_in_bulk"),
-  addEmployeePermissionsBulk
-);
-
-router.delete("/removePermissionsInBulk",
-  authorize("remove_permission_in_bulk"),
-  removeEmployeePermissionsBulk
-);
-
-// Add permission to employee
-router.post(
-  "/addEmployeePermission",
-  authorize("assign_permission_to_employee"),
-  addEmployeePermission
-);
-
-// Remove a permission from an employee
-router.post(
-  "/removeEmployeePermission",
-  authorize("remove_permission_from_employee"),
-  removeEmployeePermission
-);
+router.get("/preview-inheritance", authorize("view_Permissions"), previewInheritance);
 
 // View all permissions (system-level)
 router.get(
@@ -77,5 +43,86 @@ router.post(
   createPermission
 );
 
+// Update a permission (system-level)
+router.put(
+  "/updatePermission/:permissionId",
+  authorize("update_Permissions"),
+  updatePermission
+);
+
+// Remove a permission (system-level)
+router.delete(
+  "/removePermission/:permissionId",
+  authorize("delete_Permissions"),
+  removePermission
+);
+
+
+// Get all employees with permissions
+router.get(
+  "/employees-with-permissions",
+  authorize("view_Permissions"),
+  getAllEmployeesWithPermissions
+);
+
+// Get permission statistics
+router.get(
+  "/statistics",
+  authorize("view_Permissions"),
+  getPermissionStatistics
+);
+
+router.get(
+  "/finalized-employees-with-roles-enhanced",
+  authorize("view_Permissions"),
+  getFinalizedEmployeesWithRolesEnhanced
+);
+
+// ========================================
+// EMPLOYEE-SPECIFIC PERMISSION MANAGEMENT
+// ✅ FIXED: Added hierarchy guards to protect operations
+// ========================================
+
+router.get(
+  "/getPermissions/:employeeId",
+  checkHierarchy(), 
+  authorize("view_employee_permissions"),
+  getEmployeePermissions
+);
+
+router.post(
+  "/addPermissionsInBulk",
+  checkHierarchy(), 
+  authorize("add_permission_in_bulk"),
+  addEmployeePermissionsBulk
+);
+
+router.delete(
+  "/removePermissionsInBulk",
+  checkHierarchy(), 
+  authorize("remove_permission_in_bulk"),
+  removeEmployeePermissionsBulk
+);
+
+router.post(
+  "/addEmployeePermission",
+  checkHierarchy(), 
+  authorize("assign_permission_to_employee"),
+  addEmployeePermission
+);
+
+router.post(
+  "/removeEmployeePermission",
+  checkHierarchy(), 
+  authorize("remove_permission_from_employee"),
+  removeEmployeePermission
+);
+
+router.get(
+  "/getPermissionsDetailed/:employeeId",
+  checkHierarchy(),
+  authorize("view_employee_permissions"),
+  getEmployeePermissionsDetailed
+);
 
 export default router;

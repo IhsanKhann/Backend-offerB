@@ -76,6 +76,7 @@ function HomePage() {
         { title: "Leave Applications", desc: "Review leave requests", path: "/leave-applications" },
         { title: "Employee Permissions", desc: "Permissions for Employees", path: "/employees-permissions" },    
         { title: "Roles Manager Advanced", desc: "Grouping of the roles and the assignments", path: "/RolesManagerAdvanced" },
+        { title: "Organization Hierarchy", desc: "The organization Hierarchy with all nodes", path: "/organization" },
       ]
     },
     Finance: {

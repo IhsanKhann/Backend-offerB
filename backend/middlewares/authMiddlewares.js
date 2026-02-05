@@ -4,9 +4,32 @@ import RoleModel from "../models/HRModals/Role.model.js";
 import { PermissionModel } from "../models/HRModals/Permissions.model.js";
 import { OrgUnitModel } from "../models/HRModals/OrgUnit.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
+import PermissionAggregator from "../utilis/permissionAggregation.js";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+// ========================================
+// ✅ FIXED: Dynamic Permission Aggregation
+// ========================================
+export const getPermissionsForUser = async (user) => {
+  try {
+    // Use the PermissionAggregator to get effective permissions
+    const { effective, isExecutive } = await PermissionAggregator.getEffectivePermissions(user._id);
+    
+    // Convert to Set of permission names/actions
+    const permSet = new Set();
+    effective.forEach(perm => {
+      permSet.add(perm.name);
+      if (perm.action) permSet.add(perm.action);
+    });
+
+    return permSet;
+  } catch (err) {
+    console.error("❌ getPermissionsForUser error:", err);
+    return new Set(); // Return empty set on error
+  }
+};
 
 // ========================================
 // UTILITY: Get Root OrgUnit (Department)
@@ -27,27 +50,29 @@ export const getRootOrgUnit = async (orgUnitId) => {
 };
 
 // ========================================
-// UTILITY: Get All Descendant OrgUnits
+// ✅ FIXED: Get All Descendant OrgUnits (Path-based)
 // ========================================
 export const getAllDescendants = async (orgUnitId) => {
-  const descendants = [];
-  const queue = [orgUnitId];
+  try {
+    const orgUnit = await OrgUnitModel.findById(orgUnitId);
+    if (!orgUnit || !orgUnit.path) return [];
 
-  while (queue.length > 0) {
-    const currentId = queue.shift();
-    const children = await OrgUnitModel.find({ parent: currentId });
-    
-    children.forEach(child => {
-      descendants.push(child._id);
-      queue.push(child._id);
+    // Use path-based regex for efficient descendant lookup
+    const pathRegex = new RegExp(`^${orgUnit.path}\\.`);
+    const descendants = await OrgUnitModel.find({
+      path: pathRegex,
+      isActive: true
     });
-  }
 
-  return descendants;
+    return descendants.map(d => d._id);
+  } catch (err) {
+    console.error("❌ getAllDescendants error:", err);
+    return [];
+  }
 };
 
 // ========================================
-// UTILITY: Check if User is Ancestor
+// ✅ FIXED: Check if User is Ancestor (Path-based)
 // ========================================
 export const isAncestorOf = async (ancestorOrgUnitId, descendantOrgUnitId) => {
   if (!ancestorOrgUnitId || !descendantOrgUnitId) return false;
@@ -56,66 +81,23 @@ export const isAncestorOf = async (ancestorOrgUnitId, descendantOrgUnitId) => {
     return true; // Same unit
   }
 
-  let current = await OrgUnitModel.findById(descendantOrgUnitId);
-  
-  while (current && current.parent) {
-    if (current.parent.toString() === ancestorOrgUnitId.toString()) {
-      return true;
+  try {
+    const [ancestor, descendant] = await Promise.all([
+      OrgUnitModel.findById(ancestorOrgUnitId),
+      OrgUnitModel.findById(descendantOrgUnitId)
+    ]);
+
+    if (!ancestor || !descendant || !ancestor.path || !descendant.path) {
+      return false;
     }
-    current = await OrgUnitModel.findById(current.parent);
+
+    // Check if descendant's path starts with ancestor's path
+    return descendant.path.startsWith(ancestor.path + '.') || 
+           descendant.path === ancestor.path;
+  } catch (err) {
+    console.error("❌ isAncestorOf error:", err);
+    return false;
   }
-
-  return false;
-};
-
-// ========================================
-// UTILITY: Get Effective Permissions
-// ========================================
-export const getPermissionsForUser = async (user) => {
-  // Get active role assignment
-  const assignment = await RoleAssignmentModel.findOne({
-    employeeId: user._id,
-    isActive: true
-  }).populate({
-    path: 'roleId',
-    populate: {
-      path: 'permissions',
-      match: { isActive: true }
-    }
-  });
-
-  if (!assignment || !assignment.roleId) {
-    return new Set();
-  }
-
-  const role = assignment.roleId;
-  const userDepartment = assignment.departmentCode;
-
-  // 🔥 FIX: If user has "All" department, return ALL active permissions
-  if (userDepartment === "All") {
-    const allPermissions = role.permissions;
-    const permSet = new Set();
-    allPermissions.forEach(perm => {
-      permSet.add(perm.name);
-      if (perm.action) permSet.add(perm.action);
-    });
-    return permSet;
-  }
-
-  // Filter permissions by department scope (for regular department users)
-  const effectivePermissions = role.permissions.filter(perm => {
-    return perm.statusScope.includes("ALL") || 
-           perm.statusScope.includes(userDepartment);
-  });
-
-  // Return as Set of permission names/actions
-  const permSet = new Set();
-  effectivePermissions.forEach(perm => {
-    permSet.add(perm.name);
-    if (perm.action) permSet.add(perm.action);
-  });
-
-  return permSet;
 };
 
 // ========================================
@@ -214,7 +196,9 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-// Updated checkAuth function
+// ========================================
+// Check Auth Status
+// ========================================
 export const checkAuth = async (req, res) => {
   try {
     let token = req.cookies?.accessToken;
@@ -247,21 +231,20 @@ export const checkAuth = async (req, res) => {
     .populate('roleId')
     .populate('orgUnit');
 
-    // ✅ Handle "All" department code
     let department = assignment?.departmentCode || null;
     
     // Convert "All" to array of all departments for frontend
     let accessibleDepartments = [];
     if (department === "All") {
-      accessibleDepartments = ["HR", "Finance", "BusinessOperation"];
+      accessibleDepartments = ["HR", "Finance", "BusinessOperation", "IT", "Compliance"];
     } else if (department) {
       accessibleDepartments = [department];
     }
 
     const userResponse = {
       ...user.toObject(),
-      department: department, // "All", "HR", "Finance", or "BusinessOperation"
-      departmentCode: department, // ✅ ADDED: Also send as departmentCode for consistency
+      department: department,
+      departmentCode: department,
       accessibleDepartments: accessibleDepartments,
       role: assignment?.roleId || null,
       orgUnit: assignment?.orgUnit || null,
@@ -282,7 +265,7 @@ export const checkAuth = async (req, res) => {
 };
 
 // ========================================
-// 🔥 SUPERUSER AUTHORIZATION MIDDLEWARE
+// 🔥 AUTHORIZATION MIDDLEWARE (INTENTIONAL SUPERUSER BYPASS)
 // ========================================
 export const authorize = (requiredPermission, options = {}) => {
   return async (req, res, next) => {
@@ -298,7 +281,7 @@ export const authorize = (requiredPermission, options = {}) => {
       }
 
       // ========================================
-      // 🔥 SUPERUSER BYPASS
+      // 🔥 INTENTIONAL SUPERUSER BYPASS
       // Users with departmentCode = "All" bypass ALL checks
       // ========================================
       if (userDepartment === "All") {
@@ -308,7 +291,6 @@ export const authorize = (requiredPermission, options = {}) => {
         console.log(`   Permission: ${requiredPermission}`);
         console.log(`   ✅ All checks bypassed - Superuser access\n`);
 
-        // Attach metadata for logging/auditing
         req.permission = { 
           name: requiredPermission,
           isSuperuserAccess: true 
@@ -320,14 +302,14 @@ export const authorize = (requiredPermission, options = {}) => {
           isSuperuser: true
         };
 
-        return next(); // ✅ BYPASS ALL PERMISSION CHECKS
+        return next();
       }
 
       // ========================================
       // REGULAR USER AUTHORIZATION (Non-Superuser)
       // ========================================
       
-      // STEP 1: Check if user has the permission
+      // STEP 1: ✅ FIXED - Use dynamic permission aggregation
       const userPermissions = await getPermissionsForUser(user);
 
       if (!userPermissions.has(requiredPermission)) {
