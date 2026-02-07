@@ -12,6 +12,14 @@ import { PermissionModel } from "../models/HRModals/Permissions.model.js";
 import CounterModel from "../models/HRModals/Counter.model.js";
 import {BranchModel} from "../models/HRModals/BranchModel.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
+// ---------------------------------------------------------------------------
+import PermissionAggregator from "../utilis/permissionAggregation.js";
+import HierarchyService from "../services/hierarchyService.js";
+import { HierarchyGuard } from "../middlewares/hierarchyGuard.js";
+import DepartmentGuard from "../middlewares/departmentGuard.js";
+import CONSTANTS from "../configs/constants.js";
+import AuditService from "../services/auditService.js";
+import { isValidDepartment } from "../configs/departments.js";
 
 // ------------helpers ---------------------
 const transporter = nodemailer.createTransport({
@@ -250,192 +258,103 @@ export const deleteEmployee = async (req, res) => {
 };
 
 export const RegisterEmployee = async (req, res) => {
+  console.log("📝 Registering Employee Draft...");
+  
   try {
-    console.log("Incoming employee registratiosn request");
-    console.log("req.body:", req.body);
-    console.log("req.file:", req.file);
+    // 1. DATA HYDRATION (Comprehensive parsing for ALL nested fields)
+    const complexFields = [
+      'address', 
+      'salary', 
+      'tenure', 
+      'employmentHistory', 
+      'bankingDetails',
+      'changeOfStatus', // 👈 Added
+      'transfers'       // 👈 Added
+    ];
 
-    const image = req.file;
-    // const salaryAttachment = req.files?.salaryAttachment?.[0];
-
-    let uploadedImage = null;
-    // let uploadedSalaryAttachment = null;
-
-    if (image) {
-      try {
-        console.log("⬆️ Uploading profile image to Cloudinary...");
-        uploadedImage = await uploadFileToCloudinary(
-          image,
-          "employees/profileImage"
-        );
-        console.log("✅ Image uploaded:", uploadedImage);
-      } catch (uploadError) {
-        console.warn("❌ Image upload failed:", uploadError.message);
+    complexFields.forEach(field => {
+      if (req.body[field] && typeof req.body[field] === 'string') {
+        try { 
+          req.body[field] = JSON.parse(req.body[field]); 
+        } catch (e) {
+          console.error(`❌ Failed to parse ${field}:`, e);
+          // If it fails to parse, we might want to null it or keep it as is 
+          // depending on your preference, but usually, it's a malformed string.
+        }
       }
+    });
+
+    // 2. Fix Numeric and Date types from FormData
+    if (req.body.salary && typeof req.body.salary.amount === 'string') {
+      req.body.salary.amount = parseFloat(req.body.salary.amount);
     }
 
-    if (req.body.bankingDetails) {
-      try {
-        console.log("🟩 Raw bankingDetails string:", req.body.bankingDetails);
-        req.body.bankingDetails = JSON.parse(req.body.bankingDetails);
-        console.log("🟩 Parsed bankingDetails object:", req.body.bankingDetails);
-      } catch (err) {
-        console.log("❌ Failed to parse bankingDetails:", err);
-      }
+    // Ensure transfers is an array even if empty or single object
+    if (req.body.transfers && !Array.isArray(req.body.transfers)) {
+      req.body.transfers = [req.body.transfers];
     }
 
-    // ================= Extract fields =================
+    const actorId = req.user._id;
     const {
-      individualName,
-      fatherName,
-      qualification,
-      dob,
-      govtId,
-      passportNo,
-      alienRegNo,
-      officialEmail,
-      personalEmail,
-      previousOrgEmail,
-      address,
-      employmentHistory,
-      employmentStatus,
-      tenure,
-      transfers,
-      changeOfStatus,
-      salary,
-      bankingDetails,
+      individualName, fatherName, dob, officialEmail, personalEmail,
+      previousOrgEmail, address, employmentHistory, employmentStatus, salary, tenure
     } = req.body;
 
-    console.log("📌 Parsed fields:", {
-      individualName,
-      fatherName,
-      dob,
-      govtId,
-      passportNo,
-      alienRegNo,
-      officialEmail,
-      personalEmail,
-      employmentStatus,
-      bankingDetails,
-    });
-
-    // ================= Fix Required Fields Validation =================
-    if (
-      !individualName ||
-      !fatherName ||
-      !dob ||
-      !officialEmail ||
-      !personalEmail ||
-      !employmentStatus
-    ) {
-      console.warn("⚠️ Required fields missing!");
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required fields" });
+    // 3. MINIMAL VALIDATION
+    if (!individualName || !fatherName || !dob || !officialEmail || !personalEmail) {
+      return res.status(400).json({ success: false, message: "Missing core identity fields" });
     }
 
-    if (!govtId && !passportNo && !alienRegNo) {
-      console.warn("⚠️ Missing Govt ID / Passport / Alien Reg No");
-      return res
-        .status(400)
-        .json({ success: false, message: "At least one ID is required" });
-    }
-
-    // ================= Check Duplicates =================
-    const existingEmployee = await EmployeeModel.findOne({
+    // 4. EMAIL UNIQUE CHECK
+    const duplicate = await EmployeeModel.findOne({
       $or: [
-        { officialEmail }, 
-        // { personalEmail }, 
-        { govtId: govtId || null },
-        { passportNo: passportNo || null },
-        { alienRegNo: alienRegNo || null }
-      ].filter(condition => Object.values(condition)[0] != null),
+        { officialEmail: officialEmail.toLowerCase() },
+        { personalEmail: personalEmail.toLowerCase() }
+      ]
     });
 
-    if (existingEmployee) {
-      console.warn("⚠️ Duplicate employee found:", existingEmployee.employeeId);
-      return res
-        .status(400)
-        .json({ success: false, message: "Employee already exists" });
+    if (duplicate) {
+      return res.status(400).json({ success: false, message: "Email already registered" });
     }
 
-    // ================= Parse Nested JSON =================
-    const parsedAddress =
-      typeof address === "string" ? JSON.parse(address) : address || {};
-    const parsedSalary =
-      typeof salary === "string" ? JSON.parse(salary) : salary || {};
-    const parsedTenure =
-      typeof tenure === "string" ? JSON.parse(tenure) : tenure || {};
-    const parsedTransfers =
-      typeof transfers === "string" ? JSON.parse(transfers) : transfers || [];
-    const parsedChangeOfStatus =
-      typeof changeOfStatus === "string"
-        ? JSON.parse(changeOfStatus)
-        : changeOfStatus || {};
-    const parsedHistory =
-      typeof employmentHistory === "string"
-        ? JSON.parse(employmentHistory)
-        : employmentHistory || {};
-
-    console.log("✅ Parsed nested objects:", {
-      parsedAddress,
-      parsedSalary,
-      parsedTenure,
-      parsedTransfers,
-      parsedChangeOfStatus,
-      parsedHistory,
+    // 5. CREATE DRAFT
+    // Note: We use req.body spread AFTER hydration so the model gets Objects, not Strings
+    const newEmployee = new EmployeeModel({
+      ...req.body,
+      officialEmail: officialEmail.toLowerCase(),
+      personalEmail: personalEmail.toLowerCase(),
+      DraftStatus: {
+        status: "Draft",
+        PostStatus: "Not Assigned"
+      },
+      finalizationStatus: "Pending"
     });
 
-    // ================= Build Employee Object =================
-    const employeeData = {
-      individualName,
-      fatherName,
-      qualification,
-      dob: new Date(dob),
-      govtId,
-      passportNo,
-      alienRegNo,
-      officialEmail,
-      personalEmail,
-      previousOrgEmail,
-      address: parsedAddress,
-      employmentHistory: parsedHistory,
-      employmentStatus,
-      tenure: parsedTenure,
-      salary: parsedSalary,
-      changeOfStatus: parsedChangeOfStatus,
-      transfers: parsedTransfers,
-      DraftStatus: { status: "Draft", PostStatus: "Not Assigned" },
-      finalizationStatus: "Pending",
-      ...(uploadedImage && {
-        avatar: {
-          url: uploadedImage.secure_url,
-          public_id: uploadedImage.public_id,
-        },
-      }),
-      bankingDetails,
-      // ...(uploadedSalaryAttachment && { salaryAttachment: { url: uploadedSalaryAttachment.secure_url, public_id: uploadedSalaryAttachment.public_id } }),
-    };
-
-    console.log("🛠️ Final employeeData before save:", employeeData);
-
-    // ================= Save Employee =================
-    const newEmployee = new EmployeeModel(employeeData);
-
-    await newEmployee.validate();
-    console.log("✅ Employee validation passed");
+    if (req.file) newEmployee.profileImage = req.file.path;
 
     await newEmployee.save();
-    console.log("💾 Employee saved successfully:", newEmployee._id);
 
-    return res.status(201).json({
-      success: true,
-      message: "Employee registered successfully",
-      employeeId: newEmployee._id,
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_CREATED,
+      actorId,
+      targetId: newEmployee._id,
+      details: { name: individualName, status: "Draft Created" }
     });
+
+    res.status(201).json({
+      success: true,
+      message: "Employee draft created successfully.",
+      employeeId: newEmployee._id
+    });
+
   } catch (error) {
-    console.error("🔥 RegisterEmployee error:", error.stack || error.message);
-    return res.status(500).json({ success: false, message: "Server error" });
+    console.error("❌ RegisterEmployee error:", error);
+    // Return the specific Mongoose validation error message for better debugging
+    res.status(500).json({ 
+      success: false, 
+      message: error.name === "ValidationError" ? "Data validation failed" : "Server error",
+      error: error.message 
+    });
   }
 };
 
@@ -770,189 +689,6 @@ export const resolveOrgUnit = async (req, res) => {
   } catch (error) {
     console.error("🔥 resolveOrgUnit error:", error);
     return res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const AssignEmployeePost = async (req, res) => {
-  try {
-    const {
-      employeeId,
-      roleId,
-      orgUnit,
-      departmentCode,
-      branchId, // ✅ ADDED: Accept branchId
-      permissions = []
-    } = req.body;
-
-    console.log("📌 AssignEmployeePost received:", { 
-      employeeId, 
-      roleId, 
-      orgUnit,
-      departmentCode,
-      branchId
-    });
-
-    // ✅ FIX: Validate employeeId
-    if (!employeeId || !mongoose.Types.ObjectId.isValid(employeeId)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid or missing employeeId" 
-      });
-    }
-
-    const employee = await EmployeeModel.findById(employeeId);
-    if (!employee) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Employee not found" 
-      });
-    }
-
-    // ✅ FIX: Validate orgUnit
-    if (!orgUnit || !mongoose.Types.ObjectId.isValid(orgUnit)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid or missing orgUnit" 
-      });
-    }
-
-    const orgUnitDoc = await OrgUnitModel.findById(orgUnit);
-    if (!orgUnitDoc) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "OrgUnit not found" 
-      });
-    }
-
-    // ✅ FIX: Validate departmentCode
-    if (!departmentCode) {
-      return res.status(400).json({
-        success: false,
-        message: "departmentCode is required"
-      });
-    }
-
-    const validDepartments = ["HR", "Finance", "BusinessOperation", "IT", "Compliance", "All"];
-    if (!validDepartments.includes(departmentCode)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid departmentCode. Must be one of: ${validDepartments.join(", ")}`
-      });
-    }
-
-    // ✅ FIX: Validate roleId
-    if (!roleId || !mongoose.Types.ObjectId.isValid(roleId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or missing roleId"
-      });
-    }
-
-    const roleDeclaration = await RoleModel.findById(roleId);
-    if (!roleDeclaration) {
-      return res.status(404).json({
-        success: false,
-        message: "Role declaration not found"
-      });
-    }
-
-    console.log("✅ Found role by ID:", roleDeclaration.roleName);
-
-    // ✅ FIX: Validate branch if provided
-    let branch = null;
-    if (branchId) {
-      branch = await BranchModel.findById(branchId);
-      if (!branch) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid branchId"
-        });
-      }
-    }
-
-    // Deactivate existing assignments
-    const existingAssignments = await RoleAssignmentModel.find({
-      employeeId: employee._id,
-      isActive: true
-    });
-
-    if (existingAssignments.length > 0) {
-      console.log(`📋 Deactivating ${existingAssignments.length} existing assignment(s)`);
-      await RoleAssignmentModel.updateMany(
-        { employeeId: employee._id, isActive: true },
-        { 
-          isActive: false,
-          effectiveUntil: new Date()
-        }
-      );
-    }
-
-    // ✅ FIX: Create role assignment with branchId
-    const roleAssignment = new RoleAssignmentModel({
-      employeeId: employee._id,
-      roleId: roleDeclaration._id,
-      departmentCode: departmentCode,
-      orgUnit: orgUnitDoc._id,
-      branchId: branchId || null, // ✅ ADDED
-      effectiveFrom: new Date(),
-      effectiveUntil: null,
-      assignedBy: req.user?._id || null,
-      assignedAt: new Date(),
-      notes: "",
-      isActive: true,
-      permissionOverrides: permissions.length > 0 ? permissions : undefined
-    });
-
-    await roleAssignment.save();
-    console.log("✅ Created role assignment:", roleAssignment._id);
-
-    // Update employee references
-    employee.role = roleDeclaration._id;
-    employee.orgUnit = orgUnitDoc._id;
-    
-    if (employee.DraftStatus) {
-      employee.DraftStatus.PostStatus = "Assigned";
-    }
-    
-    await employee.save();
-    console.log("✅ Updated employee references");
-
-    return res.status(200).json({
-      success: true,
-      message: "Role assigned successfully",
-      data: {
-        roleAssignment: {
-          _id: roleAssignment._id,
-          employeeId: roleAssignment.employeeId,
-          roleId: roleAssignment.roleId,
-          departmentCode: roleAssignment.departmentCode,
-          orgUnit: roleAssignment.orgUnit,
-          branchId: roleAssignment.branchId,
-          effectiveFrom: roleAssignment.effectiveFrom,
-          isActive: roleAssignment.isActive,
-          isExecutiveAccess: departmentCode === "All"
-        },
-        roleDeclaration: {
-          _id: roleDeclaration._id,
-          roleName: roleDeclaration.roleName,
-          category: roleDeclaration.category
-        },
-        employee: {
-          _id: employee._id,
-          individualName: employee.individualName,
-          role: employee.role,
-          orgUnit: employee.orgUnit
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error("🔥 AssignEmployeePost error:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "Server error",
-      error: error.message 
-    });
   }
 };
 
@@ -1776,3 +1512,414 @@ export const EditEmployee = async (req, res) => {
   }
 };
 
+export const updateEmployeePermissions = async (req, res) => {
+  try {
+    const actorId = req.user._id;
+    const { employeeId } = req.params;
+    const { permissionsToAdd = [], permissionsToRemove = [] } = req.body;
+
+    // ============================================================
+    // VALIDATION: TARGET EXISTS
+    // ============================================================
+    const targetEmployee = await FinalizedEmployee.findById(employeeId);
+
+    if (!targetEmployee) {
+      return res.status(404).json({
+        success: false,
+        message: "Target employee not found"
+      });
+    }
+
+    // ============================================================
+    // HIERARCHICAL AUTHORITY CHECK
+    // ============================================================
+    const hierarchyCheck = await HierarchyGuard.canPerformAction(
+      actorId,
+      employeeId,
+      'UPDATE_PERMISSIONS'
+    );
+
+    if (!hierarchyCheck.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: "Insufficient hierarchical authority",
+        reason: hierarchyCheck.reason,
+        code: hierarchyCheck.code
+      });
+    }
+
+    // ============================================================
+    // GET ACTOR'S EFFECTIVE PERMISSIONS
+    // ============================================================
+    const actorPermissions = await PermissionAggregator.getEffectivePermissions(actorId);
+    const actorEffective = actorPermissions.effective;
+    const actorDepartment = actorPermissions.departmentCode;
+
+    // ============================================================
+    // VALIDATION: CANNOT GRANT WHAT YOU DON'T HAVE
+    // ============================================================
+    if (permissionsToAdd.length > 0) {
+      const actorPermissionIds = new Set(
+        actorEffective.map(p => p._id.toString())
+      );
+
+      const unauthorizedPermissions = [];
+
+      for (const permId of permissionsToAdd) {
+        if (!actorPermissionIds.has(permId.toString())) {
+          // Actor doesn't have this permission
+          const perm = await PermissionModel.findById(permId);
+          unauthorizedPermissions.push({
+            id: permId,
+            name: perm?.name || 'Unknown'
+          });
+        }
+      }
+
+      if (unauthorizedPermissions.length > 0) {
+        return res.status(403).json({
+          success: false,
+          message: "Cannot grant permissions you don't have",
+          code: 'PERMISSION_ESCALATION_ATTEMPT',
+          unauthorizedPermissions
+        });
+      }
+
+      // ✅ ADDITIONAL CHECK: Department scope validation
+      if (actorDepartment !== CONSTANTS.DEPARTMENTS.ALL) {
+        const permissionsToCheck = await PermissionModel.find({
+          _id: { $in: permissionsToAdd }
+        });
+
+        const outOfScopePermissions = permissionsToCheck.filter(perm => {
+          // Permission must have actor's department in statusScope
+          return !perm.statusScope.includes(actorDepartment) &&
+                 !perm.statusScope.includes('ALL');
+        });
+
+        if (outOfScopePermissions.length > 0) {
+          return res.status(403).json({
+            success: false,
+            message: "Cannot grant permissions outside your department scope",
+            code: 'DEPARTMENT_SCOPE_VIOLATION',
+            yourDepartment: actorDepartment,
+            outOfScopePermissions: outOfScopePermissions.map(p => ({
+              name: p.name,
+              statusScope: p.statusScope
+            }))
+          });
+        }
+      }
+    }
+
+    // ============================================================
+    // GET TARGET'S CURRENT ASSIGNMENT
+    // ============================================================
+    const targetAssignment = await RoleAssignmentModel.findOne({
+      employeeId,
+      isActive: true
+    });
+
+    if (!targetAssignment) {
+      return res.status(404).json({
+        success: false,
+        message: "Target employee has no active role assignment"
+      });
+    }
+
+    // ============================================================
+    // UPDATE PERMISSION OVERRIDES
+    // ============================================================
+    let currentOverrides = targetAssignment.permissionOverrides || [];
+
+    // Remove permissions
+    if (permissionsToRemove.length > 0) {
+      currentOverrides = currentOverrides.filter(
+        pid => !permissionsToRemove.includes(pid.toString())
+      );
+    }
+
+    // Add permissions
+    if (permissionsToAdd.length > 0) {
+      const newPermissions = permissionsToAdd.filter(
+        pid => !currentOverrides.includes(pid)
+      );
+      currentOverrides.push(...newPermissions);
+    }
+
+    // Update assignment
+    targetAssignment.permissionOverrides = currentOverrides;
+    await targetAssignment.save();
+
+    // ============================================================
+    // AUDIT LOG
+    // ============================================================
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.PERMISSION_MODIFIED,
+      actorId,
+      targetId: employeeId,
+      details: {
+        permissionsAdded: permissionsToAdd.length,
+        permissionsRemoved: permissionsToRemove.length,
+        totalOverrides: currentOverrides.length
+      }
+    });
+
+    console.log(
+      `✅ Permissions updated for ${targetEmployee.individualName} ` +
+      `by ${req.user.individualName}`
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Employee permissions updated successfully",
+      data: {
+        employeeId,
+        employeeName: targetEmployee.individualName,
+        permissionOverrides: currentOverrides,
+        changesSummary: {
+          added: permissionsToAdd.length,
+          removed: permissionsToRemove.length,
+          total: currentOverrides.length
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ updateEmployeePermissions error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update employee permissions",
+      error: error.message
+    });
+  }
+};
+
+export const viewOrgUnitEmployees = async (req, res) => {
+  try {
+    const actorId = req.user._id;
+    const { orgUnitId } = req.params;
+    const { includeDirect = false } = req.query;
+
+    // ============================================================
+    // GET ACTOR'S CONTEXT
+    // ============================================================
+    const actorAssignment = await RoleAssignmentModel.findOne({
+      employeeId: actorId,
+      isActive: true
+    }).populate('orgUnit');
+
+    if (!actorAssignment) {
+      return res.status(403).json({
+        success: false,
+        message: "No active role assignment"
+      });
+    }
+
+    const actorOrgUnit = actorAssignment.orgUnit;
+    const actorDepartment = actorAssignment.departmentCode;
+    const isExecutive = actorDepartment === CONSTANTS.DEPARTMENTS.ALL;
+
+    // ============================================================
+    // DETERMINE TARGET ORG UNIT
+    // ============================================================
+    let targetOrgUnit;
+
+    if (orgUnitId) {
+      // Specific org unit requested
+      targetOrgUnit = await OrgUnitModel.findById(orgUnitId);
+
+      if (!targetOrgUnit) {
+        return res.status(404).json({
+          success: false,
+          message: "Org unit not found"
+        });
+      }
+
+      // ✅ AUTHORIZATION: Can only view own subtree
+      if (!isExecutive) {
+        const isInSubtree = 
+          targetOrgUnit.path.startsWith(actorOrgUnit.path + '.') ||
+          targetOrgUnit.path === actorOrgUnit.path;
+
+        if (!isInSubtree) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only view employees in your organizational subtree",
+            code: 'ORGUNIT_OUT_OF_SCOPE'
+          });
+        }
+      }
+    } else {
+      // No specific unit - use actor's own org unit
+      targetOrgUnit = actorOrgUnit;
+    }
+
+    // ============================================================
+    // GET EMPLOYEES
+    // ============================================================
+    let orgUnitIds;
+
+    if (includeDirect === 'true' || includeDirect === true) {
+      // Only direct reports in this org unit
+      orgUnitIds = [targetOrgUnit._id];
+    } else {
+      // Include entire subtree
+      const descendants = await targetOrgUnit.getDescendants();
+      orgUnitIds = [targetOrgUnit._id, ...descendants.map(d => d._id)];
+    }
+
+    // Build query
+    let query = {
+      orgUnit: { $in: orgUnitIds },
+      isActive: true
+    };
+
+    // ✅ DEPARTMENT FILTER (unless executive)
+    if (!isExecutive) {
+      query.departmentCode = actorDepartment;
+    }
+
+    // Execute query
+    const assignments = await RoleAssignmentModel.find(query)
+      .populate('employeeId', 'individualName personalEmail UserId avatar profileStatus')
+      .populate('roleId', 'roleName category')
+      .populate('orgUnit', 'name type level path')
+      .lean();
+
+    // Filter out null employees
+    const validAssignments = assignments.filter(a => a.employeeId);
+
+    // ============================================================
+    // ENRICH WITH PERMISSION DATA
+    // ============================================================
+    const enrichedEmployees = await Promise.all(
+      validAssignments.map(async (assignment) => {
+        const employee = assignment.employeeId;
+        
+        // Get permission breakdown
+        const permBreakdown = await PermissionAggregator.getPermissionBreakdown(
+          employee._id
+        );
+
+        return {
+          ...employee,
+          assignment: {
+            roleId: assignment.roleId?._id,
+            roleName: assignment.roleId?.roleName,
+            roleCategory: assignment.roleId?.category,
+            departmentCode: assignment.departmentCode,
+            orgUnit: assignment.orgUnit,
+            effectiveFrom: assignment.effectiveFrom
+          },
+          permissions: {
+            directCount: permBreakdown.summary.directCount,
+            inheritedCount: permBreakdown.summary.inheritedCount,
+            totalEffective: permBreakdown.summary.totalEffective
+          },
+          hierarchy: {
+            level: assignment.orgUnit.level,
+            path: assignment.orgUnit.path
+          }
+        };
+      })
+    );
+
+    // ============================================================
+    // RESPONSE
+    // ============================================================
+    res.status(200).json({
+      success: true,
+      scope: {
+        orgUnit: {
+          _id: targetOrgUnit._id,
+          name: targetOrgUnit.name,
+          path: targetOrgUnit.path,
+          level: targetOrgUnit.level
+        },
+        includedSubtree: !includeDirect,
+        departmentFilter: isExecutive ? 'ALL' : actorDepartment,
+        yourAccess: {
+          isExecutive,
+          department: actorDepartment,
+          level: actorOrgUnit.level
+        }
+      },
+      count: enrichedEmployees.length,
+      employees: enrichedEmployees
+    });
+
+  } catch (error) {
+    console.error("❌ viewOrgUnitEmployees error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch employees",
+      error: error.message
+    });
+  }
+};
+
+export const AssignEmployeePost = async (req, res) => {
+  try {
+    const actorId = req.user._id;
+    const { employeeId, roleId, departmentCode, orgUnitId, branchId, effectiveFrom, notes } = req.body;
+
+    // 1. VALIDATION
+    if (!employeeId || !roleId || !departmentCode || !orgUnitId) {
+      return res.status(400).json({ success: false, message: "Missing placement fields" });
+    }
+
+    // 2. FIND DRAFT EMPLOYEE (Modified from FinalizedEmployee to Employee)
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee draft not found" });
+    }
+
+    // 3. HIERARCHY CHECK (Can the actor act on this placement?)
+    const targetOrgUnit = await OrgUnitModel.findById(orgUnitId);
+    if (!targetOrgUnit) return res.status(404).json({ success: false, message: "Target OrgUnit not found" });
+
+    // Assuming your HierarchyGuard handles the permission logic
+    const hierarchyCheck = await HierarchyGuard.canPerformAction(actorId, employeeId, 'ASSIGN_ROLE');
+    if (!hierarchyCheck.allowed) {
+      return res.status(403).json({ success: false, message: hierarchyCheck.reason });
+    }
+
+    // 4. CREATE THE ASSIGNMENT
+    const newAssignment = await RoleAssignmentModel.create({
+      employeeId,
+      roleId,
+      departmentCode,
+      orgUnit: orgUnitId,
+      branchId: branchId || null,
+      effectiveFrom: effectiveFrom || new Date(),
+      isActive: true,
+      assignedBy: actorId,
+      notes: notes || ""
+    });
+
+    // 5. UPDATE THE DRAFT RECORD
+    // Linking the assignment details back to the draft
+    employee.orgUnit = orgUnitId;
+    employee.role = roleId;
+    employee.DraftStatus.PostStatus = "Assigned";
+    await employee.save();
+
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ROLE_ASSIGNED,
+      actorId,
+      targetId: employeeId,
+      details: { orgUnit: targetOrgUnit.name, department: departmentCode }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Role and placement assigned to draft successfully",
+      data: newAssignment
+    });
+
+  } catch (error) {
+    console.error("❌ AssignEmployeePost error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

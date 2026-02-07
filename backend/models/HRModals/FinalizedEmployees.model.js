@@ -89,7 +89,7 @@ const transferSchema = new mongoose.Schema({
   immediateBoss: { type: String },
   date: { type: Date, default: Date.now },
   TransferPermissions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Permission" }],
-  TransferRole : { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
+  TransferRole : { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
 });
 
 // Embedded schema for profile status
@@ -182,7 +182,7 @@ const finalizedEmployeeSchema = new mongoose.Schema(
       { type: mongoose.Schema.Types.ObjectId, ref: "permissions" }
     ],
     previous_status: { type: String },
-    previous_role: { type: mongoose.Schema.Types.ObjectId, ref: "roles" },
+    previous_role: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
 
     leave: {type: LeaveSchema, default: {}},
     suspension: {type: SuspensionSchema, default: {}},

@@ -1,7 +1,10 @@
+// routes/employeeRoutes.js
+
 import express from "express";
 import upload from "../middlewares/mutlerMiddleware.js";
-import { authorize, authenticate } from "../middlewares/authMiddlewares.js";
-import { setResourceOrgUnit } from "../middlewares/authUtility.js";
+import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
+import { checkDepartment } from "../middlewares/departmentGuard.js";
+import { checkHierarchy } from "../middlewares/hierarchyGuard.js";
 
 import {
   RegisterEmployee,
@@ -15,78 +18,117 @@ import {
   getSingleRole,
 } from "../contollers/employeeController.js";
 
-import { resolveOrgUnit } from "../contollers/employeeController.js";
 const router = express.Router();
 
+// ============================================
+// AUTHENTICATION REQUIRED FOR ALL ROUTES
+// ============================================
 router.use(authenticate);
 
-// Assign employee role
-router.post(
-  "/roles/assign",
-  authorize("assign_employee_role"),
-  AssignEmployeePost
-);
+// ============================================
+// ROLE MANAGEMENT
+// ============================================
 
-// ------------------- Employee Routes -------------------
-
-// View all roles
+// View all roles (system-level, no hierarchy check needed)
 router.get(
   "/getAllRoles",
-  authorize("view_all_roles"),
+  authorize("view_all_roles", { resourceType: 'ROLE' }),
   getAllRoles
 );
 
-// View all employees
+// View single role by ID
 router.get(
-  "/getAllEmployees",
-  authorize("view_all_employees"),
-  getAllEmployees
+  "/roles/:id",
+  authorize("view_single_role", { resourceType: 'ROLE' }),
+  getSingleRole
 );
 
+// ============================================
+// EMPLOYEE REGISTRATION & MANAGEMENT
+// ============================================
+
 // Register new employee
+// ✅ RBAC: Requires register_employee permission
+// ✅ Hierarchy: Automatically validated in controller
+// ✅ Department: Must be in same department or executive
 router.post(
   "/register",
-  authorize("register_employee"),
+  checkDepartment(),
+  authorize("register_employee", { resourceType: 'EMPLOYEE' }),
   upload.single("profileImage"),
   RegisterEmployee
 );
 
-// ✅ NEW: Edit draft employee
+// Edit draft employee (before submission)
+// ✅ RBAC: Checks hierarchyScope DESCENDANT
+// ✅ Hierarchy: Can only edit subordinates
 router.put(
   "/edit/:employeeId",
-  authorize("edit_employee"),
+  checkHierarchy(),
+  checkDepartment(),
+  authorize("edit_employee", { resourceType: 'EMPLOYEE' }),
   upload.single("profileImage"),
   EditEmployee
 );
 
 // Submit employee for approval
+// ✅ RBAC: SELF scope - can submit own draft
 router.post(
   "/submit-employee",
-  authorize("submit_employee"),
+  authorize("submit_employee", { resourceType: 'EMPLOYEE' }),
   SubmitEmployee
 );
 
-// Delete employee (before finalized)
+// Delete draft employee
+// ✅ RBAC: DESCENDANT scope
+// ✅ Hierarchy: Can only delete subordinates
 router.delete(
   "/deleteEmployee/:employeeId",
-  authorize("delete_employee"),
+  checkHierarchy(),
+  checkDepartment(),
+  authorize("delete_employee", { resourceType: 'EMPLOYEE' }),
   deleteEmployee
 );
 
+// ============================================
+// EMPLOYEE VIEWING
+// ============================================
+
+// View all employees
+// ✅ RBAC: ORGANIZATION scope
+// ✅ Department: Filtered by department unless executive
+router.get(
+  "/getAllEmployees",
+  checkDepartment(),
+  authorize("view_all_employees", { resourceType: 'EMPLOYEE' }),
+  getAllEmployees
+);
+
 // View single employee
+// ✅ RBAC: DESCENDANT scope
+// ✅ Hierarchy: Can only view subordinates or self
 router.get(
   "/:employeeId",
-  authorize("view_single_employee"),
+  checkHierarchy(),
+  checkDepartment(),
+  authorize("view_single_employee", { resourceType: 'EMPLOYEE' }),
   getSingleEmployee
 );
 
-// ------------------- Role Routes -------------------
+// ============================================
+// ROLE ASSIGNMENT
+// ============================================
 
-// View single role
-router.get(
-  "/roles/:id",
-  authorize("view_single_role"),
-  getSingleRole
+// Assign role to employee
+// ✅ RBAC: DESCENDANT scope
+// ✅ Hierarchy: Can only assign to subordinates
+// ✅ Permission validation: Cannot grant permissions actor doesn't have
+router.post(
+  "/roles/assign",
+  checkHierarchy(),
+  checkDepartment(),
+  authorize("assign_employee_role", { resourceType: 'ROLE' }),
+  AssignEmployeePost
 );
 
-export default router;
+export default router;``

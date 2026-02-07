@@ -1,3 +1,4 @@
+// models/HRModals/OrgUnit.js
 import mongoose from "mongoose";
 
 const OrgUnitSchema = new mongoose.Schema({
@@ -47,7 +48,7 @@ const OrgUnitSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0,
-    max: 6,
+    max: 7, // Fixed max level to 7
     index: true
   },
 
@@ -72,7 +73,7 @@ const OrgUnitSchema = new mongoose.Schema({
 
   description: {
     type: String,
-    default: "",
+    default: ""
   },
 
   isActive: {
@@ -156,25 +157,30 @@ OrgUnitSchema.methods.getAncestors = async function() {
   return ancestors;
 };
 
-OrgUnitSchema.methods.isAncestorOf = function(targetPath) {
+OrgUnitSchema.methods.isAncestorOf = function(target) {
+  const targetPath = typeof target === 'string' ? target : target.path;
   return targetPath.startsWith(this.path + '.');
 };
 
-OrgUnitSchema.methods.isDescendantOf = function(targetPath) {
+OrgUnitSchema.methods.isDescendantOf = function(target) {
+  const targetPath = typeof target === 'string' ? target : target.path;
   return this.path.startsWith(targetPath + '.');
 };
 
 // Hooks
 OrgUnitSchema.pre('save', async function(next) {
-  if (this.parent) {
-    const parent = await this.constructor.findById(this.parent);
-    if (parent) {
+  try {
+    if (this.parent) {
+      const parent = await this.constructor.findById(this.parent);
+      if (!parent) throw new Error(`Parent not found for OrgUnit "${this.name}"`);
       this.level = parent.level + 1;
     }
+    await this.buildPath();
+    if (!this.path) throw new Error('Path could not be generated');
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  await this.buildPath();
-  next();
 });
 
 OrgUnitSchema.pre('remove', async function(next) {
@@ -219,22 +225,4 @@ OrgUnitSchema.statics.findByPathPattern = function(pathPattern) {
   return this.find({ path: regex, isActive: true });
 };
 
-OrgUnitSchema.statics.getByDepartment = function(departmentCode) {
-  if (departmentCode === "All") {
-    return this.find({ isActive: true });
-  }
-  
-  return this.find({ 
-    departmentCode, 
-    isActive: true 
-  });
-};
-
-OrgUnitSchema.statics.getByBranch = function(branchId) {
-  return this.find({ 
-    branchId, 
-    isActive: true 
-  });
-};
-
-export const OrgUnitModel = mongoose.model("OrgUnit", OrgUnitSchema);
+export const OrgUnitModel = mongoose.model('OrgUnit', OrgUnitSchema);

@@ -1,9 +1,10 @@
-// login,  logout.
+// login, logout.
 import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken"; // ✅ ADDED: Missing import
 
 dotenv.config();
 
@@ -85,22 +86,57 @@ export const generateAccessAndRefreshTokens = async(userId) => {
     return {accessToken,refreshToken};
 };
 
+// ✅ FIXED: loginUser with proper error handling
 export const loginUser = async (req, res) => {
   try {
-    const { password } = req.body;
+    const { UserId, password } = req.body;
 
-    // Employee was already checked by checkEmployeeStatus
-    const user = req.employee;
+    console.log("📝 Login attempt:", { UserId, hasPassword: !!password });
+
+    // Validate inputs
+    if (!UserId) {
+      return res.status(400).json({ 
+        status: false, 
+        message: "User ID is required" 
+      });
+    }
 
     if (!password) {
-      return res.status(400).json({ status: false, message: "Password is required" });
+      return res.status(400).json({ 
+        status: false, 
+        message: "Password is required" 
+      });
     }
+
+    // ✅ FIX: Check if employee was attached by middleware, if not fetch manually
+    let user = req.employee;
+    
+    if (!user) {
+      console.log("⚠️  Employee not attached by middleware, fetching manually...");
+      user = await FinalizedEmployee.findOne({ UserId });
+    }
+
+    if (!user) {
+      return res.status(401).json({ 
+        status: false, 
+        message: "Invalid credentials" 
+      });
+    }
+
+    console.log("✅ User found:", user.individualName);
 
     // Validate password
     const isPasswordValid = await user.comparePassword(password);
+    
     if (!isPasswordValid) {
-      return res.status(400).json({ status: false, message: "Invalid password" });
+      console.log("❌ Invalid password");
+      return res.status(401).json({ 
+        status: false, 
+        message: "Invalid credentials" 
+      });
     }
+
+    console.log("✅ Password valid");
 
     // Generate tokens
     const accessToken = user.generateAccessToken();
@@ -108,6 +144,8 @@ export const loginUser = async (req, res) => {
 
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
+
+    console.log("✅ Tokens generated, sending response");
 
     res
       .cookie("accessToken", accessToken, {
@@ -131,6 +169,7 @@ export const loginUser = async (req, res) => {
           OrganizationId: user.OrganizationId,
           UserId: user.UserId,
           personalEmail: user.personalEmail,
+          individualName: user.individualName,
         },
         accessToken,
         refreshToken,
@@ -234,7 +273,7 @@ export const ForgetUserId = async (req, res) => {
     }
 
     // 2️⃣ Check password
-      const isPasswordValid = await employee.comparePassword(password);
+    const isPasswordValid = await employee.comparePassword(password);
     if (!isPasswordValid) {
       return res.status(400).json({
         status: false,
@@ -280,7 +319,7 @@ export const refreshToken = async (req, res) => {
             });
         }
 
-        const user = await FinalizedEmployee.findById(decodedToken.id);
+        const user = await FinalizedEmployee.findById(decodedToken._id);
         if (!user) {
             return res.status(404).json({
                 status: false,
