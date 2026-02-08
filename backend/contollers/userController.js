@@ -1,17 +1,19 @@
-// login, logout.
+// login, logout, and authentication with audit logging
 import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
+import AuditService from "../services/auditService.js";
+import CONSTANTS from "../configs/constants.js";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
-import jwt from "jsonwebtoken"; // ✅ ADDED: Missing import
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
 // -------------------- helper functions --------------------------
 
 const transporter = nodemailer.createTransport({
-  service: "gmail", // or outlook, yahoo
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -86,12 +88,12 @@ export const generateAccessAndRefreshTokens = async(userId) => {
     return {accessToken,refreshToken};
 };
 
-// ✅ FIXED: loginUser with proper error handling
+// ✅ FIXED: loginUser with proper error handling and audit logging
 export const loginUser = async (req, res) => {
   try {
     const { UserId, password } = req.body;
 
-    console.log("📝 Login attempt:", { UserId, hasPassword: !!password });
+    console.log("🔐 Login attempt:", { UserId, hasPassword: !!password });
 
     // Validate inputs
     if (!UserId) {
@@ -112,11 +114,24 @@ export const loginUser = async (req, res) => {
     let user = req.employee;
     
     if (!user) {
-      console.log("⚠️  Employee not attached by middleware, fetching manually...");
+      console.log("⚠️ Employee not attached by middleware, fetching manually...");
       user = await FinalizedEmployee.findOne({ UserId });
     }
 
     if (!user) {
+      // 🔍 AUDIT LOG - Failed login attempt
+      await AuditService.log({
+        eventType: CONSTANTS.AUDIT_EVENTS.LOGIN_FAILED,
+        actorId: null,
+        targetId: null,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        details: {
+          attemptedUserId: UserId,
+          reason: "User not found"
+        }
+      });
+
       return res.status(401).json({ 
         status: false, 
         message: "Invalid credentials" 
@@ -130,6 +145,20 @@ export const loginUser = async (req, res) => {
     
     if (!isPasswordValid) {
       console.log("❌ Invalid password");
+
+      // 🔍 AUDIT LOG - Failed login attempt
+      await AuditService.log({
+        eventType: CONSTANTS.AUDIT_EVENTS.LOGIN_FAILED,
+        actorId: user._id,
+        targetId: user._id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        details: {
+          UserId: user.UserId,
+          reason: "Invalid password"
+        }
+      });
+
       return res.status(401).json({ 
         status: false, 
         message: "Invalid credentials" 
@@ -146,6 +175,19 @@ export const loginUser = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     console.log("✅ Tokens generated, sending response");
+
+    // 🔍 AUDIT LOG - Successful login
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.LOGIN_SUCCESS,
+      actorId: user._id,
+      targetId: user._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        UserId: user.UserId,
+        individualName: user.individualName
+      }
+    });
 
     res
       .cookie("accessToken", accessToken, {
@@ -193,6 +235,19 @@ export const logOut = async (req, res) => {
 
     await FinalizedEmployee.findByIdAndUpdate(req.user._id, { refreshToken: "" });
 
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.LOGOUT,
+      actorId: req.user._id,
+      targetId: req.user._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        UserId: req.user.UserId,
+        individualName: req.user.individualName
+      }
+    });
+
     const isProd = process.env.NODE_ENV === "production";
 
     return res
@@ -238,6 +293,20 @@ export const ResetPassword = async (req, res) => {
     // 3️⃣ Save the updated employee
     await employee.save();
 
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.PASSWORD_RESET,
+      actorId: employee._id,
+      targetId: employee._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        UserId: employee.UserId,
+        email: employee.personalEmail,
+        individualName: employee.individualName
+      }
+    });
+
     // 4️⃣ Send email with new password
     await sendPasswordEmail(employee, newPassword);
 
@@ -255,7 +324,7 @@ export const ResetPassword = async (req, res) => {
   }
 };
 
-// Forget UserId Controller
+// Forget UserId Controller (READ ONLY - NO STATE CHANGE, NO AUDIT)
 export const ForgetUserId = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -339,6 +408,18 @@ export const refreshToken = async (req, res) => {
         const { accessToken, refreshToken: newRefreshToken } =
             await generateAccessAndRefreshTokens(user._id);
 
+        // 🔍 AUDIT LOG
+        await AuditService.log({
+          eventType: CONSTANTS.AUDIT_EVENTS.TOKEN_REFRESHED,
+          actorId: user._id,
+          targetId: user._id,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          details: {
+            UserId: user.UserId
+          }
+        });
+
         // Send new cookies
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
@@ -370,7 +451,7 @@ export const refreshToken = async (req, res) => {
     }
 };
 
-// userController.js - Fixed getLoggedInUser
+// userController.js - Fixed getLoggedInUser (READ ONLY - NO AUDIT)
 export const getLoggedInUser = async (req, res) => {
   try {
     const user = req.user;

@@ -3,6 +3,8 @@ import { OrgUnitModel } from "../models/HRModals/OrgUnit.js";
 import { BranchModel } from "../models/HRModals/BranchModel.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
 import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
+import AuditService from "../services/auditService.js";
+import CONSTANTS from "../configs/constants.js";
 
 /**
  * ✅ FIXED: Self-Healing Path Logic with Recursive Update
@@ -103,6 +105,25 @@ export const createOrgUnit = async (req, res) => {
       
       if (createdNodes.length > 0) {
         console.log(`✅ Auto-created ${createdNodes.length} missing nodes`);
+        
+        // 🔍 AUDIT LOG for auto-created nodes
+        await AuditService.log({
+          eventType: CONSTANTS.AUDIT_EVENTS.ORGUNIT_CREATED,
+          actorId: req.user._id,
+          targetId: finalNode?._id || null,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          details: {
+            autoCreated: true,
+            pathSegments: normalizedPath,
+            createdCount: createdNodes.length,
+            createdNodes: createdNodes.map(n => ({
+              name: n.name,
+              path: n.path,
+              level: n.level
+            }))
+          }
+        });
       }
       
       if (finalNode && finalNode.name === name) {
@@ -165,6 +186,24 @@ export const createOrgUnit = async (req, res) => {
 
     await unit.save();
 
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ORGUNIT_CREATED,
+      actorId: req.user._id,
+      targetId: unit._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        orgUnitName: unit.name,
+        type: unit.type,
+        departmentCode: unit.departmentCode,
+        path: unit.path,
+        parentId: parent,
+        branchId: branchId,
+        isGlobal: unit.isGlobal
+      }
+    });
+
     res.status(201).json({
       message: "Organization unit created successfully",
       success: true,
@@ -181,7 +220,7 @@ export const createOrgUnit = async (req, res) => {
 };
 
 /**
- * ✅ FIXED: GET ALL ORG UNITS (Tree Structure with Branch Context)
+ * ✅ FIXED: GET ALL ORG UNITS (READ ONLY - NO AUDIT)
  */
 export const getOrgUnits = async (req, res) => {
   try {
@@ -242,7 +281,7 @@ export const getOrgUnits = async (req, res) => {
 };
 
 /**
- * ✅ GET SINGLE ORG UNIT
+ * ✅ GET SINGLE ORG UNIT (READ ONLY - NO AUDIT)
  */
 export const getSingleOrgUnit = async (req, res) => {
   try {
@@ -288,15 +327,35 @@ export const updateOrgUnit = async (req, res) => {
       });
     }
 
-    // Update allowed fields
+    // Track changes for audit
+    const changedFields = {};
     const allowedUpdates = ['name', 'type', 'departmentCode', 'metadata', 'isActive'];
+    
     for (const key of allowedUpdates) {
-      if (updates[key] !== undefined) {
+      if (updates[key] !== undefined && JSON.stringify(unit[key]) !== JSON.stringify(updates[key])) {
+        changedFields[key] = {
+          old: unit[key],
+          new: updates[key]
+        };
         unit[key] = updates[key];
       }
     }
 
     await unit.save();
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ORGUNIT_UPDATED,
+      actorId: req.user._id,
+      targetId: unit._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        orgUnitName: unit.name,
+        path: unit.path,
+        changedFields
+      }
+    });
 
     res.status(200).json({
       success: true,
@@ -327,6 +386,10 @@ export const moveOrgUnit = async (req, res) => {
         error: "OrgUnit not found"
       });
     }
+
+    // Store old parent for audit
+    const oldParentId = unit.parent ? unit.parent.toString() : null;
+    const oldPath = unit.path;
 
     // Prevent circular reference
     if (newParentId && String(newParentId) === String(orgUnitId)) {
@@ -366,10 +429,29 @@ export const moveOrgUnit = async (req, res) => {
     // ✅ FIXED: Recalculate paths for entire subtree
     await PathBuilder.recalculateSubtreePaths(unit._id);
 
+    // Reload unit to get updated path
+    const updatedUnit = await OrgUnitModel.findById(orgUnitId);
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ORGUNIT_MOVED,
+      actorId: req.user._id,
+      targetId: unit._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        orgUnitName: unit.name,
+        oldParentId,
+        newParentId,
+        oldPath,
+        newPath: updatedUnit.path
+      }
+    });
+
     res.status(200).json({
       success: true,
       message: "OrgUnit moved successfully and paths updated",
-      data: unit
+      data: updatedUnit
     });
   } catch (err) {
     res.status(500).json({
@@ -421,7 +503,25 @@ export const deleteOrgUnit = async (req, res) => {
       });
     }
 
+    // Store details before deletion
+    const deletedDetails = {
+      name: unit.name,
+      type: unit.type,
+      path: unit.path,
+      departmentCode: unit.departmentCode
+    };
+
     await OrgUnitModel.findByIdAndDelete(orgUnitId);
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ORGUNIT_DELETED,
+      actorId: req.user._id,
+      targetId: orgUnitId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: deletedDetails
+    });
 
     res.status(200).json({
       success: true,
@@ -437,7 +537,7 @@ export const deleteOrgUnit = async (req, res) => {
 };
 
 /**
- * ✅ GET EMPLOYEES BY ORG UNIT (with descendant aggregation)
+ * ✅ GET EMPLOYEES BY ORG UNIT (READ ONLY - NO AUDIT)
  */
 export const getEmployeesByOrgUnit = async (req, res) => {
   try {
@@ -494,7 +594,7 @@ export const getEmployeesByOrgUnit = async (req, res) => {
 };
 
 /**
- * ✅ GET ORG UNITS BY DEPARTMENT
+ * ✅ GET ORG UNITS BY DEPARTMENT (READ ONLY - NO AUDIT)
  */
 export const getOrgUnitsByDepartment = async (req, res) => {
   try {
@@ -521,7 +621,7 @@ export const getOrgUnitsByDepartment = async (req, res) => {
 };
 
 /**
- * ✅ GET EMPLOYEES BY DEPARTMENT
+ * ✅ GET EMPLOYEES BY DEPARTMENT (READ ONLY - NO AUDIT)
  */
 export const getEmployeesByDepartment = async (req, res) => {
   try {

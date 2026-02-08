@@ -1,0 +1,115 @@
+[{
+  "_id": {
+    "$oid": "6985b6e2fd7dce090e44445a"
+  },
+  "UserId": "AbdusSaboorKhanOBE1",
+  "OrganizationId": "1",
+  "individualName": "AbdusSaboorKhan",
+  "fatherName": "Haji Sattar Khan",
+  "dob": {
+    "$date": "1985-01-15T00:00:00.000Z"
+  },
+  "govtId": "12345-6789012-3",
+  "officialEmail": "officalemail@gmail.com",
+  "personalEmail": "mortalihsan@gmail.com",
+  "rolePermissionsBackup": [],
+  "leave": {
+    "onLeave": false,
+    "leaveAccepted": false,
+    "leaveRejected": false,
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e444453"
+    }
+  },
+  "suspension": {
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e444454"
+    }
+  },
+  "blocked": {
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e444455"
+    }
+  },
+  "terminated": {
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e444456"
+    }
+  },
+  "address": {
+    "city": "Islamabad",
+    "country": "Pakistan",
+    "contactNo": "+92-300-1234567",
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e44445b"
+    }
+  },
+  "employmentHistory": {
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e444457"
+    }
+  },
+  "employmentStatus": "Permanent",
+  "role": {
+    "$oid": "6986b94fd789c0c2e4f8690e"
+  },
+  "orgUnit": {
+    "$oid": "6985b6c8fd7dce090e44439e"
+  },
+  "salary": {
+    "startDate": {
+      "$date": "2020-01-01T00:00:00.000Z"
+    },
+    "type": "Fixed",
+    "amount": 200000,
+    "terminalBenefits": {
+      "gratuity": 0,
+      "providentFund": 0,
+      "eobi": 0,
+      "costOfFunds": 0,
+      "groupTermInsurance": 0,
+      "otherBenefits": 0
+    },
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e44445c"
+    }
+  },
+  "tenure": {
+    "joining": {
+      "$date": "2020-01-01T00:00:00.000Z"
+    },
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e44445d"
+    }
+  },
+  "changeOfStatus": {
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e444458"
+    }
+  },
+  "profileStatus": {
+    "submitted": true,
+    "decision": "Approved",
+    "passwordCreated": false,
+    "emailSent": false,
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e44445e"
+    }
+  },
+  "bankingDetails": {
+    "_id": {
+      "$oid": "6985b6e2fd7dce090e444459"
+    }
+  },
+  "transfers": [],
+  "createdAt": {
+    "$date": "2026-02-06T09:39:46.120Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T08:28:29.814Z"
+  },
+  "__v": 0,
+  "password": "$2b$10$/9HZj33snse2FzUUyuemWeyRBxpUyUxvafOhHGeNJ18GQdHQVia3G",
+  "passwordHash": "$2b$10$M4RM57Yf7p3bIZNF789LWO41cgrjGr3vUdrmYCPgqIs4c/gohukQy",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2OTg1YjZlMmZkN2RjZTA5MGU0NDQ0NWEiLCJVc2VySWQiOiJBYmR1c1NhYm9vcktoYW5PQkUxIiwiT3JnYW5pemF0aW9uSWQiOiIxIiwiaWF0IjoxNzcwNDUyOTA5LCJleHAiOjE3NzMwNDQ5MDl9.UJPyFuFLNGQscvKeI965bcI4dFvdAOM3E3mWPCuk9Mo"
+}]

@@ -12,20 +12,30 @@ const ProtectedRoute = ({ children, allowedDepartments = [] }) => {
   useEffect(() => {
     const verifyUser = async () => {
       try {
+        console.log("🔐 ProtectedRoute: Verifying user...");
         const res = await api.get("/auth/check-auth");
-        if (res.data.status) {
+        
+        console.log("📦 Check-auth response:", res.data);
+        
+        // ✅ FIXED: Backend returns "success", not "status"
+        if (res.data.success) {
+          console.log("✅ Authentication successful");
           setAuthenticated(true);
-          // ✅ FIXED: Match the field from backend response (department, not departmentCode)
-          setUserDepartment(res.data.user.department);
           
-          // Debug logging (remove in production)
-          console.log("User department:", res.data.user.department);
-          console.log("Accessible departments:", res.data.user.accessibleDepartments);
+          // ✅ Get department from user object
+          const department = res.data.user.department;
+          setUserDepartment(department);
+          
+          console.log("✅ User department:", department);
+          console.log("✅ User data:", res.data.user);
         } else {
+          console.log("❌ Authentication failed - success is false");
           setAuthenticated(false);
         }
       } catch (err) {
-        console.error("Auth verification failed:", err);
+        console.error("❌ Auth verification failed:", err);
+        console.error("❌ Error response:", err.response?.data);
+        console.error("❌ Error status:", err.response?.status);
         setAuthenticated(false);
       } finally {
         setLoading(false);
@@ -49,25 +59,24 @@ const ProtectedRoute = ({ children, allowedDepartments = [] }) => {
 
   // 2. Not Authenticated: Send to Login
   if (!isAuthenticated) {
+    console.log("🔒 Not authenticated - redirecting to login");
     return <Navigate to="/login" replace />;
   }
 
-  // 3. ✅ FIXED: Improved access check logic
+  // 3. ✅ Check department access
   const hasAccess = 
     allowedDepartments.length === 0 ||           // No restrictions (public route)
     userDepartment === "All" ||                   // Executive access (bypass all checks)
     allowedDepartments.includes(userDepartment); // Department match
 
-  // Debug logging (remove in production)
-  if (!hasAccess) {
-    console.log("Access denied:", {
-      userDepartment,
-      allowedDepartments,
-      hasAccess
-    });
-  }
+  console.log("🔍 Access check:", {
+    userDepartment,
+    allowedDepartments,
+    hasAccess
+  });
 
   if (!hasAccess) {
+    console.log("🚫 Access denied");
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="max-w-md w-full bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
@@ -101,6 +110,7 @@ const ProtectedRoute = ({ children, allowedDepartments = [] }) => {
   }
 
   // 4. All checks passed: Render the page
+  console.log("✅ Access granted - rendering protected content");
   return children;
 };
 

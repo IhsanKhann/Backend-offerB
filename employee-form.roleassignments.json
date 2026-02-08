@@ -1,0 +1,39 @@
+[{
+  "_id": {
+    "$oid": "6985b6e2fd7dce090e44446a"
+  },
+  "employeeId": {
+    "$oid": "6985b6e2fd7dce090e44445a"
+  },
+  "roleId": {
+    "$oid": "6986b94fd789c0c2e4f8690e"
+  },
+  "departmentCode": "All",
+  "orgUnit": {
+    "$oid": "6985b6c8fd7dce090e44439e"
+  },
+  "branchId": {
+    "$oid": "6985b6c7fd7dce090e444394"
+  },
+  "effectiveFrom": {
+    "$date": "2026-02-06T09:39:46.823Z"
+  },
+  "effectiveUntil": null,
+  "isActive": true,
+  "assignedBy": {
+    "$oid": "6985b6e2fd7dce090e44445a"
+  },
+  "notes": "",
+  "salaryOverride": null,
+  "permissionOverrides": [],
+  "assignedAt": {
+    "$date": "2026-02-06T09:39:46.824Z"
+  },
+  "createdAt": {
+    "$date": "2026-02-06T09:39:46.826Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T04:37:16.467Z"
+  },
+  "__v": 0
+}]

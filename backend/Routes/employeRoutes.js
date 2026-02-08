@@ -64,9 +64,9 @@ router.post(
 // ✅ Hierarchy: Can only edit subordinates
 router.put(
   "/edit/:employeeId",
+  authorize("edit_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("edit_employee", { resourceType: 'EMPLOYEE' }),
   upload.single("profileImage"),
   EditEmployee
 );
@@ -76,6 +76,8 @@ router.put(
 router.post(
   "/submit-employee",
   authorize("submit_employee", { resourceType: 'EMPLOYEE' }),
+  checkHierarchy(),
+  checkDepartment(),
   SubmitEmployee
 );
 
@@ -84,9 +86,9 @@ router.post(
 // ✅ Hierarchy: Can only delete subordinates
 router.delete(
   "/deleteEmployee/:employeeId",
+  authorize("delete_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("delete_employee", { resourceType: 'EMPLOYEE' }),
   deleteEmployee
 );
 
@@ -109,9 +111,9 @@ router.get(
 // ✅ Hierarchy: Can only view subordinates or self
 router.get(
   "/:employeeId",
+  authorize("view_single_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("view_single_employee", { resourceType: 'EMPLOYEE' }),
   getSingleEmployee
 );
 
@@ -125,9 +127,9 @@ router.get(
 // ✅ Permission validation: Cannot grant permissions actor doesn't have
 router.post(
   "/roles/assign",
+  authorize("assign_employee_role", { resourceType: 'ROLE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("assign_employee_role", { resourceType: 'ROLE' }),
   AssignEmployeePost
 );
 

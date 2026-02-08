@@ -1,5 +1,9 @@
+// ============================================
+// CORRECTED FRONTEND - AssignRolesForm.jsx
+// ============================================
+
 import { useEffect, useState, useCallback } from "react";
-import { ChevronRight, ChevronDown, Building2, Users, Loader2, AlertCircle, Shield } from "lucide-react";
+import { ChevronRight, ChevronDown, Building2, Users, Loader2, AlertCircle, Shield, CheckCircle2 } from "lucide-react";
 import { useParams } from "react-router-dom";
 import api from "../api/axios.js";
 
@@ -10,6 +14,7 @@ const AssignRolesForm = ({ onBack }) => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [validationErrors, setValidationErrors] = useState([]);
 
   const [employee, setEmployee] = useState(null);
   const [roles, setRoles] = useState([]);
@@ -24,6 +29,8 @@ const AssignRolesForm = ({ onBack }) => {
     orgUnitId: "",
     branchId: "",
     departmentCode: "",
+    effectiveFrom: new Date().toISOString().split('T')[0],
+    notes: ""
   });
 
   const [expandedNodes, setExpandedNodes] = useState(new Set());
@@ -50,7 +57,6 @@ const AssignRolesForm = ({ onBack }) => {
         api.get("/org-units"),
       ]);
 
-      // Adapt to your specific backend response structures
       const employeeData = empRes.data?.data || empRes.data?.employee || empRes.data;
       const rolesData = rolesRes.data?.Roles || rolesRes.data?.data || rolesRes.data;
       const branchesData = branchRes.data?.branches || branchRes.data?.data || branchRes.data;
@@ -72,6 +78,42 @@ const AssignRolesForm = ({ onBack }) => {
     fetchData();
   }, [fetchData]);
 
+  /* ------------------------------ Client-Side Validation ------------------------------ */
+  const validateForm = () => {
+    const errors = [];
+
+    if (!form.roleId) errors.push("Role must be selected");
+    if (!form.orgUnitId) errors.push("Organizational position must be selected");
+    if (!form.departmentCode) errors.push("Department must be selected");
+    
+    const selectedOrgUnit = findOrgUnitById(orgTree, form.orgUnitId);
+    if (selectedOrgUnit && form.departmentCode !== "All") {
+      if (selectedOrgUnit.departmentCode !== form.departmentCode) {
+        errors.push(`Selected position belongs to ${selectedOrgUnit.departmentCode} department, not ${form.departmentCode}`);
+      }
+    }
+
+    if (form.branchId && selectedOrgUnit) {
+      if (selectedOrgUnit.branchId && selectedOrgUnit.branchId !== form.branchId) {
+        errors.push("Selected position does not belong to the selected branch");
+      }
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const findOrgUnitById = (nodes, id) => {
+    for (const node of nodes) {
+      if (node._id === id) return node;
+      if (node.children) {
+        const found = findOrgUnitById(node.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
   /* ------------------------------ Permissions Preview ------------------------------ */
   useEffect(() => {
     const loadPreview = async () => {
@@ -86,13 +128,13 @@ const AssignRolesForm = ({ onBack }) => {
           params: { roleId: form.roleId, orgUnitId: form.orgUnitId },
         });
         setEffectivePermissions(res.data?.summary || res.data);
-      } catch {
-        // Fallback calculation UI-side if route doesn't exist yet
+      } catch (err) {
+        console.warn("⚠️ Permission preview unavailable:", err.message);
         const role = roles.find((r) => r._id === form.roleId);
         setEffectivePermissions({
           directCount: role?.permissions?.length || 0,
-          inheritedCount: "...",
-          totalEffective: "Select Position",
+          inheritedCount: "N/A",
+          totalEffective: role?.permissions?.length || 0,
         });
       } finally {
         setLoadingPermissions(false);
@@ -116,16 +158,26 @@ const AssignRolesForm = ({ onBack }) => {
     const isExpanded = expandedNodes.has(node._id);
     const isSelected = form.orgUnitId === node._id;
 
+    const departmentMismatch = form.departmentCode && 
+                                form.departmentCode !== "All" && 
+                                node.departmentCode !== form.departmentCode;
+
     return (
       <div className="w-full">
         <div
           className={`group flex items-center py-2 px-3 my-1 rounded-md transition-all cursor-pointer border ${
             isSelected
               ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
+              : departmentMismatch
+              ? "border-red-200 opacity-50 hover:bg-red-50"
               : "border-transparent hover:bg-gray-50 text-gray-700"
           }`}
           style={{ marginLeft: `${level * 16}px` }}
-          onClick={() => setForm((prev) => ({ ...prev, orgUnitId: node._id }))}
+          onClick={() => {
+            if (!departmentMismatch) {
+              setForm((prev) => ({ ...prev, orgUnitId: node._id }));
+            }
+          }}
         >
           <div className="flex items-center flex-1 min-w-0">
             {hasChildren ? (
@@ -144,14 +196,16 @@ const AssignRolesForm = ({ onBack }) => {
             )}
             <div className="mr-3 flex-shrink-0">
               {node.type === "DEPARTMENT" || hasChildren ? (
-                <Building2 className={`w-4 h-4 ${isSelected ? "text-blue-500" : "text-gray-400"}`} />
+                <Building2 className={`w-4 h-4 ${isSelected ? "text-blue-500" : departmentMismatch ? "text-red-400" : "text-gray-400"}`} />
               ) : (
-                <Users className={`w-4 h-4 ${isSelected ? "text-blue-500" : "text-gray-400"}`} />
+                <Users className={`w-4 h-4 ${isSelected ? "text-blue-500" : departmentMismatch ? "text-red-400" : "text-gray-400"}`} />
               )}
             </div>
             <div className="truncate flex-1">
               <p className="text-sm font-medium truncate">{node.name}</p>
-              <p className={`text-[10px] font-bold uppercase tracking-wider ${isSelected ? "text-blue-500" : "text-gray-400"}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wider ${
+                isSelected ? "text-blue-500" : departmentMismatch ? "text-red-400" : "text-gray-400"
+              }`}>
                 {node.type} • {node.departmentCode}
               </p>
             </div>
@@ -179,42 +233,59 @@ const AssignRolesForm = ({ onBack }) => {
   };
 
   /* ------------------------------ Submit ------------------------------ */
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // 1. Validate required fields
-  if (!form.roleId || !form.orgUnitId || !form.departmentCode) {
-    alert("Please ensure Role, Department, and Position are all selected.");
-    return;
-  }
-
-  try {
-    setSubmitting(true);
-
-    // 2. Map frontend state to backend expected keys
-    const payload = {
-      employeeId: employeeId,   // from useParams
-      roleId: form.roleId,      // from select
-      orgUnit: form.orgUnitId,  // ✅ CHANGED: Backend expects 'orgUnit'
-      branchId: form.branchId || null,
-      departmentCode: form.departmentCode,
-    };
-
-    console.log("📤 Sending Assignment:", payload);
-
-    const response = await api.post("/roles/assign", payload);
-
-    if (response.data.success) {
-      alert("Role assigned successfully!");
-      onBack?.();
+    if (!validateForm()) {
+      alert("Please fix the validation errors before submitting");
+      return;
     }
-  } catch (err) {
-    console.error("❌ Assignment Error:", err.response?.data);
-    alert(err.response?.data?.message || "Assignment failed. Check console.");
-  } finally {
-    setSubmitting(false);
-  }
-};
+
+    try {
+      setSubmitting(true);
+      setValidationErrors([]);
+
+      const payload = {
+        employeeId: employeeId,
+        roleId: form.roleId,
+        orgUnit: form.orgUnitId,  // ✅ Backend expects 'orgUnit'
+        branchId: form.branchId || null,
+        departmentCode: form.departmentCode,
+        effectiveFrom: form.effectiveFrom,
+        notes: form.notes,
+      };
+
+      console.log("📤 Sending Assignment:", payload);
+
+      // ✅ CRITICAL FIX: Correct endpoint with /employees prefix
+      const response = await api.post("/employees/roles/assign", payload);
+
+      if (response.data.success) {
+        alert("✅ Role assigned successfully!");
+        onBack?.();
+      }
+    } catch (err) {
+      console.error("❌ Assignment Error:", err.response?.data);
+      
+      const errorMessage = err.response?.data?.message || "Assignment failed";
+      const serverErrors = err.response?.data?.errors || [];
+      
+      setValidationErrors([errorMessage, ...serverErrors]);
+      
+      // Show user-friendly error
+      if (err.response?.status === 400) {
+        alert(`❌ Validation Error:\n\n${errorMessage}`);
+      } else if (err.response?.status === 403) {
+        alert(`❌ Permission Denied:\n\n${errorMessage}\n\nYou may not have sufficient permissions to perform this action.`);
+      } else if (err.response?.status === 404) {
+        alert(`❌ Not Found:\n\n${errorMessage}`);
+      } else {
+        alert(`❌ ${errorMessage}`);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   /* ------------------------------ Loading & Error States ------------------------------ */
   if (initialLoading) {
@@ -242,7 +313,6 @@ const AssignRolesForm = ({ onBack }) => {
   /* ------------------------------ Main Render ------------------------------ */
   return (
     <div className="max-w-6xl mx-auto p-8 bg-white shadow-xl rounded-2xl my-8 border border-gray-100">
-      {/* Header */}
       <div className="border-b pb-6 mb-8 flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Assign Role & Position</h2>
@@ -256,8 +326,23 @@ const AssignRolesForm = ({ onBack }) => {
         </div>
       </div>
 
+      {validationErrors.length > 0 && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-red-800 text-sm mb-1">Validation Errors:</h4>
+              <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+                {validationErrors.map((err, idx) => (
+                  <li key={idx}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* Left Column: Form Controls */}
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2">Designation Role *</label>
@@ -287,6 +372,11 @@ const AssignRolesForm = ({ onBack }) => {
                 <option key={code} value={code}>{code === "All" ? "All (Executive)" : code}</option>
               ))}
             </select>
+            {form.departmentCode && (
+              <p className="text-xs text-gray-500 mt-1 italic">
+                Only positions from this department will be selectable
+              </p>
+            )}
           </div>
 
           <div>
@@ -303,7 +393,27 @@ const AssignRolesForm = ({ onBack }) => {
             </select>
           </div>
 
-          {/* Permissions Preview Card */}
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Effective From</label>
+            <input
+              type="date"
+              className="w-full border-2 rounded-xl px-4 py-3 bg-gray-50 focus:border-blue-500 outline-none transition-all text-sm"
+              value={form.effectiveFrom}
+              onChange={(e) => setForm(prev => ({ ...prev, effectiveFrom: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Assignment Notes (Optional)</label>
+            <textarea
+              className="w-full border-2 rounded-xl px-4 py-3 bg-gray-50 focus:border-blue-500 outline-none transition-all text-sm resize-none"
+              rows={3}
+              placeholder="Any special notes about this assignment..."
+              value={form.notes}
+              onChange={(e) => setForm(prev => ({ ...prev, notes: e.target.value }))}
+            />
+          </div>
+
           {effectivePermissions && (
             <div className="mt-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 shadow-inner">
               <div className="flex items-center gap-2 mb-4">
@@ -323,7 +433,7 @@ const AssignRolesForm = ({ onBack }) => {
                     <span className="font-bold text-blue-700">{effectivePermissions.directCount}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 font-medium">Subordinate Inherited:</span>
+                    <span className="text-gray-600 font-medium">Subordinate Units:</span>
                     <span className="font-bold text-green-700">{effectivePermissions.inheritedCount}</span>
                   </div>
                   <div className="pt-3 mt-3 border-t border-blue-200 flex justify-between items-center">
@@ -336,10 +446,9 @@ const AssignRolesForm = ({ onBack }) => {
           )}
         </div>
 
-        {/* Right Column: Organization Tree */}
         <div className="flex flex-col">
           <label className="block text-sm font-bold text-gray-700 mb-2">Hierarchy Placement *</label>
-          <div className="border-2 rounded-2xl p-4 h-[440px] overflow-y-auto bg-gray-50/50 shadow-inner border-gray-100">
+          <div className="border-2 rounded-2xl p-4 h-[500px] overflow-y-auto bg-gray-50/50 shadow-inner border-gray-100">
             {orgTree.length > 0 ? (
               orgTree.map((node) => <TreeNode key={node._id} node={node} />)
             ) : (
@@ -353,7 +462,6 @@ const AssignRolesForm = ({ onBack }) => {
           </p>
         </div>
 
-        {/* Action Footer */}
         <div className="lg:col-span-2 flex justify-end gap-4 mt-8 pt-8 border-t">
           <button
             type="button"
@@ -365,8 +473,8 @@ const AssignRolesForm = ({ onBack }) => {
           </button>
           <button
             onClick={handleSubmit}
-            className="px-10 py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95"
-            disabled={submitting}
+            className="px-10 py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={submitting || validationErrors.length > 0}
           >
             {submitting ? (
               <>
@@ -374,7 +482,10 @@ const AssignRolesForm = ({ onBack }) => {
                 Processing...
               </>
             ) : (
-              "Confirm Assignment"
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                Confirm Assignment
+              </>
             )}
           </button>
         </div>

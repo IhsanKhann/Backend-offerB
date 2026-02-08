@@ -3,6 +3,7 @@ import RoleModel from "../models/HRModals/Role.model.js";
 import { PermissionModel } from "../models/HRModals/Permissions.model.js";
 import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
+import {OrgUnitModel} from "../models/HRModals/OrgUnit.js";
 
 /**
  * ✅ KEEP PERMISSIONS UPDATED (Auto-assign all perms to Chairman/BoD)
@@ -794,28 +795,95 @@ export const getPermissionStatistics = async (req, res) => {
  * ✅ PREVIEW INHERITANCE (Future feature)
  */
 export const previewInheritance = async (req, res) => {
-  try {
-    const { employeeId } = req.query;
+   try {
+    const { roleId, orgUnitId } = req.query;
+    
+    // Validation
+    if (!roleId || !orgUnitId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Both roleId and orgUnitId are required" 
+      });
+    }
 
-    // TODO: Implement inheritance preview logic
-    // This would show what permissions an employee would inherit
-    // from their organizational hierarchy
+    // Fetch role with permissions
+    const role = await RoleModel.findById(roleId).populate({
+      path: 'permissions',
+      match: { isActive: true }
+    });
 
-    return res.status(200).json({
+    if (!role) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Role not found" 
+      });
+    }
+
+    // Fetch org unit
+    const orgUnit = await OrgUnitModel.findById(orgUnitId);
+    if (!orgUnit) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Organization unit not found" 
+      });
+    }
+
+    // Direct permissions from role
+    const directPermissions = role.permissions || [];
+    
+    // Calculate inherited permissions from subordinate positions
+    // (permissions that apply to DESCENDANT hierarchy scope)
+    const descendants = await orgUnit.getDescendants();
+    
+    // Find permissions that have hierarchyScope: DESCENDANT or ORGANIZATION
+    const inheritablePermissions = directPermissions.filter(p => 
+      p.hierarchyScope === 'DESCENDANT' || p.hierarchyScope === 'ORGANIZATION'
+    );
+
+    // Calculate department-specific permissions
+    const departmentPermissions = directPermissions.filter(p =>
+      p.appliesToDepartment(orgUnit.departmentCode)
+    );
+
+    res.json({
       success: true,
-      message: "Inheritance preview not yet implemented",
-      data: {
-        direct: [],
-        inherited: [],
-        total: []
+      summary: {
+        directCount: directPermissions.length,
+        inheritedCount: descendants.length * inheritablePermissions.length,
+        totalEffective: directPermissions.length,
+        byScope: {
+          self: directPermissions.filter(p => p.hierarchyScope === 'SELF').length,
+          descendant: directPermissions.filter(p => p.hierarchyScope === 'DESCENDANT').length,
+          department: directPermissions.filter(p => p.hierarchyScope === 'DEPARTMENT').length,
+          organization: directPermissions.filter(p => p.hierarchyScope === 'ORGANIZATION').length
+        },
+        byDepartment: {
+          applicable: departmentPermissions.length,
+          department: orgUnit.departmentCode
+        }
+      },
+      details: {
+        role: {
+          id: role._id,
+          name: role.roleName,
+          category: role.category
+        },
+        orgUnit: {
+          id: orgUnit._id,
+          name: orgUnit.name,
+          type: orgUnit.type,
+          department: orgUnit.departmentCode,
+          level: orgUnit.level
+        },
+        subordinateUnits: descendants.length
       }
     });
+
   } catch (error) {
-    console.error("🔥 previewInheritance error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to preview inheritance",
-      error: error.message
+    console.error("❌ Permission preview error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error calculating permission preview" 
     });
   }
 };

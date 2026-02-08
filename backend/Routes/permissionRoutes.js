@@ -1,3 +1,4 @@
+// File: routes/permissionRoutes.js
 import express from "express";
 import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
 import { checkHierarchy } from "../middlewares/hierarchyGuard.js";
@@ -12,7 +13,6 @@ import {
     addEmployeePermissionsBulk,
     removeEmployeePermissionsBulk,
     previewInheritance,
-
     getPermissionStatistics,
     getEmployeePermissionsDetailed,
     getAllEmployeesWithPermissions,
@@ -22,50 +22,50 @@ import {
 const router = express.Router();
 router.use(authenticate);
 
-// ========================================
+// ============================================
 // SYSTEM-LEVEL PERMISSION MANAGEMENT
-// (No hierarchy checks needed - operates on permission templates)
-// ========================================
+// ============================================
 
-router.get("/preview-inheritance", authorize("view_Permissions"), previewInheritance);
+/**
+ * ✅ NEW ROUTE: Preview permission inheritance
+ * Used by frontend AssignRolesForm
+ * Route: GET /permissions/preview-inheritance?roleId=X&orgUnitId=Y
+ */
+router.get(
+  "/preview-inheritance",
+  previewInheritance
+);
 
-// View all permissions (system-level)
 router.get(
   "/AllPermissions",
   authorize("view_Permissions"),
   AllPermissions
 );
 
-// Create/add a new permission (system-level)
 router.post(
   "/createPermission",
   authorize("add_Permissions"),
   createPermission
 );
 
-// Update a permission (system-level)
 router.put(
   "/updatePermission/:permissionId",
   authorize("update_Permissions"),
   updatePermission
 );
 
-// Remove a permission (system-level)
 router.delete(
   "/removePermission/:permissionId",
   authorize("delete_Permissions"),
   removePermission
 );
 
-
-// Get all employees with permissions
 router.get(
   "/employees-with-permissions",
   authorize("view_Permissions"),
   getAllEmployeesWithPermissions
 );
 
-// Get permission statistics
 router.get(
   "/statistics",
   authorize("view_Permissions"),
@@ -78,16 +78,22 @@ router.get(
   getFinalizedEmployeesWithRolesEnhanced
 );
 
-// ========================================
+// ============================================
 // EMPLOYEE-SPECIFIC PERMISSION MANAGEMENT
-// ✅ FIXED: Added hierarchy guards to protect operations
-// ========================================
+// ============================================
 
 router.get(
   "/getPermissions/:employeeId",
   checkHierarchy(), 
   authorize("view_employee_permissions"),
   getEmployeePermissions
+);
+
+router.get(
+  "/getPermissionsDetailed/:employeeId",
+  checkHierarchy(),
+  authorize("view_employee_permissions"),
+  getEmployeePermissionsDetailed
 );
 
 router.post(
@@ -116,13 +122,6 @@ router.post(
   checkHierarchy(), 
   authorize("remove_permission_from_employee"),
   removeEmployeePermission
-);
-
-router.get(
-  "/getPermissionsDetailed/:employeeId",
-  checkHierarchy(),
-  authorize("view_employee_permissions"),
-  getEmployeePermissionsDetailed
 );
 
 export default router;

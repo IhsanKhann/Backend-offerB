@@ -2,12 +2,12 @@ import mongoose from "mongoose";
 
 const RoleAssignmentSchema = new mongoose.Schema(
   {
-    employeeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "FinalizedEmployee",
-      required: true,
-      index: true
-    },
+  employeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Employee",  // ✅ Changed from "FinalizedEmployee"
+    required: true,
+    index: true
+  },
 
     roleId: {
       type: mongoose.Schema.Types.ObjectId,

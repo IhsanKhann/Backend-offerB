@@ -1,0 +1,1193 @@
+[{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c13e"
+  },
+  "name": "approve_employee",
+  "description": "Allows approving a pending employee registration",
+  "action": "approve_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.233Z"
+  },
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c140"
+  },
+  "name": "view_single_employee",
+  "description": "Allows viewing details of a single employee",
+  "action": "view_single_employee",
+  "category": "All",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:21.435Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c144"
+  },
+  "name": "resolve_org_unit",
+  "description": "Allows resolving organizational unit conflicts or assignments",
+  "action": "resolve_org_unit",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ORG_UNIT",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:25.440Z"
+  },
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c147"
+  },
+  "name": "view_employees_by_org_unit",
+  "description": "Allows viewing employees filtered by their organizational unit",
+  "action": "view_employees_by_org_unit",
+  "category": "Reports",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.308Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c14e"
+  },
+  "name": "add_HierarchyLevel",
+  "description": "Permission to add a hierarchy level",
+  "action": "add_HierarchyLevel",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ORG_UNIT",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:25.287Z"
+  },
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c13f"
+  },
+  "name": "view_all_employees",
+  "description": "Grants access to view the list of all employees",
+  "action": "view_all_employees",
+  "category": "HR",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.043Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c145"
+  },
+  "name": "create_org_unit",
+  "description": "Allows creation of a new organizational unit",
+  "action": "create_org_unit",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ORG_UNIT",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:25.363Z"
+  },
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c148"
+  },
+  "name": "view_all_finalized_employees",
+  "description": "Grants access to view all finalized employees",
+  "action": "view_all_finalized_employees",
+  "category": "HR",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.123Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c14a"
+  },
+  "name": "reject_employee",
+  "description": "Allows rejecting a pending employee registration",
+  "action": "reject_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.309Z"
+  },
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c14d"
+  },
+  "name": "view_Permissions",
+  "description": "Permission to view permissions",
+  "action": "view_Permissions",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "ALL"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.617Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c14f"
+  },
+  "name": "delete_HierarchyLevel",
+  "description": "Permission to delete a hierarchy level",
+  "action": "delete_HierarchyLevel",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ORG_UNIT",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.429Z"
+  },
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c151"
+  },
+  "name": "view_hierarchy",
+  "description": "Permission to view the organizational hierarchy",
+  "action": "view_hierarchy",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ORG_UNIT",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.774Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c152"
+  },
+  "name": "assign_permission_to_employee",
+  "description": "Allows assigning a permission to a specific employee",
+  "action": "assign_permission_to_employee",
+  "category": "System",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.823Z"
+  },
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c154"
+  },
+  "name": "view_employee_permissions",
+  "description": "Allows viewing permissions of a specific employee",
+  "action": "view_employee_permissions",
+  "category": "System",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.696Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c146"
+  },
+  "name": "view_org_units",
+  "description": "Grants access to view all organizational units",
+  "action": "view_org_units",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ORG_UNIT",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.851Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c149"
+  },
+  "name": "delete_employee",
+  "description": "Allows deletion of an employee from the system",
+  "action": "delete_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.870Z"
+  },
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c14c"
+  },
+  "name": "delete_Permissions",
+  "description": "Permission to delete permissions",
+  "action": "delete_Permissions",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "ALL"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.352Z"
+  },
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c153"
+  },
+  "name": "remove_permission_from_employee",
+  "description": "Allows removing a permission from a specific employee",
+  "action": "remove_permission_from_employee",
+  "category": "System",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.900Z"
+  },
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c141"
+  },
+  "name": "register_employee",
+  "description": "Allows registering a new employee into the system",
+  "action": "register_employee",
+  "category": "HR",
+  "hierarchyScope": "DEPARTMENT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.506Z"
+  },
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c142"
+  },
+  "name": "assign_employee_role",
+  "description": "Allows assigning roles to employees",
+  "action": "assign_employee_role",
+  "category": "System",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "ROLE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.736Z"
+  },
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c143"
+  },
+  "name": "view_all_roles",
+  "description": "Grants access to view all available roles",
+  "action": "view_all_roles",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ROLE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.384Z"
+  },
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c14b"
+  },
+  "name": "add_Permissions",
+  "description": "Permission to add new permissions",
+  "action": "add_Permissions",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "ALL"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-01T07:41:39.501Z"
+  },
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2b14bc7ef6031d015c150"
+  },
+  "name": "add_hierarchy",
+  "description": "Permission to create/setup a full hierarchy",
+  "action": "add_hierarchy",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ORG_UNIT",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "updatedAt": {
+    "$date": "2026-02-01T07:41:39.501Z"
+  },
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2e31eaf5b3f78932f8841"
+  },
+  "name": "delete_finalized_employee",
+  "description": "for deleting employees in the admin dashboard permanently",
+  "createdAt": {
+    "$date": "2025-08-30T11:40:14.271Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.946Z"
+  },
+  "__v": 0,
+  "action": "delete_finalized_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2e371af5b3f78932f8849"
+  },
+  "name": "view_single_finalized_employee",
+  "description": "for viewing single employee information in the admin dashboard",
+  "createdAt": {
+    "$date": "2025-08-30T11:41:37.327Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.231Z"
+  },
+  "__v": 0,
+  "action": "view_single_finalized_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2e3e4af5b3f78932f8851"
+  },
+  "name": "submit_employee",
+  "description": "submit employee/draft when draft is finalized and reviewed",
+  "createdAt": {
+    "$date": "2025-08-30T11:43:32.056Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.658Z"
+  },
+  "__v": 0,
+  "action": "submit_employee",
+  "category": "HR",
+  "hierarchyScope": "SELF",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2e469af5b3f78932f8859"
+  },
+  "name": "view_single_role",
+  "description": "view an employee specific,role informtation",
+  "createdAt": {
+    "$date": "2025-08-30T11:45:45.110Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.462Z"
+  },
+  "__v": 0,
+  "action": "view_single_role",
+  "category": "System",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "ROLE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2e4f9af5b3f78932f886d"
+  },
+  "name": "edit_hierarchy_level",
+  "description": "edit a pre-exisiting hierarchy node/level's name",
+  "createdAt": {
+    "$date": "2025-08-30T11:48:09.022Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-01T07:41:39.501Z"
+  },
+  "__v": 0,
+  "action": "edit_hierarchy_level",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ORG_UNIT",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b2e5d5286a3611b20e189b"
+  },
+  "name": "update_Permissions",
+  "description": "edit a pre-exisiting permission's name or description",
+  "createdAt": {
+    "$date": "2025-08-30T11:51:49.722Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-01T07:41:39.501Z"
+  },
+  "__v": 0,
+  "action": "update_Permissions",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "ALL"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b3e1b341b624d9c592af5c"
+  },
+  "name": "add_permission_in_bulk",
+  "description": "assign alot of permissions to the employee at once",
+  "createdAt": {
+    "$date": "2025-08-31T05:46:27.620Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-01T07:41:39.501Z"
+  },
+  "__v": 0,
+  "action": "add_permission_in_bulk",
+  "category": "System",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b3e1ec41b624d9c592af6d"
+  },
+  "name": "remove_permission_in_bulk",
+  "description": "remove alot of employee permissions at once/remove in bulk",
+  "createdAt": {
+    "$date": "2025-08-31T05:47:24.482Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-01T07:41:39.501Z"
+  },
+  "__v": 0,
+  "action": "remove_permission_in_bulk",
+  "category": "System",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "PERMISSION",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b43a4454aa23a357c41fac"
+  },
+  "name": "suspend_employee",
+  "description": "suspend employee for a time being",
+  "createdAt": {
+    "$date": "2025-08-31T12:04:20.262Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.389Z"
+  },
+  "__v": 0,
+  "action": "suspend_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b43a6b54aa23a357c41fbc"
+  },
+  "name": "restore_suspended_employee",
+  "description": "restore a suspended employee/remove suspension.",
+  "createdAt": {
+    "$date": "2025-08-31T12:04:59.126Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.467Z"
+  },
+  "__v": 0,
+  "action": "restore_suspended_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b461bf5b6b4cd066378c57"
+  },
+  "name": "block_employee",
+  "description": "block an employees account/for serious action",
+  "createdAt": {
+    "$date": "2025-08-31T14:52:47.903Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.544Z"
+  },
+  "__v": 0,
+  "action": "block_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b461f65b6b4cd066378c67"
+  },
+  "name": "restore_blocked_employee",
+  "description": "restore an employee after being blocked",
+  "createdAt": {
+    "$date": "2025-08-31T14:53:42.189Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.634Z"
+  },
+  "__v": 0,
+  "action": "restore_blocked_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b466c2bbd4f44153e216e7"
+  },
+  "name": "terminate_employee",
+  "description": "termimate an employee/retired employees or for employees that left",
+  "createdAt": {
+    "$date": "2025-08-31T15:14:10.536Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.711Z"
+  },
+  "__v": 0,
+  "action": "terminate_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b46701bbd4f44153e216f7"
+  },
+  "name": "restore_terminate_employee",
+  "description": "restore an employee/when employee comes back from retirement or is re-employed",
+  "createdAt": {
+    "$date": "2025-08-31T15:15:13.789Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:23.788Z"
+  },
+  "__v": 0,
+  "action": "restore_terminate_employee",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "EMPLOYEE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b71935bf9fa55fa90de360"
+  },
+  "name": "View_AllRolesList",
+  "description": "view all the roles in the Roles dropdown in the assignRoles page",
+  "createdAt": {
+    "$date": "2025-09-02T16:20:05.289Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.540Z"
+  },
+  "__v": 0,
+  "action": "View_AllRolesList",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ROLE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b71975bf9fa55fa90de379"
+  },
+  "name": "Add_Role",
+  "description": "Add role in the roles dropdown",
+  "createdAt": {
+    "$date": "2025-09-02T16:21:09.291Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:25.210Z"
+  },
+  "__v": 0,
+  "action": "Add_Role",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ROLE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b7199cbf9fa55fa90de389"
+  },
+  "name": "Delete_Role",
+  "description": "Delete roles in the roles dropdown",
+  "createdAt": {
+    "$date": "2025-09-02T16:21:48.486Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.275Z"
+  },
+  "__v": 0,
+  "action": "Delete_Role",
+  "category": "System",
+  "hierarchyScope": "ORGANIZATION",
+  "isActive": true,
+  "resourceType": "ROLE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b7d29018d4fbbfd926cb7e"
+  },
+  "name": "applyForLeave",
+  "description": "employee may apply for leave in case of emergency",
+  "createdAt": {
+    "$date": "2025-09-03T05:30:56.937Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.976Z"
+  },
+  "__v": 0,
+  "action": "applyForLeave",
+  "category": "HR",
+  "hierarchyScope": "SELF",
+  "isActive": true,
+  "resourceType": "LEAVE",
+  "statusScope": [
+    "ALL"
+  ],
+  "isSystem": true,
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b7e887b6c473914af9fb2c"
+  },
+  "name": "viewLeaves",
+  "description": "view which employees are on leave",
+  "createdAt": {
+    "$date": "2025-09-03T07:04:39.658Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:22.929Z"
+  },
+  "__v": 0,
+  "action": "viewLeaves",
+  "category": "Reports",
+  "hierarchyScope": "DEPARTMENT",
+  "isActive": true,
+  "resourceType": "LEAVE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "INFORMATIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b7e8adb6c473914af9fb3c"
+  },
+  "name": "acceptLeave",
+  "description": "accept an employee leave application",
+  "createdAt": {
+    "$date": "2025-09-03T07:05:17.114Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.034Z"
+  },
+  "__v": 0,
+  "action": "acceptLeave",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "LEAVE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b7e8c2b6c473914af9fb4c"
+  },
+  "name": "rejectLeave",
+  "description": "reject an employee leave application",
+  "createdAt": {
+    "$date": "2025-09-03T07:05:38.167Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.111Z"
+  },
+  "__v": 0,
+  "action": "rejectLeave",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "LEAVE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b7e8efb6c473914af9fb5c"
+  },
+  "name": "transferLeaveRole",
+  "description": "transfer an employee roles and permissions to another employee",
+  "createdAt": {
+    "$date": "2025-09-03T07:06:23.400Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:25.129Z"
+  },
+  "__v": 0,
+  "action": "transferLeaveRole",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "LEAVE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+},
+{
+  "_id": {
+    "$oid": "68b7eddce445f2f626226812"
+  },
+  "name": "deleteLeave",
+  "description": "Delete the leave from the leaves Panel",
+  "createdAt": {
+    "$date": "2025-09-03T07:27:24.218Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:24.192Z"
+  },
+  "__v": 0,
+  "action": "deleteLeave",
+  "category": "HR",
+  "hierarchyScope": "DESCENDANT",
+  "isActive": true,
+  "resourceType": "LEAVE",
+  "statusScope": [
+    "HR"
+  ],
+  "isSystem": true,
+  "actionType": "ADMINISTRATIVE",
+  "metadata": {
+    "bypassHierarchy": false,
+    "sensitiveAction": true
+  }
+},
+{
+  "_id": {
+    "$oid": "68b802f301707c6b12099783"
+  },
+  "name": "takeBackLeave",
+  "description": "Take your leave back before the date is reached",
+  "createdAt": {
+    "$date": "2025-09-03T08:57:23.135Z"
+  },
+  "updatedAt": {
+    "$date": "2026-02-07T10:32:25.052Z"
+  },
+  "__v": 0,
+  "action": "takeBackLeave",
+  "category": "HR",
+  "hierarchyScope": "SELF",
+  "isActive": true,
+  "resourceType": "LEAVE",
+  "statusScope": [
+    "ALL"
+  ],
+  "isSystem": true,
+  "actionType": "FUNCTIONAL",
+  "metadata": {
+    "bypassHierarchy": false
+  }
+}]

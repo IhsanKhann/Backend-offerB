@@ -1,9 +1,12 @@
-// controllers/employee.controller.js
+// ============================================
+// FILE: controllers/employeeController.js
+// Complete Employee Management Controller with Comprehensive Audit Logging
+// ============================================
+
 import mongoose from "mongoose";
 import EmployeeModel from "../models/HRModals/Employee.model.js";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
-
 import { uploadFileToCloudinary, destroyImageFromCloudinary } from "../utilis/cloudinary.js";
 import RoleModel from "../models/HRModals/Role.model.js";
 import FinalizedEmployeeModel from "../models/HRModals/FinalizedEmployees.model.js";
@@ -12,58 +15,58 @@ import { PermissionModel } from "../models/HRModals/Permissions.model.js";
 import CounterModel from "../models/HRModals/Counter.model.js";
 import {BranchModel} from "../models/HRModals/BranchModel.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
-// ---------------------------------------------------------------------------
 import PermissionAggregator from "../utilis/permissionAggregation.js";
 import HierarchyService from "../services/hierarchyService.js";
 import { HierarchyGuard } from "../middlewares/hierarchyGuard.js";
 import DepartmentGuard from "../middlewares/departmentGuard.js";
 import CONSTANTS from "../configs/constants.js";
 import AuditService from "../services/auditService.js";
-import { isValidDepartment } from "../configs/departments.js";
+import { isValidDepartment } from "../configs/constants.js";
 
-// ------------helpers ---------------------
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
 const transporter = nodemailer.createTransport({
-  service: "gmail", // or 'outlook', 'yahoo', etc.
+  service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER, // your Gmail address
-    pass: process.env.EMAIL_PASS, // app password (not your normal Gmail password)
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
 });
 
 const SendEmail = async(finalizedEmployee) => {
-          // send email..
-    await transporter.sendMail({
-      from: `"HR Department" <${process.env.EMAIL_USER}>`,
-      to: finalizedEmployee.personalEmail, // ✅ send to personal email
-      subject: "Your Employment Has Been Approved",
-      text: `Dear ${finalizedEmployee.individualName},
+  await transporter.sendMail({
+    from: `"HR Department" <${process.env.EMAIL_USER}>`,
+    to: finalizedEmployee.personalEmail,
+    subject: "Your Employment Has Been Approved",
+    text: `Dear ${finalizedEmployee.individualName},
 
-    Congratulations! Your registration has been approved.
+Congratulations! Your registration has been approved.
 
-    Here are your login details:
-    - User ID: ${finalizedEmployee.UserId}
-    - Organization ID: ${finalizedEmployee.OrganizationId}
-    - Password: ${finalizedEmployee.password}
+Here are your login details:
+- User ID: ${finalizedEmployee.UserId}
+- Organization ID: ${finalizedEmployee.OrganizationId}
+- Password: ${finalizedEmployee.password}
 
-    Please keep this information secure.`,
+Please keep this information secure.`,
 
-      html: `
-        <p>Dear <b>${finalizedEmployee.individualName}</b>,</p>
-        <p>Congratulations! Your registration has been <b>approved</b>.</p>
+    html: `
+      <p>Dear <b>${finalizedEmployee.individualName}</b>,</p>
+      <p>Congratulations! Your registration has been <b>approved</b>.</p>
 
-        <p><b>Here are your login details:</b></p>
-        <ul>
-          <li>User ID: <b>${finalizedEmployee.UserId}</b></li>
-          <li>Organization ID: <b>${finalizedEmployee.OrganizationId}</b></li>
-          <li>Password: <b>${finalizedEmployee.password}</b></li>
-        </ul>
+      <p><b>Here are your login details:</b></p>
+      <ul>
+        <li>User ID: <b>${finalizedEmployee.UserId}</b></li>
+        <li>Organization ID: <b>${finalizedEmployee.OrganizationId}</b></li>
+        <li>Password: <b>${finalizedEmployee.password}</b></li>
+      </ul>
 
-        <p><i>Please keep this information secure and do not share it with anyone.</i></p>
-      `,
-    });
+      <p><i>Please keep this information secure and do not share it with anyone.</i></p>
+    `,
+  });
 };
 
-//counter id - organizationId
 export const getNextOrganizationId = async () => {
   const counter = await CounterModel.findOneAndUpdate(
     { name: "employee" },
@@ -79,10 +82,7 @@ const toDate = (val) => (val ? new Date(val) : undefined);
 
 const generateUserId = (finalizedEmployee) => {
   const userName = finalizedEmployee.individualName;
-
-  // Remove all spaces
   const noSpaceUsername = userName.replace(/\s/g, "");
-
   const UserId = noSpaceUsername + "OBE" + finalizedEmployee.OrganizationId;
   return UserId;
 };
@@ -144,7 +144,13 @@ const normalizeTransfers = (arr) =>
       }))
     : [];
 
-// --------------------------- controllers -------------------------
+// ============================================
+// READ OPERATIONS (NO AUDIT)
+// ============================================
+
+/**
+ * ✅ Get all draft employees (READ ONLY - NO AUDIT)
+ */
 export const getAllEmployees = async (req, res) => {
   try {
     const employees = await EmployeeModel.find();
@@ -172,6 +178,9 @@ export const getAllEmployees = async (req, res) => {
   }
 };
 
+/**
+ * ✅ Get single draft employee (READ ONLY - NO AUDIT)
+ */
 export const getSingleEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -204,72 +213,396 @@ export const getSingleEmployee = async (req, res) => {
   }
 };
 
-export const deleteEmployee = async (req, res) => {
+/**
+ * ✅ Get all roles (READ ONLY - NO AUDIT)
+ */
+export const getAllRoles = async (req, res) => {
   try {
-    const { employeeId } = req.params;
-    if (!employeeId) return res.status(400).json({ success: false, message: "employeeId is required" });
+    const roles = await RoleModel.find();
 
-    const employee = await EmployeeModel.findById(employeeId);
-    if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
-
-    // ---------------- Delete avatar from Cloudinary ----------------
-    if (employee.avatar?.public_id) {
-      try {
-        await destroyImageFromCloudinary(employee.avatar.public_id);
-      } catch (err) {
-        console.warn("Failed to delete Cloudinary image:", err.message);
-      }
+    if (!roles || roles.length === 0) {
+      return res.status(404).json({
+        status: false,
+        message: "No roles found",
+        roles: [],
+      });
     }
 
-    // ---------------- Find and delete Role ----------------
-    const role = await RoleModel.findOne({ UserId: employee._id });
-    if (role) {
-      // Delete all permissions referenced by this role
-      if (role.permissions && role.permissions.length > 0) {
-        await PermissionModel.deleteMany({ _id: { $in: role.permissions } });
-      }
-
-      // Delete the role itself
-      await RoleModel.findByIdAndDelete(role._id);
-
-      // Remove OrgUnit reference inside Role (optional, since role is deleted)
-      if (role.orgUnit) {
-        await OrgUnitModel.findByIdAndUpdate(role.orgUnit, { $unset: { role: "" } });
-      }
-    }
-
-    // ---------------- Remove OrgUnit reference from employee ----------------
-    if (employee.OrgUnit) {
-      await EmployeeModel.findByIdAndUpdate(employee._id, { $unset: { OrgUnit: "" } });
-    }
-
-    // ---------------- Delete Employee ----------------
-    await EmployeeModel.findByIdAndDelete(employee._id);
-
-    res.status(200).json({
-      success: true,
-      message: "Employee, role, permissions, OrgUnit references, and avatar deleted successfully",
+    return res.status(200).json({
+      status: true,
+      message: "Roles fetched successfully",
+      roles,
     });
-
   } catch (error) {
-    console.error("Delete Employee Error:", error);
-    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+    console.error("Error fetching roles:", error);
+    return res.status(500).json({
+      status: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
+/**
+ * ✅ Get single role (READ ONLY - NO AUDIT)
+ */
+export const getSingleRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({
+        status: false,
+        message: "Id is either undefined or invalid",
+      });
+    }
+
+    console.log("id check in getSingleRole:", id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ status: false, message: "Invalid employee ID" });
+    }
+    
+    const roles = await RoleModel.findOne({ id });
+
+    if (!roles) {
+      return res.status(200).json({
+        status: true,
+        message: "No roles assigned yet",
+        roles: null,
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Roles fetched successfully",
+      roles,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+/**
+ * ✅ Get all finalized employees (READ ONLY - NO AUDIT)
+ */
+export const getFinalizedEmployees = async (req, res) => {
+  try {
+    const finalizedEmployees = await FinalizedEmployeeModel.find().sort({ createdAt: -1 });
+    return res.status(200).json({
+      success: true,
+      count: finalizedEmployees.length,
+      data: finalizedEmployees
+    });
+  } catch (error) {
+    console.error("🔥 GetAllFinalizedEmployees error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch finalized employees" });
+  }
+};
+
+/**
+ * ✅ Get single finalized employee (READ ONLY - NO AUDIT)
+ */
+export const getSingleFinalizedEmployee = async (req, res) => {
+  try {
+    const { finalizedEmployeeId } = req.params;
+    if (!finalizedEmployeeId) return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
+
+    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
+    if (!finalizedEmployee) return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
+
+    return res.status(200).json({
+      success: true,
+      finalizedEmployee: finalizedEmployee
+    });
+  } catch (error) {
+    console.error("🔥 GetSingleFinalizedEmployee error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to fetch finalized employee" });
+  }
+};
+
+/**
+ * ✅ Get finalized employees with roles (READ ONLY - NO AUDIT)
+ */
+export const getFinalizedEmployeesWithRoles = async (req, res) => {
+  try {
+    const finalizedEmployees = await FinalizedEmployeeModel.find()
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "role",
+        model: "Role",
+        populate: {
+          path: "permissions",
+          model: "Permission",
+        },
+      });
+
+    return res.status(200).json({
+      success: true,
+      count: finalizedEmployees.length,
+      data: finalizedEmployees,
+    });
+  } catch (error) {
+    console.error("🔥 getFinalizedEmployeesWithRoles error:", error.stack || error.message);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch finalized employees with roles" });
+  }
+};
+
+/**
+ * ✅ Fetch employees by status (READ ONLY - NO AUDIT)
+ */
+export const fetchEmployeesByStatus = async (req, res) => {
+  try {
+    const { status } = req.query;
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required in query params" });
+    }
+
+    const employees = await FinalizedEmployeeModel.find({ status });
+
+    return res.status(200).json({
+      message: `Employees with status: ${status}`,
+      count: employees.length,
+      employees,
+    });
+  } catch (error) {
+    console.error("Error fetching employees by status:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+/**
+ * ✅ View org unit employees (READ ONLY - NO AUDIT)
+ */
+export const viewOrgUnitEmployees = async (req, res) => {
+  try {
+    const actorId = req.user._id;
+    const { orgUnitId } = req.params;
+    const { includeDirect = false } = req.query;
+
+    const actorAssignment = await RoleAssignmentModel.findOne({
+      employeeId: actorId,
+      isActive: true
+    }).populate('orgUnit');
+
+    if (!actorAssignment) {
+      return res.status(403).json({
+        success: false,
+        message: "No active role assignment"
+      });
+    }
+
+    const actorOrgUnit = actorAssignment.orgUnit;
+    const actorDepartment = actorAssignment.departmentCode;
+    const isExecutive = actorDepartment === CONSTANTS.DEPARTMENTS.ALL;
+
+    let targetOrgUnit;
+
+    if (orgUnitId) {
+      targetOrgUnit = await OrgUnitModel.findById(orgUnitId);
+
+      if (!targetOrgUnit) {
+        return res.status(404).json({
+          success: false,
+          message: "Org unit not found"
+        });
+      }
+
+      if (!isExecutive) {
+        const isInSubtree = 
+          targetOrgUnit.path.startsWith(actorOrgUnit.path + '.') ||
+          targetOrgUnit.path === actorOrgUnit.path;
+
+        if (!isInSubtree) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only view employees in your organizational subtree",
+            code: 'ORGUNIT_OUT_OF_SCOPE'
+          });
+        }
+      }
+    } else {
+      targetOrgUnit = actorOrgUnit;
+    }
+
+    let orgUnitIds;
+
+    if (includeDirect === 'true' || includeDirect === true) {
+      orgUnitIds = [targetOrgUnit._id];
+    } else {
+      const descendants = await targetOrgUnit.getDescendants();
+      orgUnitIds = [targetOrgUnit._id, ...descendants.map(d => d._id)];
+    }
+
+    let query = {
+      orgUnit: { $in: orgUnitIds },
+      isActive: true
+    };
+
+    if (!isExecutive) {
+      query.departmentCode = actorDepartment;
+    }
+
+    const assignments = await RoleAssignmentModel.find(query)
+      .populate('employeeId', 'individualName personalEmail UserId avatar profileStatus')
+      .populate('roleId', 'roleName category')
+      .populate('orgUnit', 'name type level path')
+      .lean();
+
+    const validAssignments = assignments.filter(a => a.employeeId);
+
+    const enrichedEmployees = await Promise.all(
+      validAssignments.map(async (assignment) => {
+        const employee = assignment.employeeId;
+        
+        const permBreakdown = await PermissionAggregator.getPermissionBreakdown(
+          employee._id
+        );
+
+        return {
+          ...employee,
+          assignment: {
+            roleId: assignment.roleId?._id,
+            roleName: assignment.roleId?.roleName,
+            roleCategory: assignment.roleId?.category,
+            departmentCode: assignment.departmentCode,
+            orgUnit: assignment.orgUnit,
+            effectiveFrom: assignment.effectiveFrom
+          },
+          permissions: {
+            directCount: permBreakdown.summary.directCount,
+            inheritedCount: permBreakdown.summary.inheritedCount,
+            totalEffective: permBreakdown.summary.totalEffective
+          },
+          hierarchy: {
+            level: assignment.orgUnit.level,
+            path: assignment.orgUnit.path
+          }
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      scope: {
+        orgUnit: {
+          _id: targetOrgUnit._id,
+          name: targetOrgUnit.name,
+          path: targetOrgUnit.path,
+          level: targetOrgUnit.level
+        },
+        includedSubtree: !includeDirect,
+        departmentFilter: isExecutive ? 'ALL' : actorDepartment,
+        yourAccess: {
+          isExecutive,
+          department: actorDepartment,
+          level: actorOrgUnit.level
+        }
+      },
+      count: enrichedEmployees.length,
+      employees: enrichedEmployees
+    });
+
+  } catch (error) {
+    console.error("❌ viewOrgUnitEmployees error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch employees",
+      error: error.message
+    });
+  }
+};
+
+/**
+ * ✅ Resolve org unit (READ/CREATE - CONDITIONAL AUDIT)
+ */
+export const resolveOrgUnit = async (req, res) => {
+  try {
+    const { office, group, division, department, branch, cell, desk } = req.body;
+
+    const levels = [
+      { key: "office", value: office },
+      { key: "group", value: group },
+      { key: "division", value: division },
+      { key: "department", value: department },
+      { key: "branch", value: branch },
+      { key: "cell", value: cell },
+      { key: "desk", value: desk },
+    ];
+
+    let parent = null;
+    let orgUnit = null;
+    let created = false;
+
+    for (let { key, value } of levels) {
+      if (!value) continue;
+
+      if (mongoose.Types.ObjectId.isValid(value)) {
+        orgUnit = await OrgUnitModel.findById(value);
+        if (!orgUnit) {
+          return res.status(404).json({ success: false, message: `${key} with provided ID not found` });
+        }
+      } else {
+        orgUnit = await OrgUnitModel.findOne({ name: value, parent: parent?._id });
+        if (!orgUnit) {
+          orgUnit = await OrgUnitModel.create({ name: value, parent: parent?._id });
+          created = true;
+
+          // 🔍 AUDIT LOG - OrgUnit auto-created
+          await AuditService.log({
+            eventType: CONSTANTS.AUDIT_EVENTS.ORGUNIT_CREATED,
+            actorId: req.user._id,
+            targetId: orgUnit._id,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'],
+            details: {
+              autoCreated: true,
+              orgUnitName: value,
+              level: key,
+              parentId: parent?._id
+            }
+          });
+        }
+      }
+
+      parent = orgUnit;
+    }
+
+    if (!orgUnit) {
+      return res.status(400).json({ success: false, message: "No OrgUnit could be resolved" });
+    }
+
+    return res.status(200).json({ success: true, orgUnitId: orgUnit._id, orgUnit });
+  } catch (error) {
+    console.error("🔥 resolveOrgUnit error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================
+// CREATE OPERATIONS (WITH AUDIT)
+// ============================================
+
+/**
+ * ✅ Register employee (draft creation)
+ */
 export const RegisterEmployee = async (req, res) => {
   console.log("📝 Registering Employee Draft...");
   
   try {
-    // 1. DATA HYDRATION (Comprehensive parsing for ALL nested fields)
     const complexFields = [
       'address', 
       'salary', 
       'tenure', 
       'employmentHistory', 
       'bankingDetails',
-      'changeOfStatus', // 👈 Added
-      'transfers'       // 👈 Added
+      'changeOfStatus',
+      'transfers'
     ];
 
     complexFields.forEach(field => {
@@ -278,18 +611,14 @@ export const RegisterEmployee = async (req, res) => {
           req.body[field] = JSON.parse(req.body[field]); 
         } catch (e) {
           console.error(`❌ Failed to parse ${field}:`, e);
-          // If it fails to parse, we might want to null it or keep it as is 
-          // depending on your preference, but usually, it's a malformed string.
         }
       }
     });
 
-    // 2. Fix Numeric and Date types from FormData
     if (req.body.salary && typeof req.body.salary.amount === 'string') {
       req.body.salary.amount = parseFloat(req.body.salary.amount);
     }
 
-    // Ensure transfers is an array even if empty or single object
     if (req.body.transfers && !Array.isArray(req.body.transfers)) {
       req.body.transfers = [req.body.transfers];
     }
@@ -300,12 +629,10 @@ export const RegisterEmployee = async (req, res) => {
       previousOrgEmail, address, employmentHistory, employmentStatus, salary, tenure
     } = req.body;
 
-    // 3. MINIMAL VALIDATION
     if (!individualName || !fatherName || !dob || !officialEmail || !personalEmail) {
       return res.status(400).json({ success: false, message: "Missing core identity fields" });
     }
 
-    // 4. EMAIL UNIQUE CHECK
     const duplicate = await EmployeeModel.findOne({
       $or: [
         { officialEmail: officialEmail.toLowerCase() },
@@ -317,8 +644,6 @@ export const RegisterEmployee = async (req, res) => {
       return res.status(400).json({ success: false, message: "Email already registered" });
     }
 
-    // 5. CREATE DRAFT
-    // Note: We use req.body spread AFTER hydration so the model gets Objects, not Strings
     const newEmployee = new EmployeeModel({
       ...req.body,
       officialEmail: officialEmail.toLowerCase(),
@@ -334,11 +659,18 @@ export const RegisterEmployee = async (req, res) => {
 
     await newEmployee.save();
 
+    // 🔍 AUDIT LOG
     await AuditService.log({
       eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_CREATED,
       actorId,
       targetId: newEmployee._id,
-      details: { name: individualName, status: "Draft Created" }
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: { 
+        name: individualName,
+        email: personalEmail,
+        status: "Draft Created" 
+      }
     });
 
     res.status(201).json({
@@ -349,7 +681,6 @@ export const RegisterEmployee = async (req, res) => {
 
   } catch (error) {
     console.error("❌ RegisterEmployee error:", error);
-    // Return the specific Mongoose validation error message for better debugging
     res.status(500).json({ 
       success: false, 
       message: error.name === "ValidationError" ? "Data validation failed" : "Server error",
@@ -358,6 +689,9 @@ export const RegisterEmployee = async (req, res) => {
   }
 };
 
+/**
+ * ✅ Submit employee for approval
+ */
 export const SubmitEmployee = async (req, res) => {
   try {
     const { employeeId, orgUnitId } = req.body;
@@ -371,7 +705,6 @@ export const SubmitEmployee = async (req, res) => {
       });
     }
 
-    // 1️⃣ Find draft employee
     const employee = await EmployeeModel.findById(employeeId)
       .populate('role')
       .populate('orgUnit');
@@ -390,7 +723,6 @@ export const SubmitEmployee = async (req, res) => {
       draftStatus: employee.DraftStatus?.status
     });
 
-    // ✅ FIX: Check if employee has role (either as reference or populated)
     if (!employee.role) {
       return res.status(400).json({
         success: false,
@@ -398,7 +730,6 @@ export const SubmitEmployee = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Check if employee has orgUnit (either as reference or populated)
     if (!employee.orgUnit) {
       return res.status(400).json({
         success: false,
@@ -406,7 +737,6 @@ export const SubmitEmployee = async (req, res) => {
       });
     }
 
-    // 2️⃣ Check for duplicate in finalized employees
     const duplicateFinalized = await FinalizedEmployeeModel.findOne({
       $or: [
         { officialEmail: employee.officialEmail },
@@ -430,11 +760,9 @@ export const SubmitEmployee = async (req, res) => {
       });
     }
 
-    // 3️⃣ Update draft employee status
     employee.DraftStatus.status = "Submitted";
     employee.finalizationStatus = "Pending";
 
-    // 4️⃣ Generate Organization ID
     const OrganizationId = await getNextOrganizationId();
     employee.OrganizationId = OrganizationId;
     
@@ -442,11 +770,9 @@ export const SubmitEmployee = async (req, res) => {
 
     console.log("✅ Draft employee updated with OrganizationId:", OrganizationId);
 
-    // 5️⃣ Get role ID (handle both populated and reference)
     const roleId = employee.role._id || employee.role;
     const orgUnitIdToUse = employee.orgUnit._id || employee.orgUnit;
 
-    // 6️⃣ Verify orgUnit exists
     const orgUnit = await OrgUnitModel.findById(orgUnitIdToUse);
     if (!orgUnit) {
       return res.status(400).json({ 
@@ -455,14 +781,12 @@ export const SubmitEmployee = async (req, res) => {
       });
     }
 
-    // 7️⃣ Create or verify RoleAssignment exists
     let roleAssignment = await RoleAssignmentModel.findOne({
       employeeId: employee._id,
       roleId: roleId,
       isActive: true
     });
 
-    // ✅ If no active assignment exists, create one
     if (!roleAssignment) {
       console.log("⚠️ No active RoleAssignment found, creating one...");
       
@@ -474,71 +798,57 @@ export const SubmitEmployee = async (req, res) => {
         });
       }
 
-      roleAssignment = new RoleAssignmentModel({
+      roleAssignment = await RoleAssignmentModel.create({
         employeeId: employee._id,
         roleId: roleId,
+        departmentCode: orgUnit.departmentCode || "All",
         orgUnit: orgUnitIdToUse,
-        code: roleDeclaration.code,
-        status: roleDeclaration.status,
-        effectiveFrom: new Date(),
-        effectiveUntil: null,
-        assignedBy: null, // Set this if you have req.user
+        branchId: null,
+        status: "Active",
         isActive: true,
+        effectiveFrom: new Date(),
+        assignedBy: req.user._id
       });
 
-      await roleAssignment.save();
-      console.log("✅ Created RoleAssignment:", roleAssignment._id);
-    } else {
-      console.log("✅ Found existing RoleAssignment:", roleAssignment._id);
+      console.log("✅ RoleAssignment created:", roleAssignment._id);
     }
 
-    // 8️⃣ Prepare finalized employee data
-    const finalizedData = {
+    const finalizedEmployee = new FinalizedEmployeeModel({
       ...employee.toObject(),
-      role: roleId, // Store reference to role
-      orgUnit: orgUnitIdToUse, // Store reference to orgUnit
-      roleAssignment: roleAssignment._id, // ✅ NEW: Store reference to assignment
-      OrganizationId: OrganizationId,
+      _id: employee._id,
+      role: roleId,
+      orgUnit: orgUnitIdToUse,
       profileStatus: {
-        submitted: true,
         decision: "Pending",
-        passwordCreated: false,
-        emailSent: false,
-      },
-    };
-
-    // Remove draft-specific fields
-    delete finalizedData.DraftStatus;
-    delete finalizedData._id;
-    delete finalizedData.__v;
-    delete finalizedData.createdAt;
-    delete finalizedData.updatedAt;
-
-    // 9️⃣ Create finalized employee
-    const finalizedEmployee = await FinalizedEmployeeModel.create(finalizedData);
-
-    console.log("✅ FinalizedEmployee created:", finalizedEmployee._id);
-
-    // 🔟 Update orgUnit with employee reference
-    await OrgUnitModel.findByIdAndUpdate(orgUnitIdToUse, {
-      $addToSet: { employees: finalizedEmployee._id }
+        passwordCreated: false
+      }
     });
 
-    // 1️⃣1️⃣ Update RoleAssignment to link to finalized employee (optional)
-    roleAssignment.employeeId = finalizedEmployee._id;
-    await roleAssignment.save();
+    await finalizedEmployee.save();
 
-    console.log("✅ Submit process completed successfully");
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_SUBMITTED,
+      actorId: req.user._id,
+      targetId: employee._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        employeeName: employee.individualName,
+        OrganizationId,
+        orgUnit: orgUnit.name,
+        roleName: roleDeclaration?.roleName
+      }
+    });
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: "Draft submitted successfully and FinalizedEmployee created",
+      message: "Employee submitted successfully and pending approval",
       data: {
+        employeeId: employee._id,
         finalizedEmployeeId: finalizedEmployee._id,
-        roleAssignmentId: roleAssignment._id,
-        roleId: roleId,
-        orgUnitId: orgUnitIdToUse,
-        OrganizationId: OrganizationId
+        OrganizationId,
+        status: "Submitted"
       }
     });
 
@@ -546,52 +856,66 @@ export const SubmitEmployee = async (req, res) => {
     console.error("🔥 SubmitEmployee error:", error.stack || error.message);
     return res.status(500).json({ 
       success: false, 
-      message: "Failed to submit draft",
+      message: "Failed to submit employee", 
       error: error.message 
     });
   }
 };
 
+/**
+ * ✅ Approve employee
+ */
 export const ApproveEmployee = async (req, res) => {
   try {
     const { finalizedEmployeeId } = req.params;
+
     if (!finalizedEmployeeId) {
       return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
     }
 
-    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId).populate("role");
+    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
     if (!finalizedEmployee) {
       return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
     }
 
-    // 🔑 Generate password
     const tempPassword = generatePassword();
     const passwordHash = await hashPassword(tempPassword);
 
-    // Generate the organization id
     const UserId  = generateUserId(finalizedEmployee);
 
-    // 1️⃣ Update finalized employee
     finalizedEmployee.profileStatus.decision = "Approved";
     finalizedEmployee.profileStatus.passwordCreated = true;
     finalizedEmployee.passwordHash = passwordHash;
     finalizedEmployee.password = tempPassword;
     finalizedEmployee.UserId = UserId;
-    // 3️⃣ Send email
+
     SendEmail(finalizedEmployee);
     finalizedEmployee.emailSent = true;
 
     await finalizedEmployee.save();
 
-    // 4️⃣ Confirm assignment to OrgUnit
     if (finalizedEmployee.orgUnit) {
       await OrgUnitModel.findByIdAndUpdate(finalizedEmployee.orgUnit, { employee: finalizedEmployee._id });
     }
 
-    // 5️⃣ Delete original draft employee
     if (finalizedEmployee._id) {
       await EmployeeModel.findByIdAndDelete(finalizedEmployee._id);
     }
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_APPROVED,
+      actorId: req.user._id,
+      targetId: finalizedEmployee._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        employeeName: finalizedEmployee.individualName,
+        UserId,
+        email: finalizedEmployee.personalEmail,
+        passwordSent: true
+      }
+    });
 
     return res.status(200).json({
       success: true,
@@ -605,819 +929,164 @@ export const ApproveEmployee = async (req, res) => {
   }
 };
 
-export const RejectEmployee = async (req, res) => {
+export const AssignEmployeePost = async (req, res) => {
   try {
-    const { finalizedEmployeeId } = req.params;
-    if (!finalizedEmployeeId) return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
+    const actorId = req.user._id;
+    const { employeeId, roleId, departmentCode, orgUnit, branchId, effectiveFrom, notes } = req.body;
 
-    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
-    if (!finalizedEmployee) return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
-
-    // Optional: delete avatar from cloudinary
-    if (finalizedEmployee.avatar?.public_id) {
-      try {
-        await destroyImageFromCloudinary(finalizedEmployee.avatar.public_id);
-      } catch (e) {
-        console.warn("⚠️ Failed to delete avatar from Cloudinary:", e.message);
-      }
-    }
-
-    // Mark rejected
-    finalizedEmployee.profileStatus.decision = "Rejected";
-    await finalizedEmployee.save();
-
-    // Delete draft employee
-    await EmployeeModel.findByIdAndDelete(finalizedEmployee._id);
-
-    // Optional: delete finalizedEmployee document if you want complete cleanup
-    await FinalizedEmployeeModel.findByIdAndDelete(finalizedEmployeeId);
-
-    return res.status(200).json({ success: true, message: "Employee rejected and records cleaned successfully" });
-  } catch (error) {
-    console.error("🔥 RejectEmployee error:", error.stack || error.message);
-    return res.status(500).json({ success: false, message: "Failed to reject employee" });
-  }
-};
-
-// this is for getting the id of the orgunit and orgunit object..
-// Accepts either names or IDs for each level and returns the leaf OrgUnit
-export const resolveOrgUnit = async (req, res) => {
-  try {
-    const { office, group, division, department, branch, cell, desk } = req.body;
-
-    // Level order
-    const levels = [
-      { key: "office", value: office },
-      { key: "group", value: group },
-      { key: "division", value: division },
-      { key: "department", value: department },
-      { key: "branch", value: branch },
-      { key: "cell", value: cell },
-      { key: "desk", value: desk },
-    ];
-
-    let parent = null;
-    let orgUnit = null;
-
-    for (let { key, value } of levels) {
-      if (!value) continue;
-
-      // Check if value is a valid ObjectId
-      if (mongoose.Types.ObjectId.isValid(value)) {
-        // Try to find by ID first
-        orgUnit = await OrgUnitModel.findById(value);
-        if (!orgUnit) {
-          return res.status(404).json({ success: false, message: `${key} with provided ID not found` });
-        }
-      } else {
-        // Treat value as name, check by name + parent
-        orgUnit = await OrgUnitModel.findOne({ name: value, parent: parent?._id });
-        if (!orgUnit) {
-          // Create new node if not exists
-          orgUnit = await OrgUnitModel.create({ name: value, parent: parent?._id });
-        }
-      }
-
-      parent = orgUnit;
-    }
-
-    if (!orgUnit) {
-      return res.status(400).json({ success: false, message: "No OrgUnit could be resolved" });
-    }
-
-    return res.status(200).json({ success: true, orgUnitId: orgUnit._id, orgUnit });
-  } catch (error) {
-    console.error("🔥 resolveOrgUnit error:", error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export const getAllRoles = async (req, res) => {
-  try {
-    const roles = await RoleModel.find();
-
-    if (!roles || roles.length === 0) {
-      return res.status(404).json({
-        status: false,
-        message: "No roles found",
-        roles: [],
+    // ✅ Validation
+    if (!employeeId || !roleId || !departmentCode || !orgUnit) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing required fields: employeeId, roleId, departmentCode, orgUnit" 
       });
     }
 
-    return res.status(200).json({
-      status: true,
-      message: "Roles fetched successfully",
-      roles,
-    });
-  } catch (error) {
-    console.error("Error fetching roles:", error);
-    return res.status(500).json({
-      status: false,
-      message: "Internal server error",
-      error: error.message, // optional: include the error message for debugging
-    });
-  }
-};
+    // ✅ Check if employee exists (decide which model to use)
+    // OPTION A: Using Employee (draft) model
+    const employee = await EmployeeModel.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
 
-export const getSingleRole = async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (!id) {
-      return res.status(400).json({
-        status: false,
-        message: "Id is either undefined or invalid",
+    // OPTION B: Only allow finalized employees (recommended)
+    // const employee = await FinalizedEmployeeModel.findById(employeeId);
+    // if (!employee) {
+    //   return res.status(404).json({ 
+    //     success: false, 
+    //     message: "Employee not found or not yet finalized" 
+    //   });
+    // }
+
+    // ✅ Validate OrgUnit exists
+    const targetOrgUnit = await OrgUnitModel.findById(orgUnit);
+    if (!targetOrgUnit) {
+      return res.status(404).json({ success: false, message: "Organization unit not found" });
+    }
+
+    // ✅ Validate Role exists
+    const role = await RoleModel.findById(roleId);
+    if (!role) {
+      return res.status(404).json({ success: false, message: "Role not found" });
+    }
+
+    // ✅ NEW: Validate department matches orgUnit
+    if (targetOrgUnit.departmentCode !== departmentCode && departmentCode !== "All") {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Selected position belongs to ${targetOrgUnit.departmentCode} department, not ${departmentCode}` 
       });
     }
 
-    console.log("id check in getSingleRole:", id);
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ status: false, message: "Invalid employee ID" });
-    }
-    
-    const roles = await RoleModel.findOne({ id });
-
-    if (!roles) {
-      // No roles yet → return success but empty data
-      return res.status(200).json({
-        status: true,
-        message: "No roles assigned yet",
-        roles: null, // <-- makes frontend easier to check
-      });
-    }
-
-    return res.status(200).json({
-      status: true,
-      message: "Roles fetched successfully",
-      roles,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      status: false,
-      message: "Internal Server Error",
-    });
-  }
-};
-
-// ------------------ FInalized Employees -------------==
-// get all or get single finalized employee.
-export const getFinalizedEmployees = async (req, res) => {
-  try {
-    const finalizedEmployees = await FinalizedEmployeeModel.find().sort({ createdAt: -1 });
-    return res.status(200).json({
-      success: true,
-      count: finalizedEmployees.length,
-      data: finalizedEmployees
-    });
-  } catch (error) {
-    console.error("🔥 GetAllFinalizedEmployees error:", error.stack || error.message);
-    return res.status(500).json({ success: false, message: "Failed to fetch finalized employees" });
-  }
-};
-
-export const getSingleFinalizedEmployee = async (req, res) => {
-  try {
-    const { finalizedEmployeeId } = req.params;
-    if (!finalizedEmployeeId) return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
-
-    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
-    if (!finalizedEmployee) return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
-
-    return res.status(200).json({
-      success: true,
-      finalizedEmployee: finalizedEmployee
-    });
-  } catch (error) {
-    console.error("🔥 GetSingleFinalizedEmployee error:", error.stack || error.message);
-    return res.status(500).json({ success: false, message: "Failed to fetch finalized employee" });
-  }
-};
-
-// employees on the basis of the roles populated... 
-export const getFinalizedEmployeesWithRoles = async (req, res) => {
-  try {
-    const finalizedEmployees = await FinalizedEmployeeModel.find()
-      .sort({ createdAt: -1 })
-      .populate({
-        path: "role",
-        model: "Role", // ✅ matches your RoleModel
-        populate: {
-          path: "permissions",
-          model: "Permission", // ✅ make sure this matches your Permission model name
-        },
-      });
-
-    return res.status(200).json({
-      success: true,
-      count: finalizedEmployees.length,
-      data: finalizedEmployees,
-    });
-  } catch (error) {
-    console.error("🔥 getFinalizedEmployeesWithRoles error:", error.stack || error.message);
-    return res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch finalized employees with roles" });
-  }
-};
-
-export const deleteEmployeeAndFinalized = async (req, res) => {
-  try {
-    const { finalizedEmployeeId } = req.params;
-    if (!finalizedEmployeeId) {
-      return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
-    }
-
-    // ---------------- Delete Finalized Employee ----------------
-    const finalized = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
-    if (!finalized) {
-      return res.status(404).json({ success: false, message: "Finalized employee not found" });
-    }
-
-    // Delete finalized avatar
-    if (finalized.avatar?.public_id) {
-      try { await destroyImageFromCloudinary(finalized.avatar.public_id); } 
-      catch (err) { console.warn("Failed to delete finalized image:", err.message); }
-    }
-
-    // Delete finalized role & permissions
-    if (finalized.role) {
-      const finalizedRole = await RoleModel.findById(finalized.role);
-      if (finalizedRole) {
-        if (finalizedRole.permissions?.length)
-          await PermissionModel.deleteMany({ _id: { $in: finalizedRole.permissions } });
-        await RoleModel.findByIdAndDelete(finalizedRole._id);
-
-        if (finalizedRole.orgUnit)
-          await OrgUnitModel.findByIdAndUpdate(finalizedRole.orgUnit, { $unset: { role: "" } });
+    // ✅ NEW: Validate branch matches orgUnit (if branch specified)
+    if (branchId) {
+      const branch = await BranchModel.findById(branchId);
+      if (!branch) {
+        return res.status(404).json({ success: false, message: "Branch not found" });
+      }
+      
+      if (targetOrgUnit.branchId && targetOrgUnit.branchId.toString() !== branchId) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Selected position does not belong to the selected branch" 
+        });
       }
     }
 
-    // Remove OrgUnit reference
-    if (finalized.OrgUnit)
-      await FinalizedEmployeeModel.findByIdAndUpdate(finalized._id, { $unset: { OrgUnit: "" } });
-
-    // ---------------- Delete Draft Employee (if exists) ----------------
-   const employee = await EmployeeModel.findOne({ UserId: finalized.UserId });
-    if (employee) {
-      // Delete avatar
-      if (employee.avatar?.public_id)
-        await destroyImageFromCloudinary(employee.avatar.public_id);
-
-      // Delete role & permissions
-      if (employee.role) {
-        const role = await RoleModel.findById(employee.role);
-        if (role) {
-          if (role.permissions?.length)
-            await PermissionModel.deleteMany({ _id: { $in: role.permissions } });
-          await RoleModel.findByIdAndDelete(role._id);
-
-          if (role.orgUnit)
-            await OrgUnitModel.findByIdAndUpdate(role.orgUnit, { $unset: { role: "" } });
-        }
-      }
-
-      // Remove OrgUnit reference
-      if (employee.OrgUnit)
-        await EmployeeModel.findByIdAndUpdate(employee._id, { $unset: { OrgUnit: "" } });
-
-      // Delete draft employee
-      await EmployeeModel.findByIdAndDelete(employee._id);
-    }
-
-    // Delete finalized employee
-    await FinalizedEmployeeModel.findByIdAndDelete(finalized._id);
-
-    return res.status(200).json({ 
-      success: true, 
-      message: "Employee, finalized employee, avatars, roles, permissions, and OrgUnit references deleted successfully" 
-    });
-
-  } catch (error) {
-    console.error("🔥 deleteEmployeeAndFinalized error:", error.stack || error.message);
-    return res.status(500).json({ success: false, message: "Failed to delete employee", error: error.message });
-  }
-};
-
-export const suspendEmployee = async (req, res) => {
-  try {
-    const { employeeId } = req.params;
-    const { suspensionReason, suspensionStartDate, suspensionEndDate } = req.body;
-
-    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
-
-    // Save previous system status
-    employee.previous_status = employee.profileStatus.decision;
-
-    // Save previous role
-    employee.previous_role = employee.role._id;
-
-    // Save current permissions
-    const currentPermissions = employee.role.permissions.map((p) => p.toString());
-    employee.rolePermissionsBackup = currentPermissions;
-
-    // Update suspension info
-    employee.suspension = {
-      suspensionReason,
-      suspensionStartDate,
-      suspensionEndDate,
-    };
-
-    // Mark system status as suspended
-    employee.profileStatus.decision = "Suspended";
-
-    await employee.save();
-
-    // ✉️ Send email notification
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: employee.personalEmail || employee.officialEmail, // choose whichever exists
-      subject: "Suspension Notice",
-      html: `
-        <h2>Dear ${employee.individualName},</h2>
-        <p>We regret to inform you that your account has been <strong>suspended</strong>.</p>
-        <p><strong>Reason:</strong> ${suspensionReason}</p>
-        <p><strong>Suspension Period:</strong> ${suspensionStartDate} to ${suspensionEndDate}</p>
-        <p>If you believe this is a mistake or need clarification, please contact HR immediately.</p>
-        <br/>
-        <p>Regards,<br/>HR Department</p>
-      `,
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) console.error("Email sending failed:", err);
-      else console.log("Suspension email sent:", info.response);
-    });
-
-    res.status(200).json({
-      message: "Employee suspended successfully and email sent",
-      employeeId: employee._id,
-      suspension: employee.suspension,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to suspend employee", error: err.message });
-  }
-};
-
-export const restoreSuspendedEmployee = async (req, res) => {
-  try {
-    const { employeeId } = req.params;
-    const employee = await FinalizedEmployeeModel.findById(employeeId);
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
-
-    // Restore previous system status
-    employee.profileStatus.decision = "Restored" || employee.previous_status;
-
-    // Restore previous role
-    employee.role = employee.previous_role;
-
-    // Restore permissions if stored
-    if (employee.rolePermissionsBackup) {
-      const role = await RoleModel.findById(employee.role);
-      role.permissions = employee.rolePermissionsBackup;
-      await role.save();
-    }
-
-    // Clear suspension
-    employee.suspension = {};
-    employee.previous_status = undefined;
-    employee.previous_role = undefined;
-    employee.rolePermissionsBackup = undefined;
-
-    await employee.save();
-
-    // ✉️ Send email notification
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: employee.personalEmail || employee.officialEmail,
-      subject: "Suspension Lifted",
-      html: `
-        <h2>Dear ${employee.individualName},</h2>
-        <p>We are pleased to inform you that your suspension has been <strong>lifted</strong> and you are now restored to your previous status.</p>
-        <p>You may now continue with your duties as normal.</p>
-        <br/>
-        <p>Regards,<br/>HR Department</p>
-      `,
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) console.error("Email sending failed:", err);
-      else console.log("Restoration email sent:", info.response);
-    });
-
-    res.status(200).json({
-      message: "Employee restored from suspension and email sent",
+    // ✅ NEW: Check for existing active assignment
+    const existingAssignment = await RoleAssignmentModel.findOne({
       employeeId,
+      isActive: true
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to restore employee", error: err.message });
-  }
-};
 
-// ✅ Block employee
-export const blockEmployee = async (req, res) => {
-  try {
-    const { employeeId } = req.params;
-    const { blockReason, blockStartDate, blockEndDate } = req.body;
-
-    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
-
-    // Save previous system status
-    employee.previous_status = employee.profileStatus.decision;
-
-    // Save previous role
-    employee.previous_role = employee.role?._id;
-
-    // Save current permissions (backup)
-    if (employee.role && employee.role.permissions) {
-      const currentPermissions = employee.role.permissions.map((p) => p.toString());
-      employee.rolePermissionsBackup = currentPermissions;
+    if (existingAssignment) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Employee already has an active role assignment. Please deactivate it first or use transfer functionality." 
+      });
     }
 
-    // Clear current role and permissions
-    employee.role = undefined;
-    employee.rolePermissionsBackup = employee.rolePermissionsBackup || []; // ensure backup stored
-
-    // Update blocked info
-    employee.blocked = {
-      blockReason,
-      blockStartDate,
-      blockEndDate,
-    };
-
-    // Mark system status as blocked
-    employee.profileStatus.decision = "Blocked";
-
-    await employee.save();
-
-    // ✉️ Send email notification
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: employee.personalEmail || employee.officialEmail,
-      subject: "Account Blocked",
-      html: `
-        <h2>Dear ${employee.individualName},</h2>
-        <p>We regret to inform you that your account has been <strong>blocked</strong>.</p>
-        <p><strong>Reason:</strong> ${blockReason}</p>
-        <p>During this period, your access to the system has been revoked. You cannot log in until HR restores your access.</p>
-        <p>If you believe this is a mistake or require further clarification, please contact HR immediately.</p>
-        <br/>
-        <p>Regards,<br/>HR Department</p>
-      `,
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) console.error("Email sending failed:", err);
-      else console.log("Block email sent:", info.response);
-    });
-
-    res.status(200).json({
-      message: "Employee blocked successfully and email sent",
-      employeeId: employee._id,
-      blocked: employee.blocked,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to block employee", error: err.message });
-  }
-};
-
-// ✅ Restore employee from block
-export const restoreBlockedEmployee = async (req, res) => {
-  try {
-    const { employeeId } = req.params;
-    const employee = await FinalizedEmployeeModel.findById(employeeId);
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
-
-    // Restore previous system status
-    employee.profileStatus.decision = "Restored" || employee.previous_status;
-
-    // Restore previous role
-    employee.role = employee.previous_role;
-
-    // Restore permissions if stored
-    if (employee.rolePermissionsBackup && employee.role) {
-      const role = await RoleModel.findById(employee.role);
-      if (role) {
-        role.permissions = employee.rolePermissionsBackup;
-        await role.save();
-      }
+    // ✅ Hierarchy permission check
+    const hierarchyCheck = await HierarchyGuard.canPerformAction(actorId, employeeId, 'ASSIGN_ROLE');
+    if (!hierarchyCheck.allowed) {
+      return res.status(403).json({ 
+        success: false, 
+        message: hierarchyCheck.reason || "Insufficient permissions to assign this role" 
+      });
     }
 
-    // Clear block
-    employee.blocked = {};
-    employee.previous_status = undefined;
-    employee.previous_role = undefined;
-    employee.rolePermissionsBackup = undefined;
-
-    await employee.save();
-
-    // ✉️ Send email notification
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: employee.personalEmail || employee.officialEmail,
-      subject: "Account Restored",
-      html: `
-        <h2>Dear ${employee.individualName},</h2>
-        <p>We are pleased to inform you that your account has been <strong>restored</strong>.</p>
-        <p>You may now log in and continue with your duties as normal.</p>
-        <br/>
-        <p>Regards,<br/>HR Department</p>
-      `,
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) console.error("Email sending failed:", err);
-      else console.log("Restore email sent:", info.response);
-    });
-
-    res.status(200).json({
-      message: "Employee restored from blocked status and email sent",
+    // ✅ Create the role assignment
+    const newAssignment = await RoleAssignmentModel.create({
       employeeId,
+      roleId,
+      departmentCode,
+      orgUnit: orgUnit, // ✅ Note: using 'orgUnit' not 'orgUnitId'
+      branchId: branchId || null,
+      effectiveFrom: effectiveFrom || new Date(),
+      isActive: true,
+      assignedBy: actorId,
+      notes: notes || ""
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to restore employee", error: err.message });
-  }
-};
 
-// ✅ Terminate employee
-export const terminateEmployee = async (req, res) => {
-  try {
-    const { employeeId } = req.params;
-    const { terminateReason, terminateDate } = req.body;
-
-    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
-
-    // Save previous system status
-    employee.previous_status = employee.profileStatus.decision || "Approved";
-
-    // Save previous role
-    employee.previous_role = employee.role?._id;
-
-    // Save current permissions (backup)
-    if (employee.role && employee.role.permissions) {
-      const currentPermissions = employee.role.permissions.map((p) => p.toString());
-      employee.rolePermissionsBackup = currentPermissions;
-    }
-
-    // Clear current role and permissions
-    employee.role = undefined;
-    employee.rolePermissionsBackup = employee.rolePermissionsBackup || [];
-
-    // Update termination info
-    employee.terminated = {
-      terminateReason,
-      terminateDate,
-    };
-
-    // Mark system status as terminated
-    employee.profileStatus.decision = "Terminated";
+    // ✅ Update employee record
+    employee.orgUnit = orgUnit;
+    employee.role = roleId;
+    employee.DraftStatus.PostStatus = "Assigned";
     await employee.save();
 
-    // ✉️ Send email notification
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: employee.personalEmail || employee.officialEmail,
-      subject: "Employment Terminated",
-      html: `
-        <h2>Dear ${employee.individualName},</h2>
-        <p>We regret to inform you that your employment has been <strong>terminated</strong>.</p>
-        <p><strong>Reason:</strong> ${terminateReason}</p>
-        <p>Effective from: ${terminateDate}</p>
-        <p>If you require documents or have queries, kindly reach out to HR.</p>
-        <br/>
-        <p>Regards,<br/>HR Department</p>
-      `,
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) console.error("Email sending failed:", err);
-      else console.log("Termination email sent:", info.response);
+    // ✅ Audit log
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ROLE_ASSIGNED,
+      actorId,
+      targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: { 
+        employeeName: employee.individualName,
+        orgUnit: targetOrgUnit.name,
+        orgUnitPath: targetOrgUnit.path,
+        department: departmentCode,
+        roleName: role.roleName,
+        branchName: branchId ? (await BranchModel.findById(branchId))?.name : 'N/A'
+      }
     });
 
-    res.status(200).json({
-      message: "Employee terminated successfully and email sent",
-      employeeId: employee._id,
-      terminated: employee.terminated,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to terminate employee", error: err.message });
-  }
-};
+    // ✅ Return success with populated data
+    const populatedAssignment = await RoleAssignmentModel.findById(newAssignment._id)
+      .populate('roleId', 'roleName category permissions')
+      .populate('orgUnit', 'name type departmentCode path')
+      .populate('branchId', 'name code');
 
-// ✅ Restore employee from termination
-export const restoreTerminatedEmployee = async (req, res) => {
-  try {
-    const { employeeId } = req.params;
-    const employee = await FinalizedEmployeeModel.findById(employeeId);
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
-
-    // Restore previous system status
-    employee.profileStatus.decision = employee.previous_status;
-
-    // Restore previous role
-    employee.role = employee.previous_role;
-
-    // Restore permissions if stored
-    if (employee.rolePermissionsBackup && employee.role) {
-      const role = await RoleModel.findById(employee.role);
-      if (role) {
-        role.permissions = employee.rolePermissionsBackup;
-        await role.save();
-      }
-    }
-
-    // Clear termination
-    employee.terminated = {};
-    employee.previous_status = undefined;
-    employee.previous_role = undefined;
-    employee.rolePermissionsBackup = undefined;
-
-    await employee.save();
-
-    // ✉️ Send email notification
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: employee.personalEmail || employee.officialEmail,
-      subject: "Employment Restored",
-      html: `
-        <h2>Dear ${employee.individualName},</h2>
-        <p>We are pleased to inform you that your employment has been <strong>restored</strong>.</p>
-        <p>You may now resume your duties as normal.</p>
-        <br/>
-        <p>Regards,<br/>HR Department</p>
-      `,
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) console.error("Email sending failed:", err);
-      else console.log("Restore termination email sent:", info.response);
+    res.status(201).json({
+      success: true,
+      message: "Role and organizational placement assigned successfully",
+      data: populatedAssignment
     });
 
-    res.status(200).json({
-      message: "Employee restored from terminated status and email sent",
-      employeeId,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to restore terminated employee", error: err.message });
-  }
-};
-
-export const checkAndRestoreEmployees = async () => {
-  try {
-    const employees = await FinalizedEmployeeModel.find()
-      .populate("role")
-      .populate("role.permissions");
-
-    const today = new Date();
-
-    for (const employee of employees) {
-      let updated = false;
-      let restoredFrom = null;
-
-      // 🟠 Suspension check
-      if (
-        employee.profileStatus?.decision === "Suspended" &&
-        employee.suspension?.suspensionEndDate &&
-        new Date(employee.suspension.suspensionEndDate) <= today
-      ) {
-        employee.profileStatus.decision = "Restored";
-        employee.suspension = {};
-        updated = true;
-        restoredFrom = "Suspended";
-      }
-
-      // 🔴 Termination check
-      if (
-        employee.profileStatus?.decision === "Terminated" &&
-        employee.terminated?.terminationEndDate &&
-        new Date(employee.terminated.terminationEndDate) <= today
-      ) {
-        employee.profileStatus.decision = "Restored";
-        employee.terminated = {};
-        updated = true;
-        restoredFrom = "Terminated";
-      }
-
-      // ⛔ Block check
-      if (
-        employee.profileStatus?.decision === "Blocked" &&
-        employee.blocked?.blockEndDate &&
-        new Date(employee.blocked.blockEndDate) <= today
-      ) {
-        employee.profileStatus.decision = "Restored";
-        employee.blocked = {};
-        updated = true;
-        restoredFrom = "Blocked";
-      }
-
-      // 🌿 Leave check
-      if (
-        employee.leave &&
-        employee.leave.leaveEndDate &&
-        new Date(employee.leave.leaveEndDate) <= today
-      ) {
-        // Restore delegated employee (target)
-        if (employee.leave.transferredRoleTo) {
-          const target = await FinalizedEmployeeModel.findById(employee.leave.transferredRoleTo)
-            .populate("role")
-            .populate("role.permissions");
-
-          if (target && target.role) {
-            // Restore target’s default role + permissions
-            let cleanedPermissions = target.defaultPermissions || [];
-
-            await RoleModel.findByIdAndUpdate(target.role._id, {
-              permissions: cleanedPermissions,
-            });
-
-            if (target.previous_role) {
-              target.role = target.previous_role;
-            }
-
-            target.previous_role = null;
-            target.rolePermissionsBackup = [];
-            await target.save();
-            console.log(`🔄 Target restored: ${target.individualName}`);
-          }
-        }
-
-        // Restore source employee
-        if (employee.previous_role) {
-          employee.role = employee.previous_role;
-        }
-
-        const restoredPermissions = [
-          ...(employee.rolePermissionsBackup || []),
-          ...(employee.defaultPermissions || []),
-        ];
-
-        if (employee.role) {
-          await RoleModel.findByIdAndUpdate(employee.role._id, {
-            permissions: [...new Set(restoredPermissions)],
-          });
-        }
-
-        employee.leave = { onLeave: false, leaveAccepted: false, leaveRejected: false };
-        employee.previous_role = null;
-        employee.rolePermissionsBackup = [];
-        updated = true;
-        restoredFrom = "Leave";
-      }
-
-      if (updated) {
-        await employee.save();
-        console.log(`✅ Employee ${employee.individualName} restored from ${restoredFrom}`);
-      }
-    }
-
-    return { success: true, message: "Employee statuses checked and restored where applicable" };
-  } catch (err) {
-    console.error("❌ Error restoring employees:", err);
-    return { success: false, message: err.message };
-  }
-};
-
-export const fetchEmployeesByStatus = async (req, res) => {
-  try {
-    // read the status from query params (example: ?status=Active)
-    const { status } = req.query;
-
-    if (!status) {
-      return res.status(400).json({ message: "Status is required in query params" });
-    }
-
-    // find employees by status
-    const employees = await FinalizedEmployeeModel.find({ status });
-
-    return res.status(200).json({
-      message: `Employees with status: ${status}`,
-      count: employees.length,
-      employees,
-    });
   } catch (error) {
-    console.error("Error fetching employees by status:", error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    console.error("❌ AssignEmployeePost error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal server error while assigning role",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
-// ---------------------- Edit Draft Employee ----------------------
+// ============================================
+// UPDATE OPERATIONS (WITH AUDIT)
+// ============================================
+
+/**
+ * ✅ Edit draft employee
+ */
 export const EditEmployee = async (req, res) => {
   try {
     const { employeeId } = req.params;
     const updateData = req.body;
 
     console.log("📝 EditEmployee called for:", employeeId);
-    console.log("📦 Update data:", updateData);
 
-    // Validate employee exists
     const employee = await EmployeeModel.findById(employeeId);
     if (!employee) {
       return res.status(404).json({
@@ -1426,7 +1095,6 @@ export const EditEmployee = async (req, res) => {
       });
     }
 
-    // Check if employee is already submitted
     if (employee.DraftStatus?.status === "Submitted") {
       return res.status(400).json({
         success: false,
@@ -1434,16 +1102,30 @@ export const EditEmployee = async (req, res) => {
       });
     }
 
-    // Handle file upload if present
+    // Track changes for audit
+    const changedFields = {};
+    const trackableFields = [
+      'individualName', 'fatherName', 'qualification', 'dob', 
+      'officialEmail', 'personalEmail', 'employmentStatus'
+    ];
+
+    for (const field of trackableFields) {
+      if (updateData[field] !== undefined && 
+          JSON.stringify(employee[field]) !== JSON.stringify(updateData[field])) {
+        changedFields[field] = {
+          old: employee[field],
+          new: updateData[field]
+        };
+      }
+    }
+
     let uploadedImage = null;
     if (req.file) {
       try {
-        // Delete old image if exists
         if (employee.avatar?.public_id) {
           await destroyImageFromCloudinary(employee.avatar.public_id);
         }
         
-        // Upload new image
         uploadedImage = await uploadFileToCloudinary(
           req.file,
           "employees/profileImage"
@@ -1453,13 +1135,11 @@ export const EditEmployee = async (req, res) => {
       }
     }
 
-    // Parse nested JSON fields if they're strings
     const parseIfString = (field) => {
       if (!field) return field;
       return typeof field === "string" ? JSON.parse(field) : field;
     };
 
-    // Build update object
     const updates = {
       ...(updateData.individualName && { individualName: updateData.individualName }),
       ...(updateData.fatherName && { fatherName: updateData.fatherName }),
@@ -1487,7 +1167,6 @@ export const EditEmployee = async (req, res) => {
       }),
     };
 
-    // Update employee
     const updatedEmployee = await EmployeeModel.findByIdAndUpdate(
       employeeId,
       { $set: updates },
@@ -1495,6 +1174,22 @@ export const EditEmployee = async (req, res) => {
     );
 
     console.log("✅ Employee updated successfully");
+
+    // 🔍 AUDIT LOG
+    if (Object.keys(changedFields).length > 0) {
+      await AuditService.log({
+        eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_UPDATED,
+        actorId: req.user._id,
+        targetId: employeeId,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        details: {
+          employeeName: updatedEmployee.individualName,
+          changedFields,
+          avatarUpdated: !!uploadedImage
+        }
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -1512,16 +1207,16 @@ export const EditEmployee = async (req, res) => {
   }
 };
 
+/**
+ * ✅ Update employee permissions
+ */
 export const updateEmployeePermissions = async (req, res) => {
   try {
     const actorId = req.user._id;
     const { employeeId } = req.params;
     const { permissionsToAdd = [], permissionsToRemove = [] } = req.body;
 
-    // ============================================================
-    // VALIDATION: TARGET EXISTS
-    // ============================================================
-    const targetEmployee = await FinalizedEmployee.findById(employeeId);
+    const targetEmployee = await FinalizedEmployeeModel.findById(employeeId);
 
     if (!targetEmployee) {
       return res.status(404).json({
@@ -1530,9 +1225,6 @@ export const updateEmployeePermissions = async (req, res) => {
       });
     }
 
-    // ============================================================
-    // HIERARCHICAL AUTHORITY CHECK
-    // ============================================================
     const hierarchyCheck = await HierarchyGuard.canPerformAction(
       actorId,
       employeeId,
@@ -1548,16 +1240,10 @@ export const updateEmployeePermissions = async (req, res) => {
       });
     }
 
-    // ============================================================
-    // GET ACTOR'S EFFECTIVE PERMISSIONS
-    // ============================================================
     const actorPermissions = await PermissionAggregator.getEffectivePermissions(actorId);
     const actorEffective = actorPermissions.effective;
     const actorDepartment = actorPermissions.departmentCode;
 
-    // ============================================================
-    // VALIDATION: CANNOT GRANT WHAT YOU DON'T HAVE
-    // ============================================================
     if (permissionsToAdd.length > 0) {
       const actorPermissionIds = new Set(
         actorEffective.map(p => p._id.toString())
@@ -1567,7 +1253,6 @@ export const updateEmployeePermissions = async (req, res) => {
 
       for (const permId of permissionsToAdd) {
         if (!actorPermissionIds.has(permId.toString())) {
-          // Actor doesn't have this permission
           const perm = await PermissionModel.findById(permId);
           unauthorizedPermissions.push({
             id: permId,
@@ -1585,14 +1270,12 @@ export const updateEmployeePermissions = async (req, res) => {
         });
       }
 
-      // ✅ ADDITIONAL CHECK: Department scope validation
       if (actorDepartment !== CONSTANTS.DEPARTMENTS.ALL) {
         const permissionsToCheck = await PermissionModel.find({
           _id: { $in: permissionsToAdd }
         });
 
         const outOfScopePermissions = permissionsToCheck.filter(perm => {
-          // Permission must have actor's department in statusScope
           return !perm.statusScope.includes(actorDepartment) &&
                  !perm.statusScope.includes('ALL');
         });
@@ -1612,9 +1295,6 @@ export const updateEmployeePermissions = async (req, res) => {
       }
     }
 
-    // ============================================================
-    // GET TARGET'S CURRENT ASSIGNMENT
-    // ============================================================
     const targetAssignment = await RoleAssignmentModel.findOne({
       employeeId,
       isActive: true
@@ -1627,19 +1307,14 @@ export const updateEmployeePermissions = async (req, res) => {
       });
     }
 
-    // ============================================================
-    // UPDATE PERMISSION OVERRIDES
-    // ============================================================
     let currentOverrides = targetAssignment.permissionOverrides || [];
 
-    // Remove permissions
     if (permissionsToRemove.length > 0) {
       currentOverrides = currentOverrides.filter(
         pid => !permissionsToRemove.includes(pid.toString())
       );
     }
 
-    // Add permissions
     if (permissionsToAdd.length > 0) {
       const newPermissions = permissionsToAdd.filter(
         pid => !currentOverrides.includes(pid)
@@ -1647,18 +1322,18 @@ export const updateEmployeePermissions = async (req, res) => {
       currentOverrides.push(...newPermissions);
     }
 
-    // Update assignment
     targetAssignment.permissionOverrides = currentOverrides;
     await targetAssignment.save();
 
-    // ============================================================
-    // AUDIT LOG
-    // ============================================================
+    // 🔍 AUDIT LOG
     await AuditService.log({
       eventType: CONSTANTS.AUDIT_EVENTS.PERMISSION_MODIFIED,
       actorId,
       targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
       details: {
+        employeeName: targetEmployee.individualName,
         permissionsAdded: permissionsToAdd.length,
         permissionsRemoved: permissionsToRemove.length,
         totalOverrides: currentOverrides.length
@@ -1695,231 +1370,758 @@ export const updateEmployeePermissions = async (req, res) => {
   }
 };
 
-export const viewOrgUnitEmployees = async (req, res) => {
+/**
+ * ✅ Suspend employee
+ */
+export const suspendEmployee = async (req, res) => {
   try {
-    const actorId = req.user._id;
-    const { orgUnitId } = req.params;
-    const { includeDirect = false } = req.query;
+    const { employeeId } = req.params;
+    const { suspensionReason, suspensionStartDate, suspensionEndDate } = req.body;
 
-    // ============================================================
-    // GET ACTOR'S CONTEXT
-    // ============================================================
-    const actorAssignment = await RoleAssignmentModel.findOne({
-      employeeId: actorId,
-      isActive: true
-    }).populate('orgUnit');
+    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
 
-    if (!actorAssignment) {
-      return res.status(403).json({
-        success: false,
-        message: "No active role assignment"
-      });
-    }
+    employee.previous_status = employee.profileStatus.decision;
+    employee.previous_role = employee.role._id;
 
-    const actorOrgUnit = actorAssignment.orgUnit;
-    const actorDepartment = actorAssignment.departmentCode;
-    const isExecutive = actorDepartment === CONSTANTS.DEPARTMENTS.ALL;
+    const currentPermissions = employee.role.permissions.map((p) => p.toString());
+    employee.rolePermissionsBackup = currentPermissions;
 
-    // ============================================================
-    // DETERMINE TARGET ORG UNIT
-    // ============================================================
-    let targetOrgUnit;
-
-    if (orgUnitId) {
-      // Specific org unit requested
-      targetOrgUnit = await OrgUnitModel.findById(orgUnitId);
-
-      if (!targetOrgUnit) {
-        return res.status(404).json({
-          success: false,
-          message: "Org unit not found"
-        });
-      }
-
-      // ✅ AUTHORIZATION: Can only view own subtree
-      if (!isExecutive) {
-        const isInSubtree = 
-          targetOrgUnit.path.startsWith(actorOrgUnit.path + '.') ||
-          targetOrgUnit.path === actorOrgUnit.path;
-
-        if (!isInSubtree) {
-          return res.status(403).json({
-            success: false,
-            message: "You can only view employees in your organizational subtree",
-            code: 'ORGUNIT_OUT_OF_SCOPE'
-          });
-        }
-      }
-    } else {
-      // No specific unit - use actor's own org unit
-      targetOrgUnit = actorOrgUnit;
-    }
-
-    // ============================================================
-    // GET EMPLOYEES
-    // ============================================================
-    let orgUnitIds;
-
-    if (includeDirect === 'true' || includeDirect === true) {
-      // Only direct reports in this org unit
-      orgUnitIds = [targetOrgUnit._id];
-    } else {
-      // Include entire subtree
-      const descendants = await targetOrgUnit.getDescendants();
-      orgUnitIds = [targetOrgUnit._id, ...descendants.map(d => d._id)];
-    }
-
-    // Build query
-    let query = {
-      orgUnit: { $in: orgUnitIds },
-      isActive: true
+    employee.suspension = {
+      suspensionReason,
+      suspensionStartDate,
+      suspensionEndDate,
     };
 
-    // ✅ DEPARTMENT FILTER (unless executive)
-    if (!isExecutive) {
-      query.departmentCode = actorDepartment;
-    }
+    employee.profileStatus.decision = "Suspended";
 
-    // Execute query
-    const assignments = await RoleAssignmentModel.find(query)
-      .populate('employeeId', 'individualName personalEmail UserId avatar profileStatus')
-      .populate('roleId', 'roleName category')
-      .populate('orgUnit', 'name type level path')
-      .lean();
+    await employee.save();
 
-    // Filter out null employees
-    const validAssignments = assignments.filter(a => a.employeeId);
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Suspension Notice",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We regret to inform you that your account has been <strong>suspended</strong>.</p>
+        <p><strong>Reason:</strong> ${suspensionReason}</p>
+        <p><strong>Suspension Period:</strong> ${suspensionStartDate} to ${suspensionEndDate}</p>
+        <p>If you believe this is a mistake or need clarification, please contact HR immediately.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
 
-    // ============================================================
-    // ENRICH WITH PERMISSION DATA
-    // ============================================================
-    const enrichedEmployees = await Promise.all(
-      validAssignments.map(async (assignment) => {
-        const employee = assignment.employeeId;
-        
-        // Get permission breakdown
-        const permBreakdown = await PermissionAggregator.getPermissionBreakdown(
-          employee._id
-        );
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Suspension email sent:", info.response);
+    });
 
-        return {
-          ...employee,
-          assignment: {
-            roleId: assignment.roleId?._id,
-            roleName: assignment.roleId?.roleName,
-            roleCategory: assignment.roleId?.category,
-            departmentCode: assignment.departmentCode,
-            orgUnit: assignment.orgUnit,
-            effectiveFrom: assignment.effectiveFrom
-          },
-          permissions: {
-            directCount: permBreakdown.summary.directCount,
-            inheritedCount: permBreakdown.summary.inheritedCount,
-            totalEffective: permBreakdown.summary.totalEffective
-          },
-          hierarchy: {
-            level: assignment.orgUnit.level,
-            path: assignment.orgUnit.path
-          }
-        };
-      })
-    );
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_SUSPENDED,
+      actorId: req.user._id,
+      targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        employeeName: employee.individualName,
+        reason: suspensionReason,
+        startDate: suspensionStartDate,
+        endDate: suspensionEndDate
+      }
+    });
 
-    // ============================================================
-    // RESPONSE
-    // ============================================================
     res.status(200).json({
-      success: true,
-      scope: {
-        orgUnit: {
-          _id: targetOrgUnit._id,
-          name: targetOrgUnit.name,
-          path: targetOrgUnit.path,
-          level: targetOrgUnit.level
-        },
-        includedSubtree: !includeDirect,
-        departmentFilter: isExecutive ? 'ALL' : actorDepartment,
-        yourAccess: {
-          isExecutive,
-          department: actorDepartment,
-          level: actorOrgUnit.level
-        }
-      },
-      count: enrichedEmployees.length,
-      employees: enrichedEmployees
+      message: "Employee suspended successfully and email sent",
+      employeeId: employee._id,
+      suspension: employee.suspension,
     });
-
-  } catch (error) {
-    console.error("❌ viewOrgUnitEmployees error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch employees",
-      error: error.message
-    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to suspend employee", error: err.message });
   }
 };
 
-export const AssignEmployeePost = async (req, res) => {
+/**
+ * ✅ Restore suspended employee
+ */
+export const restoreSuspendedEmployee = async (req, res) => {
   try {
-    const actorId = req.user._id;
-    const { employeeId, roleId, departmentCode, orgUnitId, branchId, effectiveFrom, notes } = req.body;
+    const { employeeId } = req.params;
+    const employee = await FinalizedEmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
 
-    // 1. VALIDATION
-    if (!employeeId || !roleId || !departmentCode || !orgUnitId) {
-      return res.status(400).json({ success: false, message: "Missing placement fields" });
+    const previousStatus = employee.previous_status;
+
+    employee.profileStatus.decision = "Restored" || employee.previous_status;
+    employee.role = employee.previous_role;
+
+    if (employee.rolePermissionsBackup) {
+      const role = await RoleModel.findById(employee.role);
+      role.permissions = employee.rolePermissionsBackup;
+      await role.save();
     }
 
-    // 2. FIND DRAFT EMPLOYEE (Modified from FinalizedEmployee to Employee)
-    const employee = await Employee.findById(employeeId);
-    if (!employee) {
-      return res.status(404).json({ success: false, message: "Employee draft not found" });
-    }
+    employee.suspension = {};
+    employee.previous_status = undefined;
+    employee.previous_role = undefined;
+    employee.rolePermissionsBackup = undefined;
 
-    // 3. HIERARCHY CHECK (Can the actor act on this placement?)
-    const targetOrgUnit = await OrgUnitModel.findById(orgUnitId);
-    if (!targetOrgUnit) return res.status(404).json({ success: false, message: "Target OrgUnit not found" });
-
-    // Assuming your HierarchyGuard handles the permission logic
-    const hierarchyCheck = await HierarchyGuard.canPerformAction(actorId, employeeId, 'ASSIGN_ROLE');
-    if (!hierarchyCheck.allowed) {
-      return res.status(403).json({ success: false, message: hierarchyCheck.reason });
-    }
-
-    // 4. CREATE THE ASSIGNMENT
-    const newAssignment = await RoleAssignmentModel.create({
-      employeeId,
-      roleId,
-      departmentCode,
-      orgUnit: orgUnitId,
-      branchId: branchId || null,
-      effectiveFrom: effectiveFrom || new Date(),
-      isActive: true,
-      assignedBy: actorId,
-      notes: notes || ""
-    });
-
-    // 5. UPDATE THE DRAFT RECORD
-    // Linking the assignment details back to the draft
-    employee.orgUnit = orgUnitId;
-    employee.role = roleId;
-    employee.DraftStatus.PostStatus = "Assigned";
     await employee.save();
 
-    await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.ROLE_ASSIGNED,
-      actorId,
-      targetId: employeeId,
-      details: { orgUnit: targetOrgUnit.name, department: departmentCode }
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Suspension Lifted",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We are pleased to inform you that your suspension has been <strong>lifted</strong> and you are now restored to your previous status.</p>
+        <p>You may now continue with your duties as normal.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Restoration email sent:", info.response);
     });
 
-    res.status(201).json({
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_RESTORED,
+      actorId: req.user._id,
+      targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        employeeName: employee.individualName,
+        restoredFrom: 'Suspended',
+        previousStatus
+      }
+    });
+
+    res.status(200).json({
+      message: "Employee restored from suspension and email sent",
+      employeeId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to restore employee", error: err.message });
+  }
+};
+
+/**
+ * ✅ Block employee
+ */
+export const blockEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { blockReason, blockStartDate, blockEndDate } = req.body;
+
+    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    employee.previous_status = employee.profileStatus.decision;
+    employee.previous_role = employee.role._id;
+
+    const currentPermissions = employee.role.permissions.map((p) => p.toString());
+    employee.rolePermissionsBackup = currentPermissions;
+
+    employee.blocked = {
+      blockReason,
+      blockStartDate,
+      blockEndDate,
+    };
+
+    employee.profileStatus.decision = "Blocked";
+    await employee.save();
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Account Blocked",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We regret to inform you that your account has been <strong>blocked</strong>.</p>
+        <p><strong>Reason:</strong> ${blockReason}</p>
+        <p><strong>Block Period:</strong> ${blockStartDate} to ${blockEndDate}</p>
+        <p>Please contact HR for assistance.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Block email sent:", info.response);
+    });
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_BLOCKED,
+      actorId: req.user._id,
+      targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        employeeName: employee.individualName,
+        reason: blockReason,
+        startDate: blockStartDate,
+        endDate: blockEndDate
+      }
+    });
+
+    res.status(200).json({
+      message: "Employee blocked successfully and email sent",
+      employeeId: employee._id,
+      blocked: employee.blocked,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to block employee", error: err.message });
+  }
+};
+
+/**
+ * ✅ Restore blocked employee
+ */
+export const restoreBlockedEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const employee = await FinalizedEmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    const previousStatus = employee.previous_status;
+
+    employee.profileStatus.decision = employee.previous_status;
+    employee.role = employee.previous_role;
+
+    if (employee.rolePermissionsBackup && employee.role) {
+      const role = await RoleModel.findById(employee.role);
+      if (role) {
+        role.permissions = employee.rolePermissionsBackup;
+        await role.save();
+      }
+    }
+
+    employee.blocked = {};
+    employee.previous_status = undefined;
+    employee.previous_role = undefined;
+    employee.rolePermissionsBackup = undefined;
+
+    await employee.save();
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Account Unblocked",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We are pleased to inform you that your account has been <strong>unblocked</strong>.</p>
+        <p>You may now resume your duties as normal.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Unblock email sent:", info.response);
+    });
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_RESTORED,
+      actorId: req.user._id,
+      targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        employeeName: employee.individualName,
+        restoredFrom: 'Blocked',
+        previousStatus
+      }
+    });
+
+    res.status(200).json({
+      message: "Employee unblocked successfully and email sent",
+      employeeId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to restore blocked employee", error: err.message });
+  }
+};
+
+/**
+ * ✅ Terminate employee
+ */
+export const terminateEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { terminateReason, terminateDate } = req.body;
+
+    const employee = await FinalizedEmployeeModel.findById(employeeId).populate("role");
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    employee.previous_status = employee.profileStatus.decision;
+    employee.previous_role = employee.role._id;
+
+    if (employee.role && employee.role.permissions) {
+      employee.rolePermissionsBackup = employee.role.permissions.map((p) => p.toString());
+    }
+    employee.rolePermissionsBackup = employee.rolePermissionsBackup || [];
+
+    employee.terminated = {
+      terminateReason,
+      terminateDate,
+    };
+
+    employee.profileStatus.decision = "Terminated";
+    await employee.save();
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Employment Terminated",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We regret to inform you that your employment has been <strong>terminated</strong>.</p>
+        <p><strong>Reason:</strong> ${terminateReason}</p>
+        <p>Effective from: ${terminateDate}</p>
+        <p>If you require documents or have queries, kindly reach out to HR.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Termination email sent:", info.response);
+    });
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_TERMINATED,
+      actorId: req.user._id,
+      targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        employeeName: employee.individualName,
+        reason: terminateReason,
+        terminateDate
+      }
+    });
+
+    res.status(200).json({
+      message: "Employee terminated successfully and email sent",
+      employeeId: employee._id,
+      terminated: employee.terminated,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to terminate employee", error: err.message });
+  }
+};
+
+/**
+ * ✅ Restore terminated employee
+ */
+export const restoreTerminatedEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const employee = await FinalizedEmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+
+    const previousStatus = employee.previous_status;
+
+    employee.profileStatus.decision = employee.previous_status;
+    employee.role = employee.previous_role;
+
+    if (employee.rolePermissionsBackup && employee.role) {
+      const role = await RoleModel.findById(employee.role);
+      if (role) {
+        role.permissions = employee.rolePermissionsBackup;
+        await role.save();
+      }
+    }
+
+    employee.terminated = {};
+    employee.previous_status = undefined;
+    employee.previous_role = undefined;
+    employee.rolePermissionsBackup = undefined;
+
+    await employee.save();
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: employee.personalEmail || employee.officialEmail,
+      subject: "Employment Restored",
+      html: `
+        <h2>Dear ${employee.individualName},</h2>
+        <p>We are pleased to inform you that your employment has been <strong>restored</strong>.</p>
+        <p>You may now resume your duties as normal.</p>
+        <br/>
+        <p>Regards,<br/>HR Department</p>
+      `,
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Email sending failed:", err);
+      else console.log("Restore termination email sent:", info.response);
+    });
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_RESTORED,
+      actorId: req.user._id,
+      targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        employeeName: employee.individualName,
+        restoredFrom: 'Terminated',
+        previousStatus
+      }
+    });
+
+    res.status(200).json({
+      message: "Employee restored from terminated status and email sent",
+      employeeId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to restore terminated employee", error: err.message });
+  }
+};
+
+// ============================================
+// DELETE OPERATIONS (WITH AUDIT)
+// ============================================
+
+/**
+ * ✅ Delete draft employee
+ */
+export const deleteEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    if (!employeeId) return res.status(400).json({ success: false, message: "employeeId is required" });
+
+    const employee = await EmployeeModel.findById(employeeId);
+    if (!employee) return res.status(404).json({ success: false, message: "Employee not found" });
+
+    // Store details before deletion
+    const deletedDetails = {
+      name: employee.individualName,
+      email: employee.personalEmail,
+      officialEmail: employee.officialEmail,
+      status: employee.DraftStatus?.status
+    };
+
+    if (employee.avatar?.public_id) {
+      try {
+        await destroyImageFromCloudinary(employee.avatar.public_id);
+      } catch (err) {
+        console.warn("Failed to delete Cloudinary image:", err.message);
+      }
+    }
+
+    const role = await RoleModel.findOne({ UserId: employee._id });
+    if (role) {
+      if (role.permissions && role.permissions.length > 0) {
+        await PermissionModel.deleteMany({ _id: { $in: role.permissions } });
+      }
+
+      await RoleModel.findByIdAndDelete(role._id);
+
+      if (role.orgUnit) {
+        await OrgUnitModel.findByIdAndUpdate(role.orgUnit, { $unset: { role: "" } });
+      }
+    }
+
+    if (employee.OrgUnit) {
+      await EmployeeModel.findByIdAndUpdate(employee._id, { $unset: { OrgUnit: "" } });
+    }
+
+    await EmployeeModel.findByIdAndDelete(employee._id);
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_DELETED,
+      actorId: req.user._id,
+      targetId: employeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: deletedDetails
+    });
+
+    res.status(200).json({
       success: true,
-      message: "Role and placement assigned to draft successfully",
-      data: newAssignment
+      message: "Employee, role, permissions, OrgUnit references, and avatar deleted successfully",
     });
 
   } catch (error) {
-    console.error("❌ AssignEmployeePost error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Delete Employee Error:", error);
+    res.status(500).json({ success: false, message: "Server Error", error: error.message });
+  }
+};
+
+/**
+ * ✅ Reject employee
+ */
+export const RejectEmployee = async (req, res) => {
+  try {
+    const { finalizedEmployeeId } = req.params;
+    if (!finalizedEmployeeId) return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
+
+    const finalizedEmployee = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
+    if (!finalizedEmployee) return res.status(404).json({ success: false, message: "FinalizedEmployee not found" });
+
+    // Store details before deletion
+    const rejectedDetails = {
+      name: finalizedEmployee.individualName,
+      email: finalizedEmployee.personalEmail,
+      OrganizationId: finalizedEmployee.OrganizationId
+    };
+
+    if (finalizedEmployee.avatar?.public_id) {
+      try {
+        await destroyImageFromCloudinary(finalizedEmployee.avatar.public_id);
+      } catch (e) {
+        console.warn("⚠️ Failed to delete avatar from Cloudinary:", e.message);
+      }
+    }
+
+    finalizedEmployee.profileStatus.decision = "Rejected";
+    await finalizedEmployee.save();
+
+    await EmployeeModel.findByIdAndDelete(finalizedEmployee._id);
+    await FinalizedEmployeeModel.findByIdAndDelete(finalizedEmployeeId);
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_REJECTED,
+      actorId: req.user._id,
+      targetId: finalizedEmployeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: rejectedDetails
+    });
+
+    return res.status(200).json({ success: true, message: "Employee rejected and records cleaned successfully" });
+  } catch (error) {
+    console.error("🔥 RejectEmployee error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to reject employee" });
+  }
+};
+
+/**
+ * ✅ Delete employee and finalized
+ */
+export const deleteEmployeeAndFinalized = async (req, res) => {
+  try {
+    const { finalizedEmployeeId } = req.params;
+    if (!finalizedEmployeeId) {
+      return res.status(400).json({ success: false, message: "finalizedEmployeeId is required" });
+    }
+
+    const finalized = await FinalizedEmployeeModel.findById(finalizedEmployeeId);
+    if (!finalized) {
+      return res.status(404).json({ success: false, message: "Finalized employee not found" });
+    }
+
+    // Store details before deletion
+    const deletedDetails = {
+      name: finalized.individualName,
+      UserId: finalized.UserId,
+      email: finalized.personalEmail,
+      OrganizationId: finalized.OrganizationId
+    };
+
+    if (finalized.avatar?.public_id) {
+      try { await destroyImageFromCloudinary(finalized.avatar.public_id); } 
+      catch (err) { console.warn("Failed to delete finalized image:", err.message); }
+    }
+
+    if (finalized.role) {
+      const finalizedRole = await RoleModel.findById(finalized.role);
+      if (finalizedRole) {
+        if (finalizedRole.permissions?.length)
+          await PermissionModel.deleteMany({ _id: { $in: finalizedRole.permissions } });
+        await RoleModel.findByIdAndDelete(finalizedRole._id);
+
+        if (finalizedRole.orgUnit)
+          await OrgUnitModel.findByIdAndUpdate(finalizedRole.orgUnit, { $unset: { role: "" } });
+      }
+    }
+
+    if (finalized.OrgUnit)
+      await FinalizedEmployeeModel.findByIdAndUpdate(finalized._id, { $unset: { OrgUnit: "" } });
+
+   const employee = await EmployeeModel.findOne({ UserId: finalized.UserId });
+    if (employee) {
+      if (employee.avatar?.public_id)
+        await destroyImageFromCloudinary(employee.avatar.public_id);
+
+      if (employee.role) {
+        const role = await RoleModel.findById(employee.role);
+        if (role) {
+          if (role.permissions?.length)
+            await PermissionModel.deleteMany({ _id: { $in: role.permissions } });
+          await RoleModel.findByIdAndDelete(role._id);
+
+          if (role.orgUnit)
+            await OrgUnitModel.findByIdAndUpdate(role.orgUnit, { $unset: { role: "" } });
+        }
+      }
+
+      if (employee.OrgUnit)
+        await EmployeeModel.findByIdAndUpdate(employee._id, { $unset: { OrgUnit: "" } });
+
+      await EmployeeModel.findByIdAndDelete(employee._id);
+    }
+
+    await FinalizedEmployeeModel.findByIdAndDelete(finalized._id);
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_DELETED,
+      actorId: req.user._id,
+      targetId: finalizedEmployeeId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        ...deletedDetails,
+        completePurge: true
+      }
+    });
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Employee, finalized employee, avatars, roles, permissions, and OrgUnit references deleted successfully" 
+    });
+
+  } catch (error) {
+    console.error("🔥 deleteEmployeeAndFinalized error:", error.stack || error.message);
+    return res.status(500).json({ success: false, message: "Failed to delete employee", error: error.message });
+  }
+};
+
+// ============================================
+// UTILITY / AUTOMATION FUNCTIONS
+// ============================================
+
+/**
+ * ✅ Check and restore employees (Automated - NO AUDIT)
+ * This is an automated system task, not a user action
+ */
+export const checkAndRestoreEmployees = async () => {
+  try {
+    const employees = await FinalizedEmployeeModel.find()
+      .populate("role")
+      .populate("role.permissions");
+
+    const today = new Date();
+
+    for (const employee of employees) {
+      let updated = false;
+      let restoredFrom = null;
+
+      if (
+        employee.profileStatus?.decision === "Suspended" &&
+        employee.suspension?.suspensionEndDate &&
+        new Date(employee.suspension.suspensionEndDate) <= today
+      ) {
+        employee.profileStatus.decision = "Restored";
+        employee.suspension = {};
+        updated = true;
+        restoredFrom = "Suspended";
+      }
+
+      if (
+        employee.profileStatus?.decision === "Terminated" &&
+        employee.terminated?.terminationEndDate &&
+        new Date(employee.terminated.terminationEndDate) <= today
+      ) {
+        employee.profileStatus.decision = "Restored";
+        employee.terminated = {};
+        updated = true;
+        restoredFrom = "Terminated";
+      }
+
+      if (
+        employee.profileStatus?.decision === "Blocked" &&
+        employee.blocked?.blockEndDate &&
+        new Date(employee.blocked.blockEndDate) <= today
+      ) {
+        employee.profileStatus.decision = "Restored";
+        employee.blocked = {};
+        updated = true;
+        restoredFrom = "Blocked";
+      }
+
+      if (
+        employee.leave &&
+        employee.leave.leaveEndDate &&
+        new Date(employee.leave.leaveEndDate) <= today
+      ) {
+        if (employee.leave.transferredRoleTo) {
+          const target = await FinalizedEmployeeModel.findById(employee.leave.transferredRoleTo)
+            .populate("role")
+            .populate("role.permissions");
+
+          if (target && target.role) {
+            let cleanedPermissions = target.defaultPermissions || [];
+
+            await RoleModel.findByIdAndUpdate(target.role._id, {
+              permissions: cleanedPermissions,
+            });
+
+            if (target.previous_role) {
+              target.role = target.previous_role;
+            }
+
+            target.previous_role = null;
+            target.rolePermissionsBackup = [];
+            await target.save();
+            console.log(`🔄 Target restored: ${target.individualName}`);
+          }
+        }
+
+        if (employee.previous_role) {
+          employee.role = employee.previous_role;
+        }
+
+        const restoredPermissions = [
+          ...(employee.rolePermissionsBackup || []),
+          ...(employee.defaultPermissions || []),
+        ];
+
+        if (employee.role) {
+          await RoleModel.findByIdAndUpdate(employee.role._id, {
+            permissions: [...new Set(restoredPermissions)],
+          });
+        }
+
+        employee.leave = { onLeave: false, leaveAccepted: false, leaveRejected: false };
+        employee.previous_role = null;
+        employee.rolePermissionsBackup = [];
+        updated = true;
+        restoredFrom = "Leave";
+      }
+
+      if (updated) {
+        await employee.save();
+        console.log(`✅ Employee ${employee.individualName} restored from ${restoredFrom}`);
+      }
+    }
+
+    return { success: true, message: "Employee statuses checked and restored where applicable" };
+  } catch (err) {
+    console.error("❌ Error restoring employees:", err);
+    return { success: false, message: err.message };
   }
 };
