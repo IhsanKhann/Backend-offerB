@@ -11,7 +11,7 @@ export const registerEmployeeThunk = createAsyncThunk(
         return rejectWithValue("No form data provided");
       }
 
-      console.log("📡 Sending to backend:", formData);
+    console.log("📡 Sending to backend:", formData);
 
     const response = await api.post("/employees/register",formData,
       { headers: { "Content-Type": "multipart/form-data" } }

@@ -3,6 +3,8 @@ import RoleModel from "../models/HRModals/Role.model.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
 import FinalizedEmployee from "../models/HRModals/FinalizedEmployees.model.js";
 import {OrgUnitModel} from "../models/HRModals/OrgUnit.js";
+import AuditService from "../services/auditService.js";
+import CONSTANTS from "../configs/constants.js";
 
 // ============================================
 // ROLE DECLARATION MANAGEMENT (GLOBAL)
@@ -55,6 +57,21 @@ export const addRole = async (req, res) => {
       isActive: true,
     });
 
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ROLE_CREATED,
+      actorId: req.user._id,
+      targetId: role._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        roleName: role.roleName,
+        category: role.category,
+        baseSalary: role.salaryRules.baseSalary,
+        permissionsCount: permissions.length
+      }
+    });
+
     res.status(201).json({ success: true, data: role });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -89,6 +106,19 @@ export const deleteRole = async (req, res) => {
       });
     }
 
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ROLE_DELETED,
+      actorId: req.user._id,
+      targetId: roleId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        roleName: role.roleName,
+        category: role.category
+      }
+    });
+
     res.status(200).json({ 
       message: "Role declaration deleted successfully", 
       success: true 
@@ -116,8 +146,32 @@ export const updateRole = async (req, res) => {
       return res.status(404).json({ success: false, message: "Role not found" });
     }
 
+    // Track changes for audit
+    const changedFields = {};
+    for (const key in updates) {
+      if (JSON.stringify(role[key]) !== JSON.stringify(updates[key])) {
+        changedFields[key] = {
+          old: role[key],
+          new: updates[key]
+        };
+      }
+    }
+
     Object.assign(role, updates);
     await role.save();
+
+    // 🔍 AUDIT LOG
+    await AuditService.log({
+      eventType: CONSTANTS.AUDIT_EVENTS.ROLE_UPDATED,
+      actorId: req.user._id,
+      targetId: role._id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        roleName: role.roleName,
+        changedFields
+      }
+    });
 
     res.status(200).json({ success: true, data: role });
   } catch (err) {
@@ -126,7 +180,7 @@ export const updateRole = async (req, res) => {
 };
 
 /**
- * ✅ Get All Role Declarations
+ * ✅ Get All Role Declarations (READ ONLY - NO AUDIT)
  */
 export const getAllRolesList = async (req, res) => {
   try {
@@ -150,7 +204,7 @@ export const getAllRolesList = async (req, res) => {
 };
 
 /**
- * ✅ Get Single Role Declaration
+ * ✅ Get Single Role Declaration (READ ONLY - NO AUDIT)
  */
 export const getRoleById = async (req, res) => {
   try {
@@ -186,7 +240,7 @@ export const getRoleById = async (req, res) => {
 // ============================================
 
 /**
- * ✅ Get Employee Role Assignment
+ * ✅ Get Employee Role Assignment (READ ONLY - NO AUDIT)
  */
 export const getEmployeeRoleAssignment = async (req, res) => {
   try {
@@ -223,8 +277,7 @@ export const getEmployeeRoleAssignment = async (req, res) => {
 };
 
 /**
- * ✅ NEW: Get Roles by Department (with assignment metadata)
- * Returns ALL global roles, but marks which are used in the department
+ * ✅ NEW: Get Roles by Department (READ ONLY - NO AUDIT)
  */
 export const getRolesByDepartment = async (req, res) => {
   try {
@@ -285,8 +338,7 @@ export const getRolesByDepartment = async (req, res) => {
 };
 
 /**
- * ✅ NEW: Get Role Assignments Grouped by Role
- * For the "Grouped" view in the UI
+ * ✅ NEW: Get Role Assignments Grouped by Role (READ ONLY - NO AUDIT)
  */
 export const getRoleAssignmentsGroupedByRole = async (req, res) => {
   try {
@@ -357,8 +409,7 @@ export const getRoleAssignmentsGroupedByRole = async (req, res) => {
 };
 
 /**
- * ✅ NEW: Get Employees by Role
- * Shows which employees have this role, grouped by department
+ * ✅ NEW: Get Employees by Role (READ ONLY - NO AUDIT)
  */
 export const getEmployeesByRole = async (req, res) => {
   try {
@@ -433,7 +484,7 @@ export const getEmployeesByRole = async (req, res) => {
 };
 
 /**
- * ✅ NEW: Get All Active Assignments by Department
+ * ✅ NEW: Get All Active Assignments by Department (READ ONLY - NO AUDIT)
  */
 export const getAssignmentsByDepartment = async (req, res) => {
   try {

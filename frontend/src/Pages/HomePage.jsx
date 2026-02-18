@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FiLogOut, FiUser, FiBriefcase, FiDollarSign, FiTrendingUp } from "react-icons/fi";
 import api from "../api/axios.js";
 
@@ -6,15 +7,12 @@ function HomePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeDashboard, setActiveDashboard] = useState("HR");
-
-  const navigate = (path) => {
-    console.log("Navigate to:", path);
-    window.location.href = path;
-  };
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        console.log("📡 Fetching user profile...");
         const res = await api.get("/auth/me");
         const userData = res.data.user;
         console.log("✅ User loaded:", userData);
@@ -32,21 +30,34 @@ function HomePage() {
 
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching profile:", err);
-        console.error("Response:", err.response?.data);
-        setLoading(false);
+        console.error("❌ Error fetching profile:", err);
+        console.error("❌ Response:", err.response?.data);
+        
+        // ✅ FIXED: Redirect to login on 401
+        if (err.response?.status === 401) {
+          console.log("🔒 Unauthorized - redirecting to login");
+          localStorage.removeItem("accessToken");
+          navigate("/login");
+        } else {
+          setLoading(false);
+        }
       }
     };
 
     fetchProfile();
-  }, []);
+  }, [navigate]);
 
-  // ==========================================
-  // PENDING / TO BE DECIDED (UNMARKED)
-  // ==========================================
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    window.location.href = "/login";
+  const handleLogout = async () => {
+    try {
+      console.log("🚪 Logging out...");
+      await api.post("/auth/logout");
+      console.log("✅ Logout successful");
+    } catch (err) {
+      console.error("❌ Logout error:", err);
+    } finally {
+      localStorage.removeItem("accessToken");
+      navigate("/login");
+    }
   };
 
   if (loading) {
@@ -55,6 +66,25 @@ function HomePage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ FIXED: If profile failed to load and we didn't redirect, show error
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center bg-white p-8 rounded-lg shadow-lg">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Unable to Load Profile</h2>
+          <p className="text-gray-600 mb-4">There was an error loading your profile.</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            Return to Login
+          </button>
         </div>
       </div>
     );
@@ -76,6 +106,7 @@ function HomePage() {
         { title: "Leave Applications", desc: "Review leave requests", path: "/leave-applications" },
         { title: "Employee Permissions", desc: "Permissions for Employees", path: "/employees-permissions" },    
         { title: "Roles Manager Advanced", desc: "Grouping of the roles and the assignments", path: "/RolesManagerAdvanced" },
+        { title: "Organization Hierarchy", desc: "The organization Hierarchy with all nodes", path: "/organization" },
       ]
     },
     Finance: {

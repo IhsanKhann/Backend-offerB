@@ -10,7 +10,8 @@ import BlockModal from "../components/BlockModal.jsx";
 import TerminateModal from "../components/TerminateModal.jsx";
 
 // Icons
-import { UserPlus, ClipboardList, Shield, FileText, Home, ArrowRight } from "lucide-react";
+import { UserPlus, ClipboardList, Shield, FileText, Home, ArrowRight, XCircle, Eye } from "lucide-react";
+import DocumentReview from '../components/DocumentReview.jsx';
 
 // Loader Component
 const Loader = () => (
@@ -285,28 +286,33 @@ const PermissionsModal = ({ employee, allPermissions, onClose, onAddPermission, 
 const AdminDashboard = () => {
   const navigate = useNavigate();
 
-  // ✅ Employees state
+  // Employees state
   const [finalizedEmployees, setFinalizedEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // ✅ Dropdown (actions)
+  // Dropdown (actions)
   const [openDropdown, setOpenDropdown] = useState(null);
 
-  // ✅ Profile / Permissions views
+  // Profile / Permissions views
   const [profileView, setProfileView] = useState(null);
   const [managePermissionsView, setManagePermissionsView] = useState(null);
   const [allPermissionsList, setAllPermissionsList] = useState([]);
 
-  // ✅ Modals (suspend, block, terminate)
+  // Modals (suspend, block, terminate)
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
   const [selectedBlockEmployee, setSelectedBlockEmployee] = useState(null);
   const [terminateModalOpen, setTerminateModalOpen] = useState(false);
   const [selectedTerminateEmployee, setSelectedTerminateEmployee] = useState(null);
-
-  // ✅ Active Status Filter
+  
+  // ✅ FIXED: Document review states
+  const [documentsForReview, setDocumentsForReview] = useState([]);
+  const [showDocumentReview, setShowDocumentReview] = useState(false);
+  const [selectedEmployeeForReview, setSelectedEmployeeForReview] = useState(null);
+  
+  // Active Status Filter
   const [activeStatusView, setActiveStatusView] = useState(null); // null = all employees
 
   // ==========================
@@ -369,27 +375,26 @@ const AdminDashboard = () => {
     }
   };
 
- // Around line 370-382
-const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
-  try {
-    setLoading(true);
-    
-    // ✅ FIXED: Use correct endpoint with orgUnitId parameter
-    const res = await api.get(`/org-units/${orgUnit._id}/employees`);
-    
-    if (res.data.success) {
-      // ✅ Get employees from correct property
-      setFinalizedEmployees(res.data.employees || []);
-    } else {
+  const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
+    try {
+      setLoading(true);
+      
+      // ✅ FIXED: Use correct endpoint with orgUnitId parameter
+      const res = await api.get(`/org-units/${orgUnit._id}/employees`);
+      
+      if (res.data.success) {
+        // ✅ Get employees from correct property
+        setFinalizedEmployees(res.data.employees || []);
+      } else {
+        setFinalizedEmployees([]);
+      }
+    } catch (err) {
+      console.error("Error fetching employees for node:", err);
       setFinalizedEmployees([]);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error fetching employees for node:", err);
-    setFinalizedEmployees([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // ==========================
   // Employee Actions
@@ -398,16 +403,20 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
     try {
       const res = await api.patch(`/finalizedEmployees/approve/${id}`);
       if (res.status === 200) {
-        alert("Employee approved successfully!");
+        alert("✅ Employee approved successfully!");
+        // Remove from pending list and refresh
         setFinalizedEmployees((prev) => prev.filter((e) => e._id !== id));
+        await handleAllEmployees();
       }
     } catch (error) {
       console.error(error);
-      alert("Failed to approve employee.");
+      alert("Failed to approve employee: " + (error.response?.data?.message || error.message));
     }
   };
 
   const handleReject = async (id) => {
+    if (!confirm("Are you sure you want to reject this employee?")) return;
+    
     try {
       const res = await api.delete(`/finalizedEmployees/reject/${id}`);
       if (res.status === 200) {
@@ -421,6 +430,8 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
   };
 
   const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to permanently delete this employee?")) return;
+    
     try {
       const res = await api.delete(`/finalizedEmployees/delete/${id}`);
       if (res.status === 200) {
@@ -439,6 +450,21 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
   const handleSuspendClick = (employee) => {
     setSelectedEmployee(employee);
     setSuspendModalOpen(true);
+  };
+
+  // ✅ FIXED: Fetch employee documents for review
+  const fetchEmployeeDocuments = async (employeeId) => {
+    try {
+      const response = await api.get(`/documents/employees/${employeeId}/documents`, {
+        params: { isFinal: "true" }
+      });
+      setDocumentsForReview(response.data?.data?.documents || []);
+      setSelectedEmployeeForReview(employeeId);
+      setShowDocumentReview(true);
+    } catch (error) {
+      console.error("Failed to fetch documents:", error);
+      alert("Failed to load documents: " + (error.response?.data?.message || error.message));
+    }
   };
 
   const handleSuspendAction = async (employeeId, action, date) => {
@@ -495,20 +521,20 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
   // ==========================
   // Permissions Management
   // ==========================
- const fetchAllPermissions = async () => {
-  try {
-    const res = await api.get("/permissions/AllPermissions");
-    if (res.data.status) {
-      // Extract just the permission names if the response contains objects
-      const permissions = res.data.Permissions.map(perm => 
-        typeof perm === 'object' ? perm.name || perm._id : perm
-      );
-      setAllPermissionsList(permissions);
+  const fetchAllPermissions = async () => {
+    try {
+      const res = await api.get("/permissions/AllPermissions");
+      if (res.data.status) {
+        // Extract just the permission names if the response contains objects
+        const permissions = res.data.Permissions.map(perm => 
+          typeof perm === 'object' ? perm.name || perm._id : perm
+        );
+        setAllPermissionsList(permissions);
+      }
+    } catch (err) {
+      console.error("Error fetching all permissions", err);
     }
-  } catch (err) {
-    console.error("Error fetching all permissions", err);
-  }
-};
+  };
 
   useEffect(() => {
     if (managePermissionsView) fetchAllPermissions();
@@ -596,11 +622,20 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
     <div key={emp._id} className="bg-white shadow rounded-xl flex justify-between items-center p-4 hover:shadow-xl transition-all">
       {/* Employee Info */}
       <div className="flex items-center space-x-4">
-        {emp.avatar ? (
-          <img src={emp.avatar.url || "https://via.placeholder.com/150"} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
+        {/* ✅ FIXED: Proper avatar display with fallback */}
+        {emp.avatar?.url ? (
+          <img 
+            src={emp.avatar.url} 
+            alt={emp.individualName} 
+            className="w-16 h-16 rounded-full object-cover border-2 border-gray-200" 
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = 'https://via.placeholder.com/150/cccccc/666666?text=' + emp.individualName.charAt(0).toUpperCase();
+            }}
+          />
         ) : (
-          <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-gray-500">
-            N/A
+          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+            {emp.individualName.charAt(0).toUpperCase()}
           </div>
         )}
         <div>
@@ -624,24 +659,64 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
 
         {openDropdown === emp._id && (
           <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-            <button onClick={() => handleApprove(emp._id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-100">Approve</button>
-            <button onClick={() => handleReject(emp._id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100">Reject</button>
-            <button onClick={() => handleDelete(emp._id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100">Delete</button>
-            <button onClick={() => handleProfileView(emp._id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">View Profile</button>
-            <button onClick={() => handleManagePermissions(emp._id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">Manage Permissions</button>
-            <button onClick={() => handleSuspendClick(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">
+            <button onClick={() => {
+              handleApprove(emp._id);
+              setOpenDropdown(null);
+            }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-green-100">Approve</button>
+            
+            <button onClick={() => {
+              handleReject(emp._id);
+              setOpenDropdown(null);
+            }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100">Reject</button>
+            
+            <button onClick={() => {
+              handleDelete(emp._id);
+              setOpenDropdown(null);
+            }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100">Delete</button>
+            
+            <button onClick={() => {
+              handleProfileView(emp._id);
+              setOpenDropdown(null);
+            }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">View Profile</button>
+            
+            {/* ✅ FIXED: Document Review Button */}
+            <button
+              onClick={() => {
+                fetchEmployeeDocuments(emp._id);
+                setOpenDropdown(null);
+              }}
+              className="w-full text-left px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 flex items-center gap-2"
+            >
+              <Eye size={16} /> Review Documents
+            </button>
+            
+            <button onClick={() => {
+              handleManagePermissions(emp._id);
+              setOpenDropdown(null);
+            }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">Manage Permissions</button>
+            
+            <button onClick={() => {
+              handleSuspendClick(emp);
+              setOpenDropdown(null);
+            }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100">
               {emp.profileStatus?.decision === "Suspended" ? "Restore" : "Suspend"}
             </button>
+            
             <button
               onClick={() => {
                 setSelectedBlockEmployee(emp);
                 setIsBlockModalOpen(true);
+                setOpenDropdown(null);
               }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100"
             >
               {emp.profileStatus?.decision === "Blocked" ? "Restore Block" : "Block"}
             </button>
-            <button onClick={() => handleOpenTerminateModal(emp)} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100">
+            
+            <button onClick={() => {
+              handleOpenTerminateModal(emp);
+              setOpenDropdown(null);
+            }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100">
               {emp.profileStatus?.decision === "Terminated" ? "Restore Termination" : "Terminate"}
             </button>
           </div>
@@ -746,66 +821,149 @@ const fetchEmployeesByNode = async (orgUnit, isLeaf) => {
   // ==========================
   // Render
   // ==========================
- return (
-  <div className="flex bg-gray-100 min-h-screen">
-    {/* Sidebar should be sticky */}
-    <div className="sticky top-0 h-screen">
-      <Sidebar
-        fetchEmployeesByNode={fetchEmployeesByNode}
-        navItems={navItems}
-        title="Admin Panel"
-      />
+  return (
+    <div className="flex bg-gray-100 min-h-screen">
+      {/* Sidebar should be sticky */}
+      <div className="sticky top-0 h-screen">
+        <Sidebar
+          fetchEmployeesByNode={fetchEmployeesByNode}
+          navItems={navItems}
+          title="AdminDashboard"
+        />
+      </div>
+
+      {/* Main content */}
+      <main className="flex-1 p-6 overflow-y-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Employees</h1>
+
+        {renderContent()}
+        
+        {/* ✅ FIXED: Document Review Modal with proper functionality */}
+        {showDocumentReview && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 className="text-xl font-bold">Review Employee Documents</h3>
+                <button
+                  onClick={() => {
+                    setShowDocumentReview(false);
+                    setDocumentsForReview([]);
+                    setSelectedEmployeeForReview(null);
+                    handleAllEmployees(); // Refresh employee list to update document status
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                {documentsForReview.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No documents uploaded</p>
+                ) : (
+                  documentsForReview.map(doc => (
+                    <div key={doc._id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="text-blue-500" size={24} />
+                          <div>
+                            <p className="font-semibold">
+                              {doc.documentType === 'Other' && doc.customDocumentName
+                                ? doc.customDocumentName
+                                : doc.documentType}
+                            </p>
+                            <p className="text-sm text-gray-500">{doc.file.originalName}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            doc.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                            doc.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                            doc.status === 'Needs Revision' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                            {doc.status}
+                          </span>
+                          
+                          <a
+                            href={doc.file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                          >
+                            View
+                          </a>
+                          
+                          <DocumentReview
+                            employeeId={selectedEmployeeForReview}
+                            document={doc}
+                            isFinal={true}
+                            onReviewComplete={() => {
+                              // Refresh documents
+                              fetchEmployeeDocuments(selectedEmployeeForReview);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      
+                      {doc.reviewNotes && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded">
+                          <p className="text-xs font-semibold text-gray-700">Review Notes:</p>
+                          <p className="text-sm text-gray-600 mt-1">{doc.reviewNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Modals */}
+        <SuspendModal
+          isOpen={suspendModalOpen}
+          onClose={() => setSuspendModalOpen(false)}
+          employee={selectedEmployee}
+          refreshEmployees={handleAllEmployees}
+        />
+
+        <BlockModal
+          isOpen={isBlockModalOpen}
+          onClose={() => setIsBlockModalOpen(false)}
+          employee={selectedBlockEmployee}
+          refreshEmployees={handleAllEmployees}
+        />
+
+        <TerminateModal
+          isOpen={terminateModalOpen}
+          onClose={() => setTerminateModalOpen(false)}
+          onConfirm={handleConfirmTerminate}
+          employee={selectedTerminateEmployee}
+        />
+
+        {/* Profile Modal */}
+        {profileView && (
+          <ProfileViewModal
+            employee={profileView}
+            onClose={() => setProfileView(null)}
+          />
+        )}
+
+        {/* Permissions Management Modal */}
+        {managePermissionsView && (
+          <PermissionsModal
+            employee={managePermissionsView}
+            allPermissions={allPermissionsList}
+            onClose={() => setManagePermissionsView(null)}
+            onAddPermission={handleAddPermission}
+            onDeletePermission={handleDeletePermission}
+          />
+        )}
+      </main>
     </div>
-
-    {/* Main content */}
-    <main className="flex-1 p-6 overflow-y-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Employees</h1>
-
-      {renderContent()}
-
-      {/* Modals */}
-      <SuspendModal
-        isOpen={suspendModalOpen}
-        onClose={() => setSuspendModalOpen(false)}
-        employee={selectedEmployee}
-        refreshEmployees={handleAllEmployees}
-      />
-
-      <BlockModal
-        isOpen={isBlockModalOpen}
-        onClose={() => setIsBlockModalOpen(false)}
-        employee={selectedBlockEmployee}
-        refreshEmployees={handleAllEmployees}
-      />
-
-      <TerminateModal
-        isOpen={terminateModalOpen}
-        onClose={() => setTerminateModalOpen(false)}
-        onConfirm={handleConfirmTerminate}
-        employee={selectedTerminateEmployee}
-      />
-
-      {/* Profile Modal */}
-      {profileView && (
-        <ProfileViewModal
-          employee={profileView}
-          onClose={() => setProfileView(null)}
-        />
-      )}
-
-      {/* Permissions Management Modal */}
-      {managePermissionsView && (
-        <PermissionsModal
-          employee={managePermissionsView}
-          allPermissions={allPermissionsList}
-          onClose={() => setManagePermissionsView(null)}
-          onAddPermission={handleAddPermission}
-          onDeletePermission={handleDeletePermission}
-        />
-      )}
-    </main>
-  </div>
-);
-}
+  );
+};
 
 export default AdminDashboard;

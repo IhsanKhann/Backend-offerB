@@ -167,8 +167,10 @@ const AccountStatementsDashboard = () => {
   if (loading) return <Loader />;
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar navItems={navItems} title="Pending Account Statements" />
+     <div className="flex min-h-screen bg-gray-100">
+      <div className="sticky top-0 h-screen">
+        <Sidebar navItems={navItems} title="Pending Account Statements" />
+      </div>
 
       <main className="flex-1 p-6 space-y-6">
         {/* Header */}

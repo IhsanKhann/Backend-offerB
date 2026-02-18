@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios.js";
 import { Plus, Trash2, X, Users, Grid, List, ChevronDown, ChevronRight, Building2, UserCircle } from "lucide-react";
+import { Navigate } from "react-router-dom";
 
 const emptySalaryComponent = { name: "", type: "fixed", value: 0 };
 
@@ -354,95 +355,104 @@ export default function AdvancedRoleManager() {
   if (loading) return <div className="p-10 flex justify-center">Loading...</div>;
   if (error && roles.length === 0) return <div className="p-10 text-red-600">{error}</div>;
 
-  return (
+return (
     <div className="p-6 bg-gray-100 min-h-screen space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Role Manager</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage global role declarations and view assignments
-          </p>
+        <div className="flex justify-between items-center">
+            <div>
+                <h1 className="text-3xl font-bold">Role Manager</h1>
+                <p className="text-sm text-gray-600 mt-1">
+                    Manage global role declarations and view assignments
+                </p>
+            </div>
+
+            <div className="flex gap-2">
+                <button
+                    onClick={() => setViewMode("list")}
+                    className={`px-4 py-2 rounded flex items-center gap-2 ${
+                        viewMode === "list" ? "bg-blue-600 text-white" : "bg-white text-gray-700"
+                    }`}
+                >
+                    <List size={18} />
+                    List
+                </button>
+                <button
+                    onClick={() => setViewMode("grid")}
+                    className={`px-4 py-2 rounded flex items-center gap-2 ${
+                        viewMode === "grid" ? "bg-blue-600 text-white" : "bg-white text-gray-700"
+                    }`}
+                >
+                    <Grid size={18} />
+                    Grid
+                </button>
+                <button
+                    onClick={() => setViewMode("grouped")}
+                    className={`px-4 py-2 rounded flex items-center gap-2 ${
+                        viewMode === "grouped" ? "bg-blue-600 text-white" : "bg-white text-gray-700"
+                    }`}
+                >
+                    <Building2 size={18} />
+                    Grouped
+                </button>
+
+                <button
+                    onClick={() => (window.location.href = "/employees-permissions")}
+                    className={"px-4 py-2 rounded flex items-center gap-2 "}
+                >
+                    <Building2 size={18} />
+                    Assign Permissions
+                </button>
+
+            </div>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode("list")}
-            className={`px-4 py-2 rounded flex items-center gap-2 ${
-              viewMode === "list" ? "bg-blue-600 text-white" : "bg-white text-gray-700"
-            }`}
-          >
-            <List size={18} />
-            List
-          </button>
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`px-4 py-2 rounded flex items-center gap-2 ${
-              viewMode === "grid" ? "bg-blue-600 text-white" : "bg-white text-gray-700"
-            }`}
-          >
-            <Grid size={18} />
-            Grid
-          </button>
-          <button
-            onClick={() => setViewMode("grouped")}
-            className={`px-4 py-2 rounded flex items-center gap-2 ${
-              viewMode === "grouped" ? "bg-blue-600 text-white" : "bg-white text-gray-700"
-            }`}
-          >
-            <Building2 size={18} />
-            Grouped
-          </button>
-        </div>
-      </div>
+        <div className="grid md:grid-cols-3 gap-6">
+            {/* ROLE LIST/GRID/GROUPED */}
+            <div className="md:col-span-2">
+                {viewMode === "list" && renderListView()}
+                {viewMode === "grid" && renderGridView()}
+                {viewMode === "grouped" && renderGroupedView()}
+            </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        {/* ROLE LIST/GRID/GROUPED */}
-        <div className="md:col-span-2">
-          {viewMode === "list" && renderListView()}
-          {viewMode === "grid" && renderGridView()}
-          {viewMode === "grouped" && renderGroupedView()}
-        </div>
+            {/* ROLE FORM */}
+            <div className="bg-white p-4 rounded shadow space-y-3 h-fit">
+                <div className="flex justify-between items-center">
+                    <h2 className="font-semibold text-lg">
+                        {selectedRole ? "Edit Role" : "Add Role"}
+                    </h2>
+                    {selectedRole && (
+                        <button
+                            onClick={resetForm}
+                            className="text-sm text-gray-600 hover:text-gray-800"
+                        >
+                            Cancel
+                        </button>
+                    )}
+                </div>
 
-        {/* ROLE FORM */}
-        <div className="bg-white p-4 rounded shadow space-y-3 h-fit">
-          <div className="flex justify-between items-center">
-            <h2 className="font-semibold text-lg">
-              {selectedRole ? "Edit Role" : "Add Role"}
-            </h2>
-            {selectedRole && (
-              <button
-                onClick={resetForm}
-                className="text-sm text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
+                <input
+                    className="border p-2 w-full rounded"
+                    placeholder="Role Name *"
+                    value={form.roleName}
+                    onChange={(e) => setForm({ ...form, roleName: e.target.value })}
+                />
 
-          <input
-            className="border p-2 w-full rounded"
-            placeholder="Role Name *"
-            value={form.roleName}
-            onChange={(e) => setForm({ ...form, roleName: e.target.value })}
-          />
+                <textarea
+                    className="border p-2 w-full rounded"
+                    placeholder="Description"
+                    rows={2}
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
 
-          <textarea
-            className="border p-2 w-full rounded"
-            placeholder="Description"
-            rows={2}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-
-          <select
-            className="border p-2 w-full rounded"
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-          >
-            <option value="Executive">Executive</option>
-            <option value="Management">Management</option>
-            <option value="Staff">Staff</option>
-            <option value="Support">Support</option>
+                <select
+                    className="border p-2 w-full rounded"
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                >
+                    <option value="Executive">Executive</option>
+                    <option value="Management">Management</option>
+                    <option value="Staff">Staff</option>
+                    <option value="Support">Support</option>
             <option value="Technical">Technical</option>
           </select>
 
@@ -526,6 +536,7 @@ export default function AdvancedRoleManager() {
             {selectedRole ? "Update Role" : <><Plus size={18} /> Create Role</>}
           </button>
         </div>
+
       </div>
     </div>
   );

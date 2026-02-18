@@ -1,209 +1,155 @@
+// models/HRModals/Permissions.model.js - FIXED VERSION
+
 import mongoose from "mongoose";
 
-/**
- * ✅ REFACTORED: Permission Schema with Scoped Authorization
- * 
- * BREAKING CHANGES:
- * - Added `action` field (replaces `name` for new permissions)
- * - Added `statusScope` (department scoping)
- * - Added `hierarchyScope` (organizational authority)
- * 
- * MIGRATION:
- * - Existing `name` field preserved for backward compatibility
- * - New permissions should use `action` + scopes
- * - Old permissions can be migrated gradually
- */
-
 const PermissionSchema = new mongoose.Schema({
-  // ========================================
-  // LEGACY FIELD (Backward Compatibility)
-  // ========================================
   name: {
     type: String,
     required: true,
     unique: true,
-    // Examples: "VIEW_EMPLOYEES", "EDIT_SALARY"
   },
-
-  // ========================================
-  // NEW FIELDS (Scoped Authorization)
-  // ========================================
   
-  /**
-   * Action: What operation is being performed
-   * Examples: VIEW_LEDGER, APPROVE_LEAVE, SUSPEND_EMPLOYEE
-   */
   action: {
     type: String,
     required: function() {
-      // Required for new permissions, optional for legacy
       return this.isNew && !this.name.startsWith("LEGACY_");
     },
     index: true,
   },
-
-  /**
-   * Status Scope: Which departments can use this permission
-   * 
-   * Rules:
-   * - ["ALL"]: Available to all departments
-   * - ["HR"]: Only HR department
-   * - ["HR", "Finance"]: HR and Finance only
-   * - [] or null: Same as ["ALL"]
-   * - []
-   */
+  
   statusScope: {
     type: [String],
     enum: ["HR", "Finance", "BusinessOperation", "ALL"],
     default: ["ALL"],
     validate: {
       validator: function(arr) {
-        // If "ALL" is present, it must be the only value
-        if (arr.includes("ALL") && arr.length > 1) {
-          return false;
-        }
-        return true;
+        return !(arr.includes("ALL") && arr.length > 1);
       },
       message: '"ALL" cannot be combined with specific departments'
     }
   },
-
-  /**
-   * Hierarchy Scope: Organizational reach of this permission
-   * 
-   * SELF: Can only act on own data
-   * DESCENDANT: Can act on subordinates in hierarchy
-   * DEPARTMENT: Can act on anyone in same department (status)
-   * ORGANIZATION: Can act on anyone in organization
-   */
+  
   hierarchyScope: {
     type: String,
     enum: ["SELF", "DESCENDANT", "DEPARTMENT", "ORGANIZATION"],
     default: "SELF",
   },
-
-  /**
-   * Resource Type: What entity this permission applies to
-   * Used for fine-grained access control
-   */
+  
   resourceType: {
     type: String,
     enum: [
-      "EMPLOYEE", 
-      "SALARY", 
-      "LEDGER", 
-      "EXPENSE", 
-      "COMMISSION",
-      "LEAVE",
-      "ROLE",
-      "PERMISSION",
-      "ORGUNIT",
-      "NOTIFICATION",
+      "EMPLOYEE", "LEAVE", "ROLE", "PERMISSION", "NOTIFICATION", "ORG_UNIT",
+      "SALARY", "SELLER", "ACCOUNT_STMT", "LEDGER",
+      "EXPENSE", "COMMISSION",
       "ALL"
     ],
     default: "ALL",
   },
-
-  // ========================================
-  // METADATA
-  // ========================================
+  
+  // ✅ FIXED: Action Type - Controls hierarchy enforcement
+  // Changed default from INFORMATIONAL to FUNCTIONAL for better security
+  actionType: {
+    type: String,
+    enum: ["ADMINISTRATIVE", "FUNCTIONAL", "INFORMATIONAL"],
+    default: "FUNCTIONAL", // ✅ SAFER DEFAULT - Requires department match
+    index: true
+  },
+  
+  // ✅ ENHANCED: Metadata for special flags
+  metadata: {
+    bypassHierarchy: { 
+      type: Boolean, 
+      default: false,
+      description: "If true, bypasses hierarchy checks for FUNCTIONAL actions"
+    },
+    requiresDoubleApproval: { 
+      type: Boolean, 
+      default: false,
+      description: "Requires approval from two different managers"
+    },
+    requiresAuditLog: { 
+      type: Boolean, 
+      default: false,
+      description: "Automatically set to true for ADMINISTRATIVE actions"
+    },
+    sensitiveAction: { 
+      type: Boolean, 
+      default: false,
+      description: "Marks action as sensitive (suspend, terminate, delete)"
+    }
+  },
   
   description: {
     type: String,
     required: false,
   },
-
-  /**
-   * Is this a system-critical permission?
-   * System permissions cannot be deleted
-   */
+  
   isSystem: {
     type: Boolean,
     default: false,
   },
-
-  /**
-   * Is this permission active?
-   * Inactive permissions are ignored during checks
-   */
+  
   isActive: {
     type: Boolean,
     default: true,
   },
-
-  /**
-   * Category for UI grouping
-   */
+  
   category: {
     type: String,
     enum: ["HR", "Finance", "Business", "System", "Reports"],
     default: "System",
   },
-
 }, { 
   timestamps: true 
 });
 
-// ========================================
-// INDEXES
-// ========================================
-
+// Indexes
 PermissionSchema.index({ action: 1, statusScope: 1 });
 PermissionSchema.index({ action: 1, hierarchyScope: 1 });
+PermissionSchema.index({ action: 1, actionType: 1 }); // For quick actionType lookups
 PermissionSchema.index({ resourceType: 1 });
 PermissionSchema.index({ isActive: 1 });
 PermissionSchema.index({ category: 1 });
 
-// ========================================
-// VIRTUALS
-// ========================================
+// ✅ NEW: Compound index for permission aggregation
+PermissionSchema.index({ statusScope: 1, actionType: 1, isActive: 1 });
 
-/**
- * Check if permission applies to a specific department
- */
+// Virtuals
 PermissionSchema.virtual('appliesToAllDepartments').get(function() {
   return this.statusScope.includes("ALL") || this.statusScope.length === 0;
 });
 
-/**
- * Check if permission grants organization-wide access
- */
 PermissionSchema.virtual('isOrganizationWide').get(function() {
   return this.hierarchyScope === "ORGANIZATION";
 });
 
-// ========================================
-// METHODS
-// ========================================
+// ✅ NEW: Virtual to check if action is read-only
+PermissionSchema.virtual('isReadOnly').get(function() {
+  return this.actionType === "INFORMATIONAL";
+});
 
-/**
- * Check if this permission applies to a given department
- */
+// ✅ NEW: Virtual to check if action requires hierarchy
+PermissionSchema.virtual('requiresHierarchy').get(function() {
+  return this.actionType === "ADMINISTRATIVE";
+});
+
+// ✅ NEW: Virtual to check if action is department-scoped
+PermissionSchema.virtual('isDepartmentScoped').get(function() {
+  return this.actionType === "FUNCTIONAL" && !this.metadata?.bypassHierarchy;
+});
+
+// Methods
 PermissionSchema.methods.appliesToDepartment = function (departmentCode) {
   if (!departmentCode) return false;
-
-  // 🔥 SUPER-DEPARTMENT ACCESS
-  if (departmentCode === "ALL") {
+  if (departmentCode === "ALL" || 
+      !this.statusScope || 
+      this.statusScope.length === 0 || 
+      this.statusScope.includes("ALL")) {
     return true;
   }
-
-  // Permission applies to everyone
-  if (!this.statusScope || this.statusScope.length === 0) {
-    return true;
-  }
-
-  // Explicit ALL permission
-  if (this.statusScope.includes("ALL")) {
-    return true;
-  }
-
-  // Normal department match
   return this.statusScope.includes(departmentCode);
 };
 
-/**
- * Check if this permission allows acting on a target in hierarchy
- */
 PermissionSchema.methods.allowsHierarchyAction = function(
   userOrgUnit, 
   targetOrgUnit, 
@@ -212,251 +158,101 @@ PermissionSchema.methods.allowsHierarchyAction = function(
 ) {
   switch (this.hierarchyScope) {
     case "SELF":
-      // Can only act on self
       return userOrgUnit.toString() === targetOrgUnit.toString();
-    
     case "DESCENDANT":
-      // Can act on self or descendants
-      // (requires hierarchy check in middleware)
-      return true; // Middleware will validate actual hierarchy
-    
+      return true; // Hierarchy validation handled by middleware
     case "DEPARTMENT":
-      // Can act on anyone in same department
       return userDepartment === targetDepartment;
-    
     case "ORGANIZATION":
-      // Can act on anyone
       return true;
-    
     default:
       return false;
   }
 };
 
-/**
- * Format permission for display
- */
-PermissionSchema.methods.toDisplay = function() {
+// ✅ NEW: Method to get full permission context
+PermissionSchema.methods.getContext = function() {
   return {
     id: this._id,
     name: this.name,
     action: this.action,
+    actionType: this.actionType,
+    requiresHierarchy: this.requiresHierarchy,
+    isReadOnly: this.isReadOnly,
+    isDepartmentScoped: this.isDepartmentScoped,
     departments: this.appliesToAllDepartments ? "All" : this.statusScope.join(", "),
     scope: this.hierarchyScope,
     resource: this.resourceType,
     description: this.description,
     category: this.category,
+    metadata: this.metadata
   };
 };
 
-// ========================================
-// STATICS
-// ========================================
+PermissionSchema.methods.toDisplay = function() {
+  return this.getContext();
+};
 
-/**
- * Get all permissions for a specific department
- */
+// Statics
 PermissionSchema.statics.getForDepartment = function(departmentCode) {
   return this.find({
     isActive: true,
-    $or: [
-      { statusScope: "ALL" },
-      { statusScope: departmentCode }
-    ]
+    $or: [ { statusScope: "ALL" }, { statusScope: departmentCode } ]
   });
 };
 
-/**
- * Seed default permissions (called during setup)
- */
-PermissionSchema.statics.seedDefaults = async function() {
-  const defaults = [
-    // ========================================
-    // HR PERMISSIONS
-    // ========================================
-    {
-      name: "VIEW_EMPLOYEES",
-      action: "VIEW_EMPLOYEES",
-      statusScope: ["HR"],
-      hierarchyScope: "DESCENDANT",
-      resourceType: "EMPLOYEE",
-      description: "View employees in hierarchy",
-      category: "HR",
-      isSystem: true,
-    },
-    {
-      name: "REGISTER_EMPLOYEE",
-      action: "REGISTER_EMPLOYEE",
-      statusScope: ["HR"],
-      hierarchyScope: "DEPARTMENT",
-      resourceType: "EMPLOYEE",
-      description: "Register new employees",
-      category: "HR",
-      isSystem: true,
-    },
-    {
-      name: "APPROVE_EMPLOYEE",
-      action: "APPROVE_EMPLOYEE",
-      statusScope: ["HR"],
-      hierarchyScope: "DESCENDANT",
-      resourceType: "EMPLOYEE",
-      description: "Approve employee registrations",
-      category: "HR",
-      isSystem: true,
-    },
-    {
-      name: "SUSPEND_EMPLOYEE",
-      action: "SUSPEND_EMPLOYEE",
-      statusScope: ["HR"],
-      hierarchyScope: "DESCENDANT",
-      resourceType: "EMPLOYEE",
-      description: "Suspend employees",
-      category: "HR",
-      isSystem: true,
-    },
-    {
-      name: "TERMINATE_EMPLOYEE",
-      action: "TERMINATE_EMPLOYEE",
-      statusScope: ["HR"],
-      hierarchyScope: "DESCENDANT",
-      resourceType: "EMPLOYEE",
-      description: "Terminate employees",
-      category: "HR",
-      isSystem: true,
-    },
-    {
-      name: "APPROVE_LEAVE",
-      action: "APPROVE_LEAVE",
-      statusScope: ["HR"],
-      hierarchyScope: "DESCENDANT",
-      resourceType: "LEAVE",
-      description: "Approve leave applications",
-      category: "HR",
-      isSystem: true,
-    },
-
-    // ========================================
-    // FINANCE PERMISSIONS
-    // ========================================
-    {
-      name: "VIEW_LEDGER",
-      action: "VIEW_LEDGER",
-      statusScope: ["Finance"],
-      hierarchyScope: "DEPARTMENT",
-      resourceType: "LEDGER",
-      description: "View financial ledgers",
-      category: "Finance",
-      isSystem: true,
-    },
-    {
-      name: "EDIT_SALARY",
-      action: "EDIT_SALARY",
-      statusScope: ["Finance"],
-      hierarchyScope: "DESCENDANT",
-      resourceType: "SALARY",
-      description: "Edit employee salaries",
-      category: "Finance",
-      isSystem: true,
-    },
-    {
-      name: "APPROVE_EXPENSE",
-      action: "APPROVE_EXPENSE",
-      statusScope: ["Finance"],
-      hierarchyScope: "DESCENDANT",
-      resourceType: "EXPENSE",
-      description: "Approve expense reports",
-      category: "Finance",
-      isSystem: true,
-    },
-    {
-      name: "VIEW_SALARY_HISTORY",
-      action: "VIEW_SALARY_HISTORY",
-      statusScope: ["Finance"],
-      hierarchyScope: "DEPARTMENT",
-      resourceType: "SALARY",
-      description: "View salary history",
-      category: "Finance",
-      isSystem: true,
-    },
-
-    // ========================================
-    // BUSINESS OPERATIONS PERMISSIONS
-    // ========================================
-    {
-      name: "MANAGE_EXPENSES",
-      action: "MANAGE_EXPENSES",
-      statusScope: ["BusinessOperation"],
-      hierarchyScope: "DEPARTMENT",
-      resourceType: "EXPENSE",
-      description: "Manage business expenses",
-      category: "Business",
-      isSystem: true,
-    },
-    {
-      name: "VIEW_COMMISSION",
-      action: "VIEW_COMMISSION",
-      statusScope: ["BusinessOperation"],
-      hierarchyScope: "DEPARTMENT",
-      resourceType: "COMMISSION",
-      description: "View commission reports",
-      category: "Business",
-      isSystem: true,
-    },
-
-    // ========================================
-    // ORGANIZATION-WIDE PERMISSIONS
-    // ========================================
-    {
-      name: "MANAGE_ROLES",
-      action: "MANAGE_ROLES",
-      statusScope: ["ALL"],
-      hierarchyScope: "ORGANIZATION",
-      resourceType: "ROLE",
-      description: "Manage system roles",
-      category: "System",
-      isSystem: true,
-    },
-    {
-      name: "MANAGE_PERMISSIONS",
-      action: "MANAGE_PERMISSIONS",
-      statusScope: ["ALL"],
-      hierarchyScope: "ORGANIZATION",
-      resourceType: "PERMISSION",
-      description: "Manage system permissions",
-      category: "System",
-      isSystem: true,
-    },
-    {
-      name: "MANAGE_ORGUNIT",
-      action: "MANAGE_ORGUNIT",
-      statusScope: ["ALL"],
-      hierarchyScope: "ORGANIZATION",
-      resourceType: "ORGUNIT",
-      description: "Manage organizational units",
-      category: "System",
-      isSystem: true,
-    },
-    {
-      name: "VIEW_ALL_EMPLOYEES",
-      action: "VIEW_ALL_EMPLOYEES",
-      statusScope: ["ALL"],
-      hierarchyScope: "ORGANIZATION",
-      resourceType: "EMPLOYEE",
-      description: "View all employees (Chairman/Board)",
-      category: "System",
-      isSystem: true,
-    },
-  ];
-
-  for (const perm of defaults) {
-    await this.findOneAndUpdate(
-      { name: perm.name },
-      perm,
-      { upsert: true, new: true }
-    );
-  }
-
-  console.log("✅ Default permissions seeded");
+// ✅ NEW: Get permissions by action type
+PermissionSchema.statics.getByActionType = function(actionType) {
+  return this.find({
+    isActive: true,
+    actionType: actionType
+  });
 };
+
+// ✅ NEW: Get all administrative permissions
+PermissionSchema.statics.getAdministrativePermissions = function() {
+  return this.find({
+    isActive: true,
+    actionType: "ADMINISTRATIVE"
+  });
+};
+
+// ✅ NEW: Get all informational permissions
+PermissionSchema.statics.getInformationalPermissions = function() {
+  return this.find({
+    isActive: true,
+    actionType: "INFORMATIONAL"
+  });
+};
+
+// ✅ NEW: Get sensitive permissions
+PermissionSchema.statics.getSensitivePermissions = function() {
+  return this.find({
+    isActive: true,
+    'metadata.sensitiveAction': true
+  });
+};
+
+// ✅ PRE-SAVE HOOK: Auto-set metadata based on actionType
+PermissionSchema.pre('save', function(next) {
+  // Auto-set requiresAuditLog for ADMINISTRATIVE actions
+  if (this.actionType === 'ADMINISTRATIVE') {
+    if (!this.metadata) this.metadata = {};
+    this.metadata.requiresAuditLog = true;
+  }
+  
+  // Auto-set sensitiveAction for certain patterns
+  if (this.actionType === 'ADMINISTRATIVE') {
+    const sensitivePatterns = ['delete', 'terminate', 'suspend', 'block', 'reject'];
+    const actionLower = (this.action || this.name || '').toLowerCase();
+    
+    if (sensitivePatterns.some(pattern => actionLower.includes(pattern))) {
+      if (!this.metadata) this.metadata = {};
+      this.metadata.sensitiveAction = true;
+    }
+  }
+  
+  next();
+});
 
 export const PermissionModel = mongoose.model("Permission", PermissionSchema);

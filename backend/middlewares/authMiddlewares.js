@@ -4,9 +4,37 @@ import RoleModel from "../models/HRModals/Role.model.js";
 import { PermissionModel } from "../models/HRModals/Permissions.model.js";
 import { OrgUnitModel } from "../models/HRModals/OrgUnit.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
+import PermissionAggregator from "../utilis/permissionAggregation.js";
 import dotenv from "dotenv";
 
+import { HierarchyGuard } from "./hierarchyGuard.js";
+import AuditService from "../services/auditService.js";
+import CONSTANTS from "../configs/constants.js";
+console.log("Loading logs in auth: The departments: ", CONSTANTS.DEPARTMENTS);
+
 dotenv.config();
+
+// ========================================
+// ✅ FIXED: Dynamic Permission Aggregation
+// ========================================
+export const getPermissionsForUser = async (user) => {
+  try {
+    // Use the PermissionAggregator to get effective permissions
+    const { effective, isExecutive } = await PermissionAggregator.getEffectivePermissions(user._id);
+    
+    // Convert to Set of permission names/actions
+    const permSet = new Set();
+    effective.forEach(perm => {
+      permSet.add(perm.name);
+      if (perm.action) permSet.add(perm.action);
+    });
+
+    return permSet;
+  } catch (err) {
+    console.error("❌ getPermissionsForUser error:", err);
+    return new Set(); // Return empty set on error
+  }
+};
 
 // ========================================
 // UTILITY: Get Root OrgUnit (Department)
@@ -27,27 +55,29 @@ export const getRootOrgUnit = async (orgUnitId) => {
 };
 
 // ========================================
-// UTILITY: Get All Descendant OrgUnits
+// ✅ FIXED: Get All Descendant OrgUnits (Path-based)
 // ========================================
 export const getAllDescendants = async (orgUnitId) => {
-  const descendants = [];
-  const queue = [orgUnitId];
+  try {
+    const orgUnit = await OrgUnitModel.findById(orgUnitId);
+    if (!orgUnit || !orgUnit.path) return [];
 
-  while (queue.length > 0) {
-    const currentId = queue.shift();
-    const children = await OrgUnitModel.find({ parent: currentId });
-    
-    children.forEach(child => {
-      descendants.push(child._id);
-      queue.push(child._id);
+    // Use path-based regex for efficient descendant lookup
+    const pathRegex = new RegExp(`^${orgUnit.path}\\.`);
+    const descendants = await OrgUnitModel.find({
+      path: pathRegex,
+      isActive: true
     });
-  }
 
-  return descendants;
+    return descendants.map(d => d._id);
+  } catch (err) {
+    console.error("❌ getAllDescendants error:", err);
+    return [];
+  }
 };
 
 // ========================================
-// UTILITY: Check if User is Ancestor
+// ✅ FIXED: Check if User is Ancestor (Path-based)
 // ========================================
 export const isAncestorOf = async (ancestorOrgUnitId, descendantOrgUnitId) => {
   if (!ancestorOrgUnitId || !descendantOrgUnitId) return false;
@@ -56,427 +86,374 @@ export const isAncestorOf = async (ancestorOrgUnitId, descendantOrgUnitId) => {
     return true; // Same unit
   }
 
-  let current = await OrgUnitModel.findById(descendantOrgUnitId);
-  
-  while (current && current.parent) {
-    if (current.parent.toString() === ancestorOrgUnitId.toString()) {
-      return true;
-    }
-    current = await OrgUnitModel.findById(current.parent);
-  }
+  try {
+    const [ancestor, descendant] = await Promise.all([
+      OrgUnitModel.findById(ancestorOrgUnitId),
+      OrgUnitModel.findById(descendantOrgUnitId)
+    ]);
 
-  return false;
+    if (!ancestor || !descendant || !ancestor.path || !descendant.path) {
+      return false;
+    }
+
+    // Check if descendant's path starts with ancestor's path
+    return descendant.path.startsWith(ancestor.path + '.') || 
+           descendant.path === ancestor.path;
+  } catch (err) {
+    console.error("❌ isAncestorOf error:", err);
+    return false;
+  }
 };
 
 // ========================================
-// UTILITY: Get Effective Permissions
-// ========================================
-export const getPermissionsForUser = async (user) => {
-  // Get active role assignment
-  const assignment = await RoleAssignmentModel.findOne({
-    employeeId: user._id,
-    isActive: true
-  }).populate({
-    path: 'roleId',
-    populate: {
-      path: 'permissions',
-      match: { isActive: true }
-    }
-  });
-
-  if (!assignment || !assignment.roleId) {
-    return new Set();
-  }
-
-  const role = assignment.roleId;
-  const userDepartment = assignment.departmentCode;
-
-  // 🔥 FIX: If user has "All" department, return ALL active permissions
-  if (userDepartment === "All") {
-    const allPermissions = role.permissions;
-    const permSet = new Set();
-    allPermissions.forEach(perm => {
-      permSet.add(perm.name);
-      if (perm.action) permSet.add(perm.action);
-    });
-    return permSet;
-  }
-
-  // Filter permissions by department scope (for regular department users)
-  const effectivePermissions = role.permissions.filter(perm => {
-    return perm.statusScope.includes("ALL") || 
-           perm.statusScope.includes(userDepartment);
-  });
-
-  // Return as Set of permission names/actions
-  const permSet = new Set();
-  effectivePermissions.forEach(perm => {
-    permSet.add(perm.name);
-    if (perm.action) permSet.add(perm.action);
-  });
-
-  return permSet;
-};
-
-// ========================================
-// MIDDLEWARE: Check Employee Status
+// ✅ FIXED: Check Employee Status - NOW ATTACHES EMPLOYEE
 // ========================================
 export const checkEmployeeStatus = async (req, res, next) => {
   try {
-    const { email, UserId } = req.body;
+    const { UserId } = req.body;
 
-    if (!email && !UserId) {
-      return res.status(400).json({ message: "Email or UserId is required" });
+    // If no UserId, skip checks (let login handle it)
+    if (!UserId) {
+      return next();
     }
 
-    const employee =
-      (email && (await FinalizedEmployee.findOne({ personalEmail: email }))) ||
-      (UserId && (await FinalizedEmployee.findOne({ UserId }))) ||
-      null;
+    const employee = await FinalizedEmployee.findOne({ UserId });
 
+    // ✅ FIX: If employee not found, let loginUser handle it
     if (!employee) {
-      return res.status(404).json({ message: "Employee not found" });
+      console.log(`⚠️  Employee not found for UserId: ${UserId}`);
+      return next();
     }
 
-    const status = employee.profileStatus?.decision;
+    // ✅ CRITICAL FIX: Attach employee to request
+    req.employee = employee;
 
-    if (["Suspended", "Blocked", "Terminated"].includes(status)) {
+    // Check blocked
+    if (employee.blocked?.isBlocked) {
       return res.status(403).json({
-        message: `Access denied. Employee status is '${status}'`,
-        suspension: employee.suspension || {},
-        block: employee.blocked || {},
-        termination: employee.terminated || {},
+        success: false,
+        message: "Your account has been blocked",
+        code: "ACCOUNT_BLOCKED",
+        details: {
+          reason: employee.blocked.reason,
+          blockedAt: employee.blocked.blockedAt
+        }
       });
     }
 
-    req.employee = employee;
+    // Check terminated
+    if (employee.terminated?.isTerminated) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account has been terminated",
+        code: "ACCOUNT_TERMINATED",
+        details: {
+          reason: employee.terminated.reason,
+          terminatedAt: employee.terminated.terminatedAt
+        }
+      });
+    }
+
+    // Check suspended
+    if (employee.suspension?.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is currently suspended",
+        code: "ACCOUNT_SUSPENDED",
+        details: {
+          reason: employee.suspension.reason,
+          suspendedAt: employee.suspension.suspendedAt,
+          suspendedUntil: employee.suspension.suspendedUntil
+        }
+      });
+    }
+
+    // All checks passed, proceed to login
+    console.log(`✅ Employee status check passed for ${employee.individualName}`);
     next();
-  } catch (err) {
-    console.error("Error in checkEmployeeStatus:", err);
+
+  } catch (error) {
+    console.error("❌ Employee status check error:", error);
     res.status(500).json({
-      message: "Error checking employee status",
-      error: err.message,
+      success: false,
+      message: "Internal server error during status check",
+      error: error.message
     });
   }
 };
+
 
 // ========================================
 // MIDDLEWARE: Authenticate User
 // ========================================
 export const authenticate = async (req, res, next) => {
   try {
-    let token = req.cookies?.accessToken;
-
-    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
-      token = req.headers.authorization.split(" ")[1];
-    }
+    const token = req.cookies?.accessToken || 
+                  req.headers.authorization?.replace("Bearer ", "");
 
     if (!token) {
       return res.status(401).json({
-        status: false,
-        message: "Unauthorized - No token provided",
+        success: false,
+        message: "Access token required",
+        code: "NO_TOKEN"
       });
     }
 
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    } catch (err) {
-      const msg = err.name === "TokenExpiredError" ? "Token expired" : "Invalid token";
-      return res.status(401).json({ status: false, message: msg });
-    }
+    // Verify token
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-    const user = await FinalizedEmployee.findById(decoded._id);
+    // Fetch user
+    const user = await FinalizedEmployee.findById(decoded._id)
+      .select('-password -passwordHash -refreshToken');
+
     if (!user) {
-      return res.status(401).json({ 
-        status: false, 
-        message: "Unauthorized - user not found" 
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+        code: "USER_NOT_FOUND"
       });
     }
 
-    // ✅ Attach role assignment with department info
-    const assignment = await RoleAssignmentModel.findOne({
-      employeeId: user._id,
-      isActive: true
-    }).populate('roleId').populate('orgUnit');
-
-    if (assignment) {
-      req.userAssignment = assignment;
-      req.userDepartment = assignment.departmentCode;
-      req.userOrgUnit = assignment.orgUnit;
+    // Check if user is active
+    if (user.blocked?.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is blocked",
+        code: "ACCOUNT_BLOCKED"
+      });
     }
 
+    if (user.terminated?.isTerminated) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is terminated",
+        code: "ACCOUNT_TERMINATED"
+      });
+    }
+
+    // Attach user to request
     req.user = user;
     next();
-  } catch (err) {
-    console.error("Authenticate error:", err);
-    return res.status(500).json({ status: false, message: "Server error" });
+
+  } catch (error) {
+    console.error("Authentication error:", error);
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: "Token expired",
+        code: "TOKEN_EXPIRED"
+      });
+    }
+
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token",
+        code: "INVALID_TOKEN"
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Authentication failed",
+      error: error.message
+    });
   }
 };
 
-// Updated checkAuth function
+// ========================================
+// Check Auth Status
+// ========================================
 export const checkAuth = async (req, res) => {
   try {
-    let token = req.cookies?.accessToken;
-    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-    
-    if (!token) {
-      return res.status(401).json({ 
-        status: false, 
-        message: "Not authenticated" 
-      });
-    }
+    const user = req.user;
 
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await FinalizedEmployee.findById(decoded._id).select("-password -passwordHash");
-
-    if (!user) {
-      return res.status(404).json({ 
-        status: false, 
-        message: "User not found" 
-      });
-    }
-
-    // Get active role assignment
+    // Get role assignment
     const assignment = await RoleAssignmentModel.findOne({
       employeeId: user._id,
       isActive: true
     })
-    .populate('roleId')
-    .populate('orgUnit');
+      .populate('roleId', 'roleName category')
+      .populate('orgUnit', 'name code level path')
+      .populate('branchId', 'name code isHeadOffice');
 
-    // ✅ Handle "All" department code
-    let department = assignment?.departmentCode || null;
-    
-    // Convert "All" to array of all departments for frontend
-    let accessibleDepartments = [];
-    if (department === "All") {
-      accessibleDepartments = ["HR", "Finance", "BusinessOperation"];
-    } else if (department) {
-      accessibleDepartments = [department];
-    }
+    // Get permissions
+    const permissionData = await PermissionAggregator.getEffectivePermissions(user._id);
 
-    const userResponse = {
-      ...user.toObject(),
-      department: department, // "All", "HR", "Finance", or "BusinessOperation"
-      departmentCode: department, // ✅ ADDED: Also send as departmentCode for consistency
-      accessibleDepartments: accessibleDepartments,
-      role: assignment?.roleId || null,
-      orgUnit: assignment?.orgUnit || null,
-    };
-
-    return res.status(200).json({ 
-      status: true, 
-      user: userResponse
+    res.status(200).json({
+      success: true,
+      authenticated: true,
+      user: {
+        _id: user._id,
+        UserId: user.UserId,
+        individualName: user.individualName,
+        personalEmail: user.personalEmail,
+        officialEmail: user.officialEmail,
+        role: assignment?.roleId?.roleName,
+        roleCategory: assignment?.roleId?.category,
+        department: assignment?.departmentCode,
+        orgUnit: assignment?.orgUnit?.name,
+        orgUnitLevel: assignment?.orgUnit?.level,
+        orgUnitPath: assignment?.orgUnit?.path,
+        branch: assignment?.branchId?.name,
+        isExecutive: permissionData.isExecutive,
+        permissions: {
+          direct: permissionData.direct.length,
+          inherited: permissionData.inherited.length,
+          total: permissionData.effective.length
+        }
+      }
     });
-
   } catch (error) {
-    console.error("checkAuth error:", error);
-    return res.status(401).json({ 
-      status: false, 
-      message: "Invalid or expired token" 
+    console.error("Check auth error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to check authentication",
+      error: error.message
     });
   }
 };
 
-// ========================================
-// 🔥 SUPERUSER AUTHORIZATION MIDDLEWARE
-// ========================================
 export const authorize = (requiredPermission, options = {}) => {
   return async (req, res, next) => {
     try {
-      const user = req.user;
-      const userAssignment = req.userAssignment;
-      const userDepartment = req.userDepartment;
+      const userId = req.user?._id;
 
-      // Debug bypass (remove in production)
-      if (req.headers["x-disable-auth"] === "true") {
-        console.log("⚠️ Authorization bypassed for this request");
-        return next();
-      }
-
-      // ========================================
-      // 🔥 SUPERUSER BYPASS
-      // Users with departmentCode = "All" bypass ALL checks
-      // ========================================
-      if (userDepartment === "All") {
-        console.log(`\n🔓 SUPERUSER ACCESS GRANTED`);
-        console.log(`   User: ${user.individualName}`);
-        console.log(`   Department: ${userDepartment}`);
-        console.log(`   Permission: ${requiredPermission}`);
-        console.log(`   ✅ All checks bypassed - Superuser access\n`);
-
-        // Attach metadata for logging/auditing
-        req.permission = { 
-          name: requiredPermission,
-          isSuperuserAccess: true 
-        };
-        req.effectiveScope = {
-          department: "All",
-          hierarchy: "ORGANIZATION",
-          orgUnit: req.userOrgUnit,
-          isSuperuser: true
-        };
-
-        return next(); // ✅ BYPASS ALL PERMISSION CHECKS
-      }
-
-      // ========================================
-      // REGULAR USER AUTHORIZATION (Non-Superuser)
-      // ========================================
-      
-      // STEP 1: Check if user has the permission
-      const userPermissions = await getPermissionsForUser(user);
-
-      if (!userPermissions.has(requiredPermission)) {
-        console.log(`❌ Permission denied: User lacks '${requiredPermission}'`);
-        console.log(`   User: ${user.individualName}`);
-        console.log(`   Department: ${userDepartment}`);
-        console.log(`   Available permissions:`, Array.from(userPermissions));
-        
-        return res.status(403).json({
+      if (!userId) {
+        return res.status(401).json({
           success: false,
-          message: `Forbidden: Missing permission '${requiredPermission}'`,
-          hint: "Contact your administrator to request this permission"
+          message: "Authentication required",
+          code: "NOT_AUTHENTICATED"
         });
       }
 
-      // STEP 2: Get permission details from DB
-      const permission = await PermissionModel.findOne({
-        $or: [
-          { name: requiredPermission },
-          { action: requiredPermission }
-        ],
+      // Get user's role assignment
+      const assignment = await RoleAssignmentModel.findOne({
+        employeeId: userId,
         isActive: true
-      });
+      })
+        .populate('orgUnit')
+        .populate('roleId');
 
-      if (!permission) {
-        console.error(`⚠️ Permission '${requiredPermission}' not found in database`);
+      if (!assignment) {
+        await AuditService.log({
+          eventType: CONSTANTS.AUDIT_EVENTS.PERMISSION_DENIED,
+          actorId: userId,
+          details: {
+            reason: 'NO_ASSIGNMENT',
+            requiredPermission,
+            route: req.path
+          }
+        });
+
         return res.status(403).json({
           success: false,
-          message: "Permission configuration error"
+          message: "No active role assignment found",
+          code: "NO_ASSIGNMENT"
         });
       }
 
-      // STEP 3: Check department scope
-      console.log(`\n🔍 Authorization Check for: ${requiredPermission}`);
-      console.log(`   User: ${user.individualName}`);
-      console.log(`   User Department: ${userDepartment}`);
-      console.log(`   Permission Scope: ${permission.statusScope}`);
+      // ✅ Get aggregated permissions with statusScope filtering
+      const { effective: permissions, departmentCode, isExecutive } = 
+        await PermissionAggregator.getEffectivePermissions(userId);
 
-      if (!permission.appliesToDepartment(userDepartment)) {
-        console.log(`❌ Department scope check failed`);
-        console.log(`   User department '${userDepartment}' not in scope: ${permission.statusScope}`);
-        
+      console.log(`🔐 Auth Check for ${req.user.individualName}:`);
+      console.log(`   Permission: ${requiredPermission}`);
+      console.log(`   Department: ${departmentCode}`);
+      console.log(`   Is Executive: ${isExecutive}`);
+      console.log(`   Total Permissions: ${permissions.length}`);
+
+      // ✅ FIXED: Find permission object (check both 'action' and 'name' fields)
+      const permissionObject = permissions.find(p => 
+        p.action === requiredPermission || p.name === requiredPermission
+      );
+
+      if (!permissionObject) {
+        // Log permission denial
+        await AuditService.log({
+          eventType: CONSTANTS.AUDIT_EVENTS.PERMISSION_DENIED,
+          actorId: userId,
+          details: {
+            reason: 'PERMISSION_NOT_FOUND',
+            requiredPermission,
+            userPermissions: permissions.map(p => p.action || p.name),
+            departmentCode,
+            route: req.path
+          }
+        });
+
+        console.log(`   ❌ Permission "${requiredPermission}" not found`);
+        console.log(`   Available permissions:`, permissions.map(p => p.action || p.name));
+
         return res.status(403).json({
           success: false,
-          message: `Forbidden: This action is not available for ${userDepartment} department`,
-          hint: `This permission is only available for: ${permission.statusScope.join(', ')}`
+          message: `Permission denied: ${requiredPermission}`,
+          code: "PERMISSION_DENIED",
+          details: {
+            requiredPermission,
+            userDepartment: departmentCode,
+            isExecutive,
+            availablePermissions: permissions.length
+          }
         });
       }
 
-      console.log(`✅ Department scope check passed`);
+      console.log(`   ✅ Permission found: ${permissionObject.name}`);
 
-      // STEP 4: Check hierarchy scope
-      const targetEmployeeId = req.params.employeeId || 
-                               req.params.finalizedEmployeeId ||
-                               req.body.employeeId ||
-                               options.targetEmployeeId;
+      // ✅ Validate resourceType if specified
+      if (options.resourceType) {
+        if (permissionObject.resourceType && 
+            permissionObject.resourceType !== 'ALL' &&
+            permissionObject.resourceType !== options.resourceType) {
+          
+          console.log(`   ❌ Resource type mismatch: expected ${options.resourceType}, got ${permissionObject.resourceType}`);
 
-      if (targetEmployeeId && permission.hierarchyScope !== "ORGANIZATION") {
-        const targetEmployee = await FinalizedEmployee.findById(targetEmployeeId);
-        
-        if (!targetEmployee) {
-          return res.status(404).json({
+          return res.status(403).json({
             success: false,
-            message: "Target employee not found"
+            message: `Permission not applicable to resource type: ${options.resourceType}`,
+            code: "RESOURCE_TYPE_MISMATCH"
           });
-        }
-
-        const targetAssignment = await RoleAssignmentModel.findOne({
-          employeeId: targetEmployee._id,
-          isActive: true
-        }).populate('orgUnit');
-
-        if (!targetAssignment) {
-          return res.status(400).json({
-            success: false,
-            message: "Target employee has no active role assignment"
-          });
-        }
-
-        const targetDepartment = targetAssignment.departmentCode;
-        const targetOrgUnit = targetAssignment.orgUnit;
-
-        switch (permission.hierarchyScope) {
-          case "SELF":
-            if (user._id.toString() !== targetEmployee._id.toString()) {
-              return res.status(403).json({
-                success: false,
-                message: "Forbidden: You can only perform this action on yourself"
-              });
-            }
-            break;
-
-          case "DESCENDANT":
-            const isDescendant = await isAncestorOf(
-              req.userOrgUnit._id,
-              targetOrgUnit._id
-            );
-
-            if (!isDescendant) {
-              return res.status(403).json({
-                success: false,
-                message: "Forbidden: Target employee is not in your hierarchy"
-              });
-            }
-            break;
-
-          case "DEPARTMENT":
-            if (userDepartment !== targetDepartment) {
-              return res.status(403).json({
-                success: false,
-                message: `Forbidden: Target employee is in ${targetDepartment} department`,
-                hint: "You can only perform this action on employees in your department"
-              });
-            }
-            break;
-
-          case "ORGANIZATION":
-            // Always allowed
-            break;
-
-          default:
-            return res.status(403).json({
-              success: false,
-              message: "Invalid hierarchy scope configuration"
-            });
         }
       }
 
-      // STEP 5: Attach metadata and proceed
-      req.permission = permission;
-      req.effectiveScope = {
-        department: userDepartment,
-        hierarchy: permission.hierarchyScope,
-        orgUnit: req.userOrgUnit
+      // ✅ CRITICAL: Store permission info for hierarchy guard
+      req.permissionCheck = {
+        action: permissionObject.action || permissionObject.name,
+        permission: permissionObject,
+        hierarchyScope: permissionObject.hierarchyScope,
+        statusScope: permissionObject.statusScope,
+        resourceType: permissionObject.resourceType,
+        bypassHierarchy: options.bypassHierarchy || false
       };
 
-      console.log(`✅ Authorization passed: ${requiredPermission} for ${user.individualName}\n`);
+      // ✅ Store user context
+      req.userContext = {
+        userId,
+        assignment,
+        departmentCode,
+        isExecutive,
+        orgUnit: assignment.orgUnit,
+        level: assignment.orgUnit?.level,
+        roleCategory: assignment.roleId?.category
+      };
+
+      console.log(`   ✅ Authorization passed\n`);
+
       next();
 
-    } catch (err) {
-      console.error("Authorization error:", err);
+    } catch (error) {
+      console.error("❌ Authorization error:", error);
+      
       res.status(500).json({
         success: false,
-        message: "Authorization error",
-        error: err.message
+        message: "Authorization check failed",
+        error: error.message
       });
     }
   };
 };
+
 
 // ========================================
 // MIDDLEWARE: Verify Partner API Key

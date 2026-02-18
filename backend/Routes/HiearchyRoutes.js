@@ -1,6 +1,5 @@
 import express from "express";
 import { authenticate, authorize } from "../middlewares/authMiddlewares.js";
-import { setResourceOrgUnit } from "../middlewares/authUtility.js";
 import {
   addHierarchy,
   getHierarchy,
@@ -9,46 +8,29 @@ import {
   deleteHierarchyLevel,
 } from "../contollers/hiearchyController.js";
 
-const router = express.Router();
-router.use(authenticate);
+const hierarchyRouter = express.Router();
+hierarchyRouter.use(authenticate);
 
-// ------------------- Hierarchy Routes -------------------
+// DEPRECATION WARNING MIDDLEWARE
+hierarchyRouter.use((req, res, next) => {
+  console.warn(`
+    ⚠️  DEPRECATION WARNING: /api/hierarchy endpoints are deprecated
+    📌 Use /api/org-units instead
+    🔗 Path: ${req.path}
+    📅 This endpoint will be removed in v2.0
+  `);
+  
+  res.setHeader('X-Deprecated-API', 'true');
+  res.setHeader('X-Deprecated-Message', 'Use /api/org-units instead');
+  
+  next();
+});
 
-// Add full hierarchy
-router.post(
-  "/add-hierarchy",
-  authorize("add_hierarchy"),
-  addHierarchy
-);
+// Legacy routes - maintained for backward compatibility
+hierarchyRouter.post("/add-hierarchy", authorize("add_hierarchy"), addHierarchy);
+hierarchyRouter.get("/get-hierarchy", authorize("view_hierarchy"), getHierarchy);
+hierarchyRouter.post("/createNode", authorize("add_HierarchyLevel"), createHierarchyLevel);
+hierarchyRouter.put("/editNode/:hierarchyId", authorize("edit_hierarchy_level"), editHierarchyLevel);
+hierarchyRouter.delete("/deleteNode/:id", authorize("delete_HierarchyLevel"), deleteHierarchyLevel);
 
-// Get hierarchy
-router.get(
-  "/get-hierarchy",
-  authorize("view_hierarchy"),
-  getHierarchy
-);
-
-// Create a new hierarchy level
-router.post(
-  "/createNode",
-  authorize("add_HierarchyLevel"),
-  createHierarchyLevel
-);
-
-// Edit an existing hierarchy level
-router.put(
-  "/editNode/:hierarchyId",
-  // setResourceOrgUnit,
-  authorize("edit_hierarchy_level"),
-  editHierarchyLevel
-);
-
-// Delete a hierarchy level
-router.delete(
-  "/deleteNode/:id",
-  // setResourceOrgUnit,
-  authorize("delete_HierarchyLevel"),
-  deleteHierarchyLevel
-);
-
-export default router;
+export default hierarchyRouter;

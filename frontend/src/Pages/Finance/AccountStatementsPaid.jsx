@@ -31,13 +31,13 @@ const PaidStatements = () => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+  <div className="flex min-h-screen bg-gray-100">
+    <div className="sticky top-0 h-screen">
       <Sidebar
         navItems={navItems}
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
         title="Paid Account Statements"
       />
+    </div>
 
       <main className="flex-1 p-6 transition-all duration-300">
         <h2 className="text-3xl font-bold mb-6 text-gray-800">
