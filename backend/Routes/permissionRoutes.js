@@ -12,7 +12,9 @@ import {
     updatePermission,
     addEmployeePermissionsBulk,
     removeEmployeePermissionsBulk,
+
     previewInheritance,
+    
     getPermissionStatistics,
     getEmployeePermissionsDetailed,
     getAllEmployeesWithPermissions,

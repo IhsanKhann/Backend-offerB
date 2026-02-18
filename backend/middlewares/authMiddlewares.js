@@ -113,9 +113,9 @@ export const checkEmployeeStatus = async (req, res, next) => {
     const { UserId } = req.body;
 
     // If no UserId, skip checks (let login handle it)
-    // if (!UserId) {
-    //   return next();
-    // }
+    if (!UserId) {
+      return next();
+    }
 
     const employee = await FinalizedEmployee.findOne({ UserId });
 

@@ -6,6 +6,56 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Document Schema - Flexible and Scalable
+const documentSchema = new mongoose.Schema({
+  documentType: {
+    type: String,
+    required: true,
+    enum: [
+      "CV/Resume",
+      "Educational Certificates",
+      "Experience Letters",
+      "CNIC/Passport Copy",
+      "Police Verification",
+      "Medical Certificate",
+      "Reference Letters",
+      "Bank Account Details",
+      "Other"
+    ]
+  },
+  customDocumentName: {
+    type: String, // For "Other" category or custom naming
+    trim: true
+  },
+  file: {
+    public_id: { type: String, required: true },
+    url: { type: String, required: true },
+    originalName: { type: String },
+    fileSize: { type: Number }, // in bytes
+    mimeType: { type: String }
+  },
+  uploadedAt: {
+    type: Date,
+    default: Date.now
+  },
+  status: {
+    type: String,
+    enum: ["Pending", "Approved", "Rejected", "Needs Revision"],
+    default: "Pending"
+  },
+  reviewNotes: {
+    type: String,
+    default: ""
+  },
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "FinalizedEmployee"
+  },
+  reviewedAt: {
+    type: Date
+  }
+}, { _id: true });
+
 const addressSchema = new mongoose.Schema({
   houseNo: { type: String },
   addressLine: { type: String },
@@ -227,9 +277,20 @@ const finalizedEmployeeSchema = new mongoose.Schema(
     // 12. Employee Banking Details: by default empty object is being created..
     bankingDetails: { type: employeeBankingSchema, default: {} },
 
-     refreshToken: {
-        type: String,
-      }
+    refreshToken: {
+      type: String,
+    },
+    documents: {
+      type: [documentSchema],
+      default: []
+    },
+  
+  documentCompletionStatus: {
+    type: String,
+    enum: ["Incomplete", "Complete", "Under Review", "Approved"],
+    default: "Incomplete"
+  }
+    
   },
   { timestamps: true }
 );

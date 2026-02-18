@@ -16,6 +16,7 @@ import FinalizedEmployeesRouter from "./Routes/finalizedEmployeesRoutes.js"
 import roleRoutes from "./Routes/RoleRoutes.js";
 import LeavesRouter from "./Routes/LeaveRoutes.js";
 import branchRouter from "./Routes/branchRoutes.js";
+import documentRouter from "./Routes/documentRoutes.js";
 
 // Finance-Routes..
 import SummaryRouter from "./Routes/financeRoutes/summaryroutes.js";
@@ -82,6 +83,7 @@ app.use("/api/finalizedEmployees", FinalizedEmployeesRouter);
 app.use("/api/roles", roleRoutes);
 app.use("/api/branches", branchRouter);
 // changed /api/allRoles..
+app.use("/api/documents", documentRouter);
 
 app.use("/api/leaves", LeavesRouter);
 

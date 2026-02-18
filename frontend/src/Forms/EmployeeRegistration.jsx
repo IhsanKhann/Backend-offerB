@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import api from "../api/axios.js";
+import DocumentUpload from '../components/DocumentUpload.jsx';
 
 // submit and creating draft logic....
 import { useDispatch, useSelector } from "react-redux";
@@ -10,7 +11,7 @@ import { setEmployeeFormData, getEmployeeFormData, registerEmployeeThunk } from 
 
 export default function EmployeeRegistrationForm() {
   const [step, setStep] = useState(1);
-  
+  const [documents, setDocuments] = useState([]);
 
   const navigate = useNavigate();
   
@@ -34,7 +35,9 @@ export default function EmployeeRegistrationForm() {
   "Change of Status",
   "Transfers",
   "Banking Details",
+  "Documents",
   "Final Submission",
+  
 ];
   const totalSteps = stepTitles.length;
   const nextStep = () => step < totalSteps && setStep(step + 1);
@@ -83,6 +86,18 @@ const OnSubmit = async (data) => {
   if (data.bankingDetails) {
     employeeFormData.append("bankingDetails", JSON.stringify(data.bankingDetails));
   }
+
+    documents.forEach((doc, index) => {
+    employeeFormData.append(`documents[${index}][file]`, doc.file);
+    employeeFormData.append(`documents[${index}][documentType]`, doc.documentType);
+
+    if (doc.customDocumentName) {
+      employeeFormData.append(
+        `documents[${index}][customDocumentName]`,
+        doc.customDocumentName
+      );
+    }
+  });
 
   // Files
   if (avatar) {
@@ -542,6 +557,35 @@ const OnSubmit = async (data) => {
               
             </div>
           )}
+
+             {/* STEP 10 - Documents */}
+          {step === 10 && (
+            <div className="space-y-6">
+             <DocumentUpload
+              documents={documents}
+              setDocuments={setDocuments}
+              readOnly={false}
+            />
+              
+              <div className="flex justify-between pt-6 border-t">
+                <button
+                  type="button"
+                  onClick={() => setStep(9)}
+                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(11)}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Continue to Review
+                </button>
+              </div>
+            </div>
+          )}
+
 
           {/* Navigation */}
             <div className="flex justify-between mt-10 pt-6 border-t border-gray-200">

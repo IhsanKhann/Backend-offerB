@@ -1,14 +1,15 @@
 // ============================================
-// CORRECTED FRONTEND - AssignRolesForm.jsx
+// FIXED FRONTEND - AssignRolesForm.jsx
 // ============================================
 
 import { useEffect, useState, useCallback } from "react";
 import { ChevronRight, ChevronDown, Building2, Users, Loader2, AlertCircle, Shield, CheckCircle2 } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios.js";
 
 const AssignRolesForm = ({ onBack }) => {
   const { employeeId } = useParams();
+  const navigate = useNavigate();
 
   /* ------------------------------ State ------------------------------ */
   const [initialLoading, setInitialLoading] = useState(true);
@@ -93,8 +94,14 @@ const AssignRolesForm = ({ onBack }) => {
       }
     }
 
-    if (form.branchId && selectedOrgUnit) {
-      if (selectedOrgUnit.branchId && selectedOrgUnit.branchId !== form.branchId) {
+    // ✅ FIXED: Branch validation - handle both populated objects and string IDs
+    if (form.branchId && selectedOrgUnit && selectedOrgUnit.branchId) {
+      // Extract ID from branchId (handle both object and string)
+      const orgUnitBranchId = typeof selectedOrgUnit.branchId === 'object' 
+        ? selectedOrgUnit.branchId._id 
+        : selectedOrgUnit.branchId;
+      
+      if (orgUnitBranchId !== form.branchId) {
         errors.push("Selected position does not belong to the selected branch");
       }
     }
@@ -112,6 +119,59 @@ const AssignRolesForm = ({ onBack }) => {
       }
     }
     return null;
+  };
+
+  /* ------------------------------ CRITICAL FIX: handleSubmit Function ------------------------------ */
+  const handleSubmit = async () => {
+    // Validate form
+    if (!validateForm()) {
+      alert("Please fix validation errors before submitting");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setError(null);
+      setValidationErrors([]);
+
+      // ✅ CRITICAL: Backend expects 'orgUnit' not 'orgUnitId'
+      const payload = {
+        employeeId,
+        roleId: form.roleId,
+        orgUnit: form.orgUnitId,  // ✅ Backend parameter is 'orgUnit'
+        departmentCode: form.departmentCode,
+        branchId: form.branchId || null,
+        effectiveFrom: form.effectiveFrom,
+        notes: form.notes || ""
+      };
+
+      console.log("📤 Submitting role assignment:", payload);
+
+      // Try primary endpoint first (from employeeRoutes.js)
+      const response = await api.post("/employees/roles/assign", payload);
+
+      console.log("✅ Role assigned successfully:", response.data);
+      alert("Role assigned successfully!");
+      
+      // Navigate to appropriate page
+      if (onBack) {
+        onBack();
+      } else {
+        navigate("/DraftDashboard");
+      }
+    } catch (err) {
+      console.error("❌ Role assignment failed:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to assign role";
+      setError(errorMsg);
+      alert(errorMsg);
+      
+      // Show detailed validation errors if available
+      if (err.response?.data?.errors) {
+        setValidationErrors(err.response.data.errors);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   /* ------------------------------ Permissions Preview ------------------------------ */
@@ -187,42 +247,36 @@ const AssignRolesForm = ({ onBack }) => {
                   e.stopPropagation();
                   toggleNode(node._id);
                 }}
-                className="p-1 hover:bg-gray-200 rounded transition-colors mr-1"
+                className="p-0.5 mr-1 hover:bg-blue-100 rounded transition-colors flex-shrink-0"
               >
-                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
             ) : (
-              <span className="w-6" />
+              <span className="w-5 mr-1 flex-shrink-0" />
             )}
-            <div className="mr-3 flex-shrink-0">
-              {node.type === "DEPARTMENT" || hasChildren ? (
-                <Building2 className={`w-4 h-4 ${isSelected ? "text-blue-500" : departmentMismatch ? "text-red-400" : "text-gray-400"}`} />
-              ) : (
-                <Users className={`w-4 h-4 ${isSelected ? "text-blue-500" : departmentMismatch ? "text-red-400" : "text-gray-400"}`} />
-              )}
+
+            <span className="mr-2 flex-shrink-0">
+              {hasChildren ? <Building2 size={16} /> : <Users size={16} />}
+            </span>
+
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium truncate">{node.name}</span>
+              <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                <span className="uppercase tracking-wider font-bold">{node.departmentCode}</span>
+                {node.branchId && (
+                  <span>
+                    • Branch: {typeof node.branchId === 'object' ? node.branchId.name : node.branchId}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="truncate flex-1">
-              <p className="text-sm font-medium truncate">{node.name}</p>
-              <p className={`text-[10px] font-bold uppercase tracking-wider ${
-                isSelected ? "text-blue-500" : departmentMismatch ? "text-red-400" : "text-gray-400"
-              }`}>
-                {node.type} • {node.departmentCode}
-              </p>
-            </div>
-            {node.employeeCount > 0 && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 ${
-                isSelected ? 'bg-blue-200 text-blue-800' : 'bg-gray-200 text-gray-600'
-              }`}>
-                {node.employeeCount}
-              </span>
-            )}
           </div>
-          {isSelected && (
-            <div className="ml-2 w-2 h-2 bg-blue-600 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
-          )}
+
+          {isSelected && <CheckCircle2 size={16} className="text-blue-600 flex-shrink-0 ml-2" />}
         </div>
+
         {isExpanded && hasChildren && (
-          <div className="border-l border-gray-100 ml-3">
+          <div className="mt-1">
             {node.children.map((child) => (
               <TreeNode key={child._id} node={child} level={level + 1} />
             ))}
@@ -232,80 +286,33 @@ const AssignRolesForm = ({ onBack }) => {
     );
   };
 
-  /* ------------------------------ Submit ------------------------------ */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      alert("Please fix the validation errors before submitting");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setValidationErrors([]);
-
-      const payload = {
-        employeeId: employeeId,
-        roleId: form.roleId,
-        orgUnit: form.orgUnitId,  // ✅ Backend expects 'orgUnit'
-        branchId: form.branchId || null,
-        departmentCode: form.departmentCode,
-        effectiveFrom: form.effectiveFrom,
-        notes: form.notes,
-      };
-
-      console.log("📤 Sending Assignment:", payload);
-
-      // ✅ CRITICAL FIX: Correct endpoint with /employees prefix
-      const response = await api.post("/employees/roles/assign", payload);
-
-      if (response.data.success) {
-        alert("✅ Role assigned successfully!");
-        onBack?.();
-      }
-    } catch (err) {
-      console.error("❌ Assignment Error:", err.response?.data);
-      
-      const errorMessage = err.response?.data?.message || "Assignment failed";
-      const serverErrors = err.response?.data?.errors || [];
-      
-      setValidationErrors([errorMessage, ...serverErrors]);
-      
-      // Show user-friendly error
-      if (err.response?.status === 400) {
-        alert(`❌ Validation Error:\n\n${errorMessage}`);
-      } else if (err.response?.status === 403) {
-        alert(`❌ Permission Denied:\n\n${errorMessage}\n\nYou may not have sufficient permissions to perform this action.`);
-      } else if (err.response?.status === 404) {
-        alert(`❌ Not Found:\n\n${errorMessage}`);
-      } else {
-        alert(`❌ ${errorMessage}`);
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  /* ------------------------------ Loading & Error States ------------------------------ */
+  /* ------------------------------ Loading State ------------------------------ */
   if (initialLoading) {
     return (
-      <div className="h-96 w-full flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-        <p className="text-gray-500 font-medium italic">Synchronizing organizational data...</p>
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+        <p className="text-gray-500 text-sm font-medium">Loading organizational data...</p>
       </div>
     );
   }
 
-  if (error) {
+  /* ------------------------------ Error State ------------------------------ */
+  if (error && !employee) {
     return (
-      <div className="max-w-2xl mx-auto mt-20 p-8 bg-red-50 rounded-2xl border border-red-100 flex flex-col items-center text-center">
-        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <h3 className="text-lg font-bold text-red-800">Sync Error</h3>
-        <p className="text-red-600 mb-6">{error}</p>
-        <button onClick={fetchData} className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors">
-          Retry Connection
-        </button>
+      <div className="max-w-2xl mx-auto p-8 bg-red-50 rounded-xl border border-red-200 my-8">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
+          <div>
+            <h3 className="text-lg font-bold text-red-800 mb-2">Failed to Load Data</h3>
+            <p className="text-red-700 text-sm mb-4">{error}</p>
+            <button
+              onClick={fetchData}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+            >
+              Retry Connection
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -465,7 +472,7 @@ const AssignRolesForm = ({ onBack }) => {
         <div className="lg:col-span-2 flex justify-end gap-4 mt-8 pt-8 border-t">
           <button
             type="button"
-            onClick={onBack}
+            onClick={onBack || (() => navigate("/DraftDashboard"))}
             className="px-8 py-3 bg-white text-gray-500 font-bold rounded-xl border-2 hover:bg-gray-50 transition-colors"
             disabled={submitting}
           >
@@ -474,7 +481,7 @@ const AssignRolesForm = ({ onBack }) => {
           <button
             onClick={handleSubmit}
             className="px-10 py-3 bg-blue-600 text-white font-bold rounded-xl flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={submitting || validationErrors.length > 0}
+            disabled={submitting}
           >
             {submitting ? (
               <>

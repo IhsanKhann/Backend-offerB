@@ -1,13 +1,11 @@
 // ============================================
 // FILE: controllers/branchController.js
-// Complete Branch Management Controller with Audit Logging
+// Complete Branch Management Controller
 // ============================================
 
 import { BranchModel } from "../models/HRModals/BranchModel.js";
 import { OrgUnitModel } from "../models/HRModals/OrgUnit.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
-import AuditService from "../services/auditService.js";
-import CONSTANTS from "../configs/constants.js";
 
 /**
  * ✅ Create new branch
@@ -60,22 +58,6 @@ export const createBranch = async (req, res) => {
 
     console.log(`✅ Created branch: ${branch.name} (${branch.code})`);
 
-    // 🔍 AUDIT LOG
-    await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.BRANCH_CREATED,
-      actorId: req.user._id,
-      targetId: branch._id,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      details: {
-        branchName: branch.name,
-        branchCode: branch.code,
-        branchType: branch.branchType,
-        isHeadOffice: branch.isHeadOffice,
-        location: branch.location
-      }
-    });
-
     res.status(201).json({
       message: "Branch created successfully",
       success: true,
@@ -92,7 +74,7 @@ export const createBranch = async (req, res) => {
 };
 
 /**
- * ✅ Get all branches (READ ONLY - NO AUDIT)
+ * ✅ Get all branches
  */
 export const getAllBranches = async (req, res) => {
   try {
@@ -138,7 +120,7 @@ export const getAllBranches = async (req, res) => {
 };
 
 /**
- * ✅ Get single branch by ID (READ ONLY - NO AUDIT)
+ * ✅ Get single branch by ID
  */
 export const getBranchById = async (req, res) => {
   try {
@@ -200,23 +182,6 @@ export const updateBranch = async (req, res) => {
       });
     }
 
-    // Track changes for audit
-    const changedFields = {};
-    const allowedUpdates = [
-      'name', 'code', 'location', 'branchType', 
-      'contactInfo', 'manager', 'isActive', 
-      'isHeadOffice', 'metadata'
-    ];
-
-    for (const key of allowedUpdates) {
-      if (updates[key] !== undefined && JSON.stringify(branch[key]) !== JSON.stringify(updates[key])) {
-        changedFields[key] = {
-          old: branch[key],
-          new: updates[key]
-        };
-      }
-    }
-
     // Prevent changing head office status if employees assigned
     if (updates.isHeadOffice !== undefined && 
         updates.isHeadOffice !== branch.isHeadOffice) {
@@ -234,6 +199,12 @@ export const updateBranch = async (req, res) => {
     }
 
     // Update fields
+    const allowedUpdates = [
+      'name', 'code', 'location', 'branchType', 
+      'contactInfo', 'manager', 'isActive', 
+      'isHeadOffice', 'metadata'
+    ];
+
     for (const key of allowedUpdates) {
       if (updates[key] !== undefined) {
         branch[key] = updates[key];
@@ -243,20 +214,6 @@ export const updateBranch = async (req, res) => {
     await branch.save();
 
     console.log(`✅ Updated branch: ${branch.name}`);
-
-    // 🔍 AUDIT LOG
-    await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.BRANCH_UPDATED,
-      actorId: req.user._id,
-      targetId: branch._id,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      details: {
-        branchName: branch.name,
-        branchCode: branch.code,
-        changedFields
-      }
-    });
 
     res.status(200).json({
       message: "Branch updated successfully",
@@ -323,26 +280,9 @@ export const deleteBranch = async (req, res) => {
       });
     }
 
-    // Store branch details before deletion
-    const deletedBranchDetails = {
-      name: branch.name,
-      code: branch.code,
-      branchType: branch.branchType
-    };
-
     await BranchModel.findByIdAndDelete(branchId);
 
     console.log(`✅ Deleted branch: ${branch.name}`);
-
-    // 🔍 AUDIT LOG
-    await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.BRANCH_DELETED,
-      actorId: req.user._id,
-      targetId: branchId,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'],
-      details: deletedBranchDetails
-    });
 
     res.status(200).json({
       message: "Branch deleted successfully",
@@ -359,7 +299,7 @@ export const deleteBranch = async (req, res) => {
 };
 
 /**
- * ✅ Get branch with all org units (READ ONLY - NO AUDIT)
+ * ✅ Get branch with all org units
  */
 export const getBranchWithOrgUnits = async (req, res) => {
   try {
@@ -416,7 +356,7 @@ export const getBranchWithOrgUnits = async (req, res) => {
 };
 
 /**
- * ✅ Get head office (READ ONLY - NO AUDIT)
+ * ✅ Get head office
  */
 export const getHeadOffice = async (req, res) => {
   try {
@@ -452,7 +392,7 @@ export const getHeadOffice = async (req, res) => {
 };
 
 /**
- * ✅ Get branch statistics (READ ONLY - NO AUDIT)
+ * ✅ Get branch statistics
  */
 export const getBranchStats = async (req, res) => {
   try {

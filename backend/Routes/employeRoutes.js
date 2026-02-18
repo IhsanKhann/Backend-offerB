@@ -55,7 +55,7 @@ router.post(
   "/register",
   checkDepartment(),
   authorize("register_employee", { resourceType: 'EMPLOYEE' }),
-  upload.single("profileImage"),
+  upload.any(),
   RegisterEmployee
 );
 
