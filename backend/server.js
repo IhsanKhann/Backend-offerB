@@ -35,11 +35,18 @@ import "../backend/events/eventsCronJobs.js";
 
 // Notifications:
 import notificationRouter from "./Routes/NotificationRoutes.js";
-
 import debugRoutes from "./Routes/debug.routes.js";
 
-dotenv.config();
+import { apiLimiter } from "./middlewares/rateLimiter.js";
+
+const envFile =
+  process.env.NODE_ENV === "production"
+    ? ".env.production"
+    : ".env.development";
+
+dotenv.config({ path: envFile });
 const app = express();
+app.use("/api", apiLimiter);
 
 app.use(cors(
     {
