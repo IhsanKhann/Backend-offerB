@@ -1,0 +1,59 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mern_backend_dev
+    command: npm run dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    env_file:
+      - .env.development
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - mern_network
+
+  frontend:
+    image: node:20-alpine
+    container_name: mern_frontend_dev
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    networks:
+      - mern_network
+
+  mongo:
+    image: mongo:7
+    container_name: mern_mongo_dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_dev_data:/data/db
+    networks:
+      - mern_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mern_redis_dev
+    ports:
+      - "6379:6379"
+    networks:
+      - mern_network
+
+  volumes:
+  mongo_dev_data:
+
+networks:
+  mern_network:
+    driver: bridge
