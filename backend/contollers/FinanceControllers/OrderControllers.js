@@ -2,17 +2,15 @@
 import mongoose from "mongoose";
 const { ObjectId } = mongoose.Types;
 import dotenv from "dotenv";
-import axios from "axios";
 dotenv.config();
 
 import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 import SummaryModel from "../../models/FinanceModals/SummaryModel.js";
 import SummaryFieldLineInstance from "../../models/FinanceModals/FieldLineInstanceModel.js";
-import SummaryFieldLineDefinition from "../../models/FinanceModals/FieldLineDefinitionModel.js"; // <-- added
+import SummaryFieldLineDefinition from "../../models/FinanceModals/FieldLineDefinitionModel.js"; 
 import BreakupFileModel from "../../models/FinanceModals/BreakupFiles.js";
 import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 import Order from "../../models/FinanceModals/OrdersModel.js";
-import api from "../../../frontend/src/api/axios.js";
 import Seller from "../../models/FinanceModals/SellersModel.js";
 import { ensureSellerExists } from "../../contollers/FinanceControllers/SellerController.js";
 
@@ -95,9 +93,6 @@ export const computeValue = (orderAmount, split) => {
   return value;
 };
 
-// -------------------------------
-// New helper: get or create definition by numeric id
-// -------------------------------
 const getOrCreateDefinitionByNumericId = async (numericId, name = "Auto Definition", session = null) => {
   if (numericId === null || numericId === undefined) return null;
 
@@ -195,9 +190,6 @@ export const updateBalance = async (instance, amount, type, session) => {
   }
 };
 
-// -------------------------------
-// Helper: Update Summary Balance (when updating a summary directly)
-// -------------------------------
 const updateSummaryBalance = async (summaryIdentifier, value, debitOrCredit, session) => {
   if (!summaryIdentifier) return;
 

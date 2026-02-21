@@ -31,7 +31,7 @@ import CronRouter from "./middlewares/cronMiddleware.js";
 import CommissionReports from "./Routes/BussinessOperationRoutes/ComissionReportsRoutes.js";
 
 // Cron-Jobs: for the events..
-import "../backend/events/eventsCronJobs.js";
+// import "../backend/events/eventsCronJobs.js";
 
 // Notifications:
 import notificationRouter from "./Routes/NotificationRoutes.js";
@@ -102,7 +102,7 @@ app.use("/api/sellers", sellerRoutes);
 
 // bussiness operation routes can be added here..
 app.use("/api/cycles", CycleRouter)
-app.use("/api/cron", CronRouter);
+// app.use("/api/cron", CronRouter);
 app.use("/api/expenseReports", ExpenseRouter);
 app.use("/api/commissionReports", CommissionReports);
 
