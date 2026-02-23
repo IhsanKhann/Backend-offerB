@@ -22,10 +22,10 @@ jobs:
       - name: Set Environment
         run: |
           if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
-            echo "ENV=prod" >> $GITHUB_ENV
+            echo "ENV=production" >> $GITHUB_ENV
             COMPOSE_FILE=docker-compose.prod.yml
           else
-            echo "ENV=dev" >> $GITHUB_ENV
+            echo "ENV=development" >> $GITHUB_ENV
             COMPOSE_FILE=docker-compose.dev.yml
           fi
           echo "COMPOSE_FILE=$COMPOSE_FILE" >> $GITHUB_ENV
