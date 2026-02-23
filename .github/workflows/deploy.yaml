@@ -1,0 +1,65 @@
+name: CI/CD Deploy
+
+# Trigger workflow
+on:
+  push:
+    branches:
+      - main        # Production
+      - develop     # Development
+
+jobs:
+  deploy:
+    # Use your self-hosted runner
+    runs-on: self-hosted
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ Set environment variables
+      - name: Set Environment
+        run: |
+          if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
+            echo "ENV=prod" >> $GITHUB_ENV
+            COMPOSE_FILE=docker-compose.prod.yml
+          else
+            echo "ENV=dev" >> $GITHUB_ENV
+            COMPOSE_FILE=docker-compose.dev.yml
+          fi
+          echo "COMPOSE_FILE=$COMPOSE_FILE" >> $GITHUB_ENV
+
+      # 3️⃣ Optional: Run linting / tests
+      - name: Run Backend Tests
+        if: github.ref != 'refs/heads/main'  # Skip for production if desired
+        run: |
+          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} run --rm backend npm run lint
+          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} run --rm backend npm test
+
+      - name: Run Frontend Tests
+        if: github.ref != 'refs/heads/main'
+        run: |
+          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} run --rm frontend npm run lint
+          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} run --rm frontend npm test
+
+      # 4️⃣ Pull down old containers (if any)
+      - name: Stop Old Containers
+        run: |
+          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} down
+
+      # 5️⃣ Build and start new containers
+      - name: Build and Start Containers
+        run: |
+          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} up -d --build
+
+      # 6️⃣ Verify running containers
+      - name: Show Running Containers
+        run: docker ps
+
+      # 7️⃣ Optional: Healthcheck
+      - name: Health Check
+        run: |
+          echo "Waiting 10 seconds for services to start..."
+          sleep 10
+          docker compose -f $COMPOSE_FILE ps
