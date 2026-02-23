@@ -40,6 +40,7 @@ build/
 /frontend/build/
 /backend/build/
 out/
+actions-runner/ #self-hosting..
 
 # ==========================
 # Logs
@@ -76,4 +77,5 @@ coverage/
 *.swo
 *.bak
 
-# Ignore specific JSON files
+# Ignore specific JSON filesactions-runner/
+actions-runner/
