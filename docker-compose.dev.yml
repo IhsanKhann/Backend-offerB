@@ -18,6 +18,21 @@ services:
     networks:
       - mern_network
 
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - mern_network
+
   frontend:
     image: node:20-alpine
     container_name: mern_frontend_dev
@@ -29,9 +44,10 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:5000
+      - VITE_API_URL=http://localhost:5000/api
     networks:
       - mern_network
+    restart: unless-stopped
 
   mongo:
     image: mongo:7
@@ -42,6 +58,7 @@ services:
       - mongo_dev_data:/data/db
     networks:
       - mern_network
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -50,6 +67,7 @@ services:
       - "6379:6379"
     networks:
       - mern_network
+    restart: unless-stopped
 
 volumes:
   mongo_dev_data:

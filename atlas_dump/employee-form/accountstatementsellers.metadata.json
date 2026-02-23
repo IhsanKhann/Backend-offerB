@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"businessSellerId":{"$numberInt":"1"}},"name":"businessSellerId_1","background":true}],"uuid":"90b47075fd9a4be1ac1db61dbddc2885","collectionName":"accountstatementsellers","type":"collection"}

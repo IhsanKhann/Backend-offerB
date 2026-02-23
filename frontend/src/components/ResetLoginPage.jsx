@@ -1,6 +1,6 @@
 // src/pages/ResetPasswordPage.jsx
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../api/axios.js";
 import { useNavigate } from "react-router-dom";
 
 export const ResetPasswordPage = () => {
@@ -23,10 +23,9 @@ export const ResetPasswordPage = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post(
-        "http://localhost:3000/api/auth/reset-password",
-        { UserId, email, newPassword }
-      );
+          const response = await api.post("/auth/reset-password", {
+            UserId, email, newPassword
+          });
 
       setMessage(response.data.message);
       setLoading(false);
@@ -124,10 +123,9 @@ export const ForgetUserId = () => {
     setMessage("");
 
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/auth/forget-userid",
+      const res = await api.post(
+        "/auth/forget-userid",
         { email, password },
-        { withCredentials: true } // optional, since no auth required here
       );
 
       setMessage(res.data.message);

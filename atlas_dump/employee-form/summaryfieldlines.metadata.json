@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"fieldLineId":{"$numberInt":"1"}},"name":"fieldLineId_1","background":true,"unique":true}],"uuid":"62c1f8bd918c43f0a2c1414bb61a1d49","collectionName":"summaryfieldlines","type":"collection"}

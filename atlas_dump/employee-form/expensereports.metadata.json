@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"key":{"periodKey":{"$numberInt":"1"}},"name":"periodKey_1","background":true,"unique":true}],"uuid":"71f7e3282bec48dc8547d69e1f2920c1","collectionName":"expensereports","type":"collection"}
