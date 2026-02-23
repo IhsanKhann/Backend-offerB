@@ -20,16 +20,17 @@ yarn.lock
 /backend/yarn.lock
 
 # ==========================
-# Environment files
+# Environment files (ALL)
 # ==========================
+
 .env
-.env.local
-.env.*.local
-.env.test
-/frontend/.env
-/backend/.env
-.env.development
-.env.production
+.env.*
+*.env
+*.env.*
+
+# Allow example files only
+!.env.example
+!.env.template
 
 # ==========================
 # Build / Distribution
