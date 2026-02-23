@@ -46,7 +46,7 @@ jobs:
       # 4️⃣ Pull down old containers (if any)
       - name: Stop Old Containers
         run: |
-          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} down
+          docker compose -f down
 
       # 5️⃣ Build and start new containers
       - name: Build and Start Containers
