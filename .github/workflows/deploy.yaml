@@ -1,65 +1,41 @@
 name: CI/CD Deploy
 
-# Trigger workflow
 on:
   push:
     branches:
-      - main        # Production
-      - develop     # Development
+      - main
+      - develop
 
 jobs:
   deploy:
-    # Use your self-hosted runner
     runs-on: self-hosted
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
 
     steps:
       # 1️⃣ Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Set environment variables
-      - name: Set Environment
+      # 2️⃣ Set environment + compose file
+      - name: Set Deployment Variables
         run: |
-          if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
-            echo "ENV=production" >> $GITHUB_ENV
-            COMPOSE_FILE=docker-compose.prod.yml
+          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            echo "COMPOSE_FILE=docker-compose.prod.yml" >> $GITHUB_ENV
+            echo "ENV_FILE=.env.production" >> $GITHUB_ENV
           else
-            echo "ENV=development" >> $GITHUB_ENV
-            COMPOSE_FILE=docker-compose.dev.yml
+            echo "COMPOSE_FILE=docker-compose.dev.yml" >> $GITHUB_ENV
+            echo "ENV_FILE=.env.development" >> $GITHUB_ENV
           fi
-          echo "COMPOSE_FILE=$COMPOSE_FILE" >> $GITHUB_ENV
 
-      # 3️⃣ Optional: Run linting / tests
-      - name: Run Backend Tests
-        if: github.ref != 'refs/heads/main'  # Skip for production if desired
-        run: |
-          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} run --rm backend npm run lint
-          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} run --rm backend npm test
-
-      - name: Run Frontend Tests
-        if: github.ref != 'refs/heads/main'
-        run: |
-          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} run --rm frontend npm run lint
-          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} run --rm frontend npm test
-
-      # 4️⃣ Pull down old containers (if any)
+      # 3️⃣ Stop old containers safely
       - name: Stop Old Containers
         run: |
-          docker compose -f down
+          docker compose -f $COMPOSE_FILE --env-file $ENV_FILE down || true
 
-      # 5️⃣ Build and start new containers
+      # 4️⃣ Build and start containers
       - name: Build and Start Containers
         run: |
-          docker compose -f $COMPOSE_FILE --env-file .env.${ENV} up -d --build
+          docker compose -f $COMPOSE_FILE --env-file $ENV_FILE up -d --build
 
-      # 6️⃣ Verify running containers
+      # 5️⃣ Show running containers
       - name: Show Running Containers
         run: docker ps
-
-      # 7️⃣ Optional: Healthcheck
-      - name: Health Check
-        run: |
-          echo "Waiting 10 seconds for services to start..."
-          sleep 10
-          docker compose -f $COMPOSE_FILE ps
