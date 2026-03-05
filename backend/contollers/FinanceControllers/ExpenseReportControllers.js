@@ -52,7 +52,8 @@ async function updateExpenseFlags({
 // actually pay the reports using cash: cyclic
 export const payExpensePeriodController = async (req, res) => {
 
-  console.log("Inside PayExpensePeriodController..");
+  // F-15: actorId required for cash payment
+  if (!req.user?._id) return res.status(401).json({ error: "Actor identity required" });
 
   const paidBy = req.user._id;
   const {
@@ -257,12 +258,10 @@ export const generateExpenseReportByCycle = async (req, res) => {
      * 3️⃣ CALCULATE TOTAL AMOUNT
      * ====================================================== */
     let totalAmount = 0;
-    transactions.forEach((txn, index) => {
-      const amount = parseFloat(txn.amount.toString());
-      totalAmount += amount;
-      if (index < 5) console.log(`   ↳ txn[${index}] amount = ${amount}`);
+    // F-01: integer arithmetic — no parseFloat on monetary values
+    transactions.forEach((txn) => {
+      totalAmount += Math.round(Number(txn.amount) || 0);
     });
-    console.log("💰 Total Expense Amount:", totalAmount);
 
     /* ======================================================
      * 4️⃣ CREATE NEW EXPENSE REPORT
@@ -359,9 +358,10 @@ export const generateExpenseReportByMonthsController = async (req, res) => {
     }
 
     // Calculate total amount
+    // F-01: integer arithmetic — no parseFloat on monetary values
     let totalAmount = 0;
     allTransactions.forEach(txn => {
-      totalAmount += parseFloat(txn.amount.toString());
+      totalAmount += Math.round(Number(txn.amount) || 0);
     });
 
     // Create period key for the report (from first to last selected month)
@@ -404,8 +404,9 @@ export const groupTransactionsByMonthController = async (req, res) => {
   try {
     console.log("🚀 Group by month controller triggered");
 
+    // F-09: no regex on enum-constrained fields — use exact match
     const transactions = await Transaction.find({
-      type: { $regex: /^expense$/i } // case-safe
+      type: "expense"
     }).sort({ date: 1 });
 
     console.log("🧪 Transactions found:", transactions.length);
@@ -500,9 +501,6 @@ export const fetchExpenseTransactionsController = async (req, res) => {
     const transactions = await Transaction.find(query)
       .sort({ date: -1 });
 
-    console.log("Length: ", transactions.length);
-    console.log("Transactions: ", transactions);
-    
     res.json({
       count: transactions.length,
       transactions

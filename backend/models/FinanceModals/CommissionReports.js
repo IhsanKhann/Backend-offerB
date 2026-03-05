@@ -58,8 +58,9 @@ const CommissionReportSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now }
   },
   {
-    // F-11: versionKey enabled for optimistic locking (PRD §G)
-    versionKey: false   // stores __v field — Mongoose default name
+    // F-11: versionKey: true ENABLES __v for optimistic locking (PRD §G)
+    // versionKey: false would DISABLE it — that is the bug being fixed here
+    versionKey: true
   }
 );
 

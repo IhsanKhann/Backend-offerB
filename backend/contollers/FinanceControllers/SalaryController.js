@@ -21,10 +21,12 @@ const safeToObjectId = (id) => {
 export const getSalaryRulesByRoleName = async (req, res) => {
   try {
     const roleNameDecoded = decodeURIComponent(req.params.roleName).trim();
+    // F-09: escape regex metacharacters to prevent injection
+    const _escapedRoleName = roleNameDecoded.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     // ✅ Changed to RoleModel
     const role = await RoleModel.findOne({
-      roleName: { $regex: new RegExp(`^${roleNameDecoded}$`, "i") },
+      roleName: { $regex: new RegExp(`^${_escapedRoleName}$`, "i") },
     });
 
     if (!role) {
@@ -45,10 +47,12 @@ export const getSalaryRulesByRoleName = async (req, res) => {
 export const getSingleSalaryRole = async (req, res) => {
   try {
     const roleNameDecoded = decodeURIComponent(req.params.roleName).trim();
+    // F-09: escape regex metacharacters to prevent injection
+    const _escapedRoleName = roleNameDecoded.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     // ✅ Changed to RoleModel
     const role = await RoleModel.findOne({
-      roleName: { $regex: new RegExp(`^${roleNameDecoded}$`, "i") },
+      roleName: { $regex: new RegExp(`^${_escapedRoleName}$`, "i") },
     });
 
     if (!role)
@@ -221,35 +225,43 @@ export const createBreakupFile = async (req, res) => {
     const paidFor = `${month} ${year}`;
     const loggedInEmployeeId = req.user?._id;
 
-    // -----------------------------
-    // 5️⃣ Upsert breakup file
-    // -----------------------------
-    const breakupFile = await BreakupFile.findOneAndUpdate(
-      { employeeId: empObjectId, month, year },
-      {
-        employeeId: empObjectId,
-        roleId: roleObjectId,
-        salaryRules,
-        calculatedBreakup: { breakdown, totalAllowances, totalDeductions, netSalary },
-        month,
-        year,
-        paidFor,
-        processedBy: loggedInEmployeeId,
-      },
-      { new: true, upsert: true }
-    );
+    // F-15: actorId required for salary breakup creation
+    if (!loggedInEmployeeId) {
+      return res.status(401).json({ success: false, message: "Actor identity required" });
+    }
 
     // -----------------------------
-    // 6️⃣ Audit + Return success
+    // 5️⃣ Upsert breakup file + Audit (atomic)
     // -----------------------------
-    await AuditService.log({
-      eventType: "SALARY_BREAKUP_CREATED",
-      actorId: loggedInEmployeeId || null,
-      entityId: breakupFile._id,
-      entityType: "SalaryBreakup",
-      currency: "PKR",
-      meta: { employeeId, roleId, month, year, netSalary, paidFor }
-    }, { type: "financial" });
+    const mongoSession = await mongoose.startSession();
+    let breakupFile;
+    await mongoSession.withTransaction(async () => {
+      breakupFile = await BreakupFile.findOneAndUpdate(
+        { employeeId: empObjectId, month, year },
+        {
+          employeeId: empObjectId,
+          roleId: roleObjectId,
+          salaryRules,
+          calculatedBreakup: { breakdown, totalAllowances, totalDeductions, netSalary },
+          month,
+          year,
+          paidFor,
+          processedBy: loggedInEmployeeId,
+        },
+        { new: true, upsert: true, session: mongoSession }
+      );
+
+      // F-18: audit must be in same session so a crash rolls back both
+      await AuditService.log({
+        eventType: "SALARY_BREAKUP_CREATED",
+        actorId: loggedInEmployeeId,
+        entityId: breakupFile._id,
+        entityType: "SalaryBreakup",
+        currency: "PKR",
+        meta: { employeeId, roleId, month, year, netSalary, paidFor }
+      }, { type: "financial", session: mongoSession });
+    });
+    mongoSession.endSession();
 
     return res.status(201).json({
       success: true,

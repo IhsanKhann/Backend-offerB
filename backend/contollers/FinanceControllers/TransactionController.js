@@ -91,18 +91,23 @@ export function computeLineAmount(split, baseAmount = 0, incrementType = "both",
 }
 
 export function buildLine({ instanceId, summaryId, definitionId, debitOrCredit, amount, description, isReflection }) {
+  // F-01: amount MUST be integer Number (minor units). Decimal128 is prohibited on this schema.
+  const intAmount = Math.round(Number(amount || 0));
   return {
     instanceId,
     summaryId,
     definitionId,
     debitOrCredit,
-    amount: mongoose.Types.Decimal128.fromString(Number(amount || 0).toFixed(2)),
+    amount: intAmount,
     description: description || "",
     isReflection: !!isReflection
   };
 }
 
-export const applyBalanceChange = async ({ instanceId, summaryId, debitOrCredit, amount }, session = null) => {
+export const applyBalanceChange = async ({ instanceId, summaryId, debitOrCredit, amount, isReflection }, session = null) => {
+  // F-03/F-14: reflection lines MUST NOT mutate balances
+  if (isReflection) return;
+
   const amt = Number(amount || 0);
   if (amt === 0) return;
 
@@ -153,17 +158,17 @@ export const persistTransactionAndApply = async (
       summaryId: l.summaryObjectId || null,
       definitionId: l.definitionObjectId || null,
       debitOrCredit: l.debitOrCredit,
-      amount: mongoose.Types.Decimal128.fromString(amount.toFixed(2)),
+      // F-01: integer minor units — no Decimal128, no toFixed float
+      amount: Math.round(Number(l.amount)),
       description: l.fieldName || "",
       isReflection: !!l.isReflection,
     };
   });
 
-  // ---------------- CREATE TRANSACTION ----------------
-  const totalAmount = normalizedLines.reduce(
-    (sum, l) => sum + Number(l.amount),
-    0
-  );
+  // F-01: integer minor units for top-level amount
+  const totalAmount = normalizedLines
+    .filter(l => !l.isReflection)
+    .reduce((sum, l) => sum + l.amount, 0);
 
   const [transaction] = await TransactionModel.create(
     [
@@ -171,9 +176,7 @@ export const persistTransactionAndApply = async (
         date: new Date(),
         description,
         type: "journal",
-        amount: mongoose.Types.Decimal128.fromString(
-          totalAmount.toFixed(2)
-        ),
+        amount: totalAmount,
         status: "posted",
         lines: normalizedLines,
       },
@@ -188,7 +191,8 @@ export const persistTransactionAndApply = async (
         instanceId: line.instanceId,
         summaryId: line.summaryId,
         debitOrCredit: line.debitOrCredit,
-        amount: Number(line.amount),
+        amount: line.amount,
+        isReflection: line.isReflection, // F-03: reflection guard
       },
       session
     );
@@ -203,14 +207,11 @@ export const persistTransactionAndApply = async (
 export const SID = {
   CAPITAL: 1600,
   CASH: 1500,
+  COMMISSION: 5200,  // FIX: was missing — caused getSummaryObjectId(undefined) silent null
 };
 
 // ================== Expense Controllers ==================
 export const ExpensePayLaterController = async (req, res) => {
-  console.log("\n================ EXPENSE PAY LATER REQUEST ================");
-  console.log("Incoming Body:", req.body);
-  console.log("User ID:", req.user?._id);
-
   try {
     const tx = await postExpenseTransaction({
       amount: req.body.amount,
@@ -232,10 +233,6 @@ export const ExpensePayLaterController = async (req, res) => {
 };
 
 export const ExpensePayNowController = async (req, res) => {
-  console.log("\n================ EXPENSE PAY NOW REQUEST ================");
-  console.log("Incoming Body:", req.body);
-  console.log("User ID:", req.user?._id);
-
   try {
     const tx = await  postExpenseTransaction({
       amount: req.body.amount,
@@ -266,23 +263,15 @@ export const postExpenseTransaction = async ({
   const session = await mongoose.startSession();
   session.startTransaction();
 
-  console.log("\n========== POST EXPENSE TRANSACTION ==========");
-  console.log("TransactionType:", transactionType);
-  console.log("Raw Amount:", amount);
-  console.log("Description:", description);
-  console.log("User ID:", user?._id);
-
   try {
     // ---------------- VALIDATION ----------------
-    const baseAmount = Number(amount);
-    console.log("Parsed Base Amount:", baseAmount);
+    const baseAmount = Math.round(Number(amount));
 
     if (!baseAmount || baseAmount <= 0) {
       throw new Error("Invalid expense amount");
     }
 
     // ---------------- FETCH RULE ----------------
-    console.log("\nFetching Expense Rule…");
 
     const rule = await RuleModel.findOne({ transactionType })
       .session(session)
@@ -290,29 +279,15 @@ export const postExpenseTransaction = async ({
 
     if (!rule) throw new Error(`Expense rule not found: ${transactionType}`);
 
-    console.log("✅ Rule Found:", {
-      transactionType: rule.transactionType,
-      incrementType: rule.incrementType,
-      splitsCount: rule.splits?.length
-    });
-    // console.log("Full Rule Object:", JSON.stringify(rule, null, 2));
-
     // ---------------- BUILD TRANSACTION LINES ----------------
     const transactionLines = [];
     const splits = rule.splits || [];
     const totalPercent = splits.reduce((sum, sp) => sum + (Number(sp.percentage) || 0), 0) || 100;
 
-    console.log("Total Split Percentage:", totalPercent);
-
     for (const split of splits) {
-      console.log("\n--- Processing Split ---");
-      console.log("Split Config:", JSON.stringify(split, null, 2));
-
-      const splitAmount = computeLineAmount(split, baseAmount, rule.incrementType, totalPercent);
-      console.log("Computed Split Amount:", splitAmount);
+      const splitAmount = Math.round(computeLineAmount(split, baseAmount, rule.incrementType, totalPercent));
 
       if (!splitAmount) {
-        console.log("⚠️ Split skipped (amount = 0)");
         continue;
       }
 
@@ -320,8 +295,6 @@ export const postExpenseTransaction = async ({
       const instanceId = split.instanceId || (await resolveInstanceForEntry(split, session));
       const summaryId = split.summaryId || (await resolveSummaryIdForEntry(split, session));
       const definitionId = split.definitionId || (await resolveDefinitionIdForEntry(split, session));
-
-      // console.log("Resolved IDs for Split:", { instanceId, summaryId, definitionId });
 
       if (!instanceId || !summaryId || !definitionId) {
         throw new Error(`Unresolved accounting IDs for split: ${split.fieldName}`);
@@ -337,25 +310,18 @@ export const postExpenseTransaction = async ({
         isReflection: !!split.isReflection
       });
 
-      console.log("✅ Split Line Built:", JSON.stringify(splitLine, null, 2));
       transactionLines.push(splitLine);
 
       // ---------------- PROCESS MIRRORS ----------------
       if (Array.isArray(split.mirrors)) {
-        console.log(`Processing ${split.mirrors.length} mirrors for split "${split.fieldName}"`);
 
         for (const mirror of split.mirrors) {
-          console.log("→ Mirror Config:", JSON.stringify(mirror, null, 2));
-
           // Resolve IDs for mirror
           const mi = mirror.instanceId || (await resolveInstanceForEntry(mirror, session));
           const ms = mirror.summaryId || (await resolveSummaryIdForEntry(mirror, session));
           const md = mirror.definitionId || (await resolveDefinitionIdForEntry(mirror, session));
 
-          // console.log("Resolved Mirror IDs:", { mi, ms, md });
-
           if (!mi || !ms || !md) {
-            console.warn("⚠️ Mirror skipped — unresolved IDs");
             continue;
           }
 
@@ -369,55 +335,40 @@ export const postExpenseTransaction = async ({
             isReflection: !!mirror.isReflection
           });
 
-          console.log("✅ Mirror Line Built:", JSON.stringify(mirrorLine, null, 2));
           transactionLines.push(mirrorLine);
         }
       }
     }
 
     if (!transactionLines.length) throw new Error("No transaction lines generated");
-    console.log("\nTotal Transaction Lines Generated:", transactionLines.length);
-
-    // ---------------- CREATE TRANSACTION ----------------
-    console.log("\nCreating Transaction in DB…");
 
     const isPaid = transactionType === "EXPENSE_PAY_NOW";
 
+    // F-01: integer minor units — no Decimal128
     const [tx] = await TransactionModel.create([{
       date: new Date(),
       description,
       type: "expense",
-      amount: mongoose.Types.Decimal128.fromString(baseAmount.toFixed(2)),
+      amount: baseAmount,
       createdBy: user?._id || null,
       status: "posted",
       expenseDetails: {
         isReported: false,
-        isPaid,           // Use variable
+        isPaid,
         isPaidAt: isPaid ? new Date() : null
       },
       lines: transactionLines
     }], { session });
 
-    console.log("✅ Transaction Created with ID:", tx._id);
-
     // ---------------- APPLY BALANCES ----------------
-    console.log("\nApplying Balance Changes...");
-
     for (const line of transactionLines) {
-      console.log("Applying Balance:", {
-            instanceId: line.instanceId,
-            summaryId: line.summaryId,
-            debitOrCredit: line.debitOrCredit,
-            amount: Number(line.amount),
-            isReflection: line.isReflection
-        });
-
-        await applyBalanceChange({
-            instanceId: line.instanceId,
-            summaryId: line.summaryId,
-            debitOrCredit: line.debitOrCredit,
-            amount: Number(line.amount)
-        }, session);
+      await applyBalanceChange({
+        instanceId: line.instanceId,
+        summaryId: line.summaryId,
+        debitOrCredit: line.debitOrCredit,
+        amount: line.amount,
+        isReflection: line.isReflection  // F-03: reflection guard
+      }, session);
     }
 
     await AuditService.log({
@@ -430,17 +381,15 @@ export const postExpenseTransaction = async ({
     }, { type: "financial", session });
 
     await session.commitTransaction();
-    console.log("🎉 Transaction Committed Successfully");
 
     return tx;
 
   } catch (err) {
-    console.error("❌ postExpenseTransaction FAILED:", err.message);
+    console.error("postExpenseTransaction FAILED:", err.message);
     await session.abortTransaction();
     throw err;
   } finally {
     session.endSession();
-    console.log("🔒 Session Closed");
   }
 };
 
@@ -450,7 +399,12 @@ export const CommissionTransactionController = async (req, res) => {
   session.startTransaction();
   try {
     const { amount, description } = req.body;
+    // F-15: actorId required for financial writes
+    if (!req.user?._id) return res.status(401).json({ error: "Actor identity required" });
     if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid commission amount" });
+
+    // F-11: integer minor units — no float arithmetic
+    const intAmount = Math.round(Number(amount));
 
     const commissionInstance = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5201 }).session(session);
     const cashInstance = await SummaryFieldLineInstance.findOne({ fieldLineNumericId: 5301 }).session(session);
@@ -465,7 +419,7 @@ export const CommissionTransactionController = async (req, res) => {
         summaryNumericId: SID.CASH,
         definitionObjectId: cashInstance ? cashInstance.definitionId : null,
         debitOrCredit: "debit",
-        amount: Math.round(Number(amount) * 100) / 100,
+        amount: intAmount,
         fieldName: "Commission received (Cash)"
       },
       {
@@ -474,7 +428,7 @@ export const CommissionTransactionController = async (req, res) => {
         summaryNumericId: SID.COMMISSION,
         definitionObjectId: commissionInstance ? commissionInstance.definitionId : null,
         debitOrCredit: "credit",
-        amount: Math.round(Number(amount) * 100) / 100,
+        amount: intAmount,
         fieldName: "Commission Income"
       }
     ];
@@ -510,10 +464,10 @@ export const SalaryTransactionController = async (req, res) => {
   try {
     const employeeId = req.params.employeeId || req.body.employeeId;
     if (!employeeId) throw new Error("❌ Employee ID is required.");
+    // F-15: actorId required for financial salary writes
+    if (!req.user?._id) throw new Error("❌ Actor identity required for salary transaction.");
 
     const description = req.body.description || `Salary Transaction - ${employeeId}`;
-
-    const rules = await BreakupRuleModel.find({transactionType: "Salary"}).session(session).lean();
     if (!rules?.length) throw new Error("❌ No Breakup Rules found.");
 
     const breakupFile = await BreakupFileModel.findOne({ employeeId }).session(session).lean();
@@ -655,8 +609,11 @@ export const SalaryTransactionControllerWithBankingDetails = async (req, res) =>
   try {
     const employeeId = req.params.employeeId || req.body.employeeId;
     if (!employeeId) throw new Error("❌ Employee ID is required.");
+    // F-15: actorId required for financial salary writes
+    if (!req.user?._id) throw new Error("❌ Actor identity required for salary transaction.");
 
-    const employee = await Employee.findById(employeeId).lean();
+    // FIX: Employee was undefined — use the imported FinalizedEmployeeModel
+    const employee = await FinalizedEmployeeModel.findById(employeeId).lean();
     if (!employee) throw new Error("❌ Employee not found.");
 
     if (!employee.bankingDetails || !employee.bankingDetails.accountNumber) {
@@ -834,11 +791,6 @@ export const SalaryTransactionControllerWithBankingDetails = async (req, res) =>
 // Helper function for the above...
 export const sendSalaryThroughBankAPI = async (payload) => {
   try {
-    console.log("\n🏦 [BANK API] Initiating Salary Transfer...");
-    console.log("Sender:", payload.sender);
-    console.log("Receiver:", payload.receiver);
-    console.log("Amount:", payload.amount);
-
     // -------------------------------------------------------------
     // 🔥 HERE YOU WILL LATER INTEGRATE THE REAL BANK ALFALAH API
     // -------------------------------------------------------------
@@ -847,10 +799,9 @@ export const sendSalaryThroughBankAPI = async (payload) => {
     return {
       status: "PENDING_TEST_MODE",
       message: "Bank API placeholder invoked. Replace with actual API.",
-      payloadSent: payload,
     };
   } catch (err) {
-    console.error("Bank API Error:", err);
+    console.error("Bank API Error:", err.message);
     return {
       status: "ERROR",
       error: err.message,

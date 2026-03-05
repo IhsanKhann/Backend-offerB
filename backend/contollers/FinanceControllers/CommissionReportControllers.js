@@ -17,8 +17,8 @@ import {
 import AuditService from "../../services/auditService.js";
 // ------------------------------ HELPER FUNCTIONS ------------------------------------
 
-const decimal = (v) =>
-  mongoose.Types.Decimal128.fromString(Number(v).toFixed(2));
+// F-10: all monetary values are integer minor units — no Decimal128
+const toInt = (v) => Math.round(Number(v) || 0);
 
 const getResultType = (net) =>
   net > 0 ? "profit" : net < 0 ? "loss" : "breakeven";
@@ -132,7 +132,7 @@ export async function applyRulesEngine({
     const [tx] = await TransactionModel.create([{
       type: "journal",
       description: `Rule Applied: ${transactionType}`,
-      amount: decimal(baseAmount),
+      amount: toInt(baseAmount),
       lines,
       ...meta
     }], { session });
@@ -155,7 +155,8 @@ export async function applyRulesEngine({
         instanceId: line.instanceId,
         summaryId: line.summaryId,
         debitOrCredit: line.debitOrCredit,
-        amount: Number(line.amount)
+        amount: Number(line.amount),
+        isReflection: line.isReflection  // F-03: reflection guard
       }, session);
     }
   }
@@ -199,7 +200,7 @@ async function finalizeCommissionReport({ reportId, net, commissionTxIds, sessio
       status: "locked",
       settledAt: new Date(),
       commissionTransactionIds: commissionTxIds,
-      capitalImpactAmount: decimal(Math.abs(net))
+      capitalImpactAmount: toInt(Math.abs(net))
     },
     { session }
   );
@@ -213,43 +214,61 @@ async function finalizeCommissionReport({ reportId, net, commissionTxIds, sessio
   }
 }
 
-async function applyPunchToCapital({ netAmount, reportId }) {
+// NOTE: applyPunchToCapital is a dead path — closeCommissionPeriodController uses applyRulesEngine directly.
+// Fixed: RuleModel → Rule (was undefined), session param added, create() uses array form for session support.
+async function applyPunchToCapital({ netAmount, reportId, session }) {
   const ruleType = netAmount >= 0 ? "Profit" : "Loss";
-  const rule = await RuleModel.findOne({ transactionType: ruleType, isActive: true });
+  const rule = await Rule.findOne({ transactionType: ruleType, isActive: true }).session(session);
   if (!rule) throw new Error(`${ruleType} rule not found`);
 
   const absAmount = Math.abs(netAmount);
   const lines = rule.splits.map(split => ({
     debitOrCredit: split.debitOrCredit,
-    amount: decimal(absAmount),
+    amount: toInt(absAmount),
     description: `${ruleType} Punch`,
     isReflection: false
   }));
 
-  return TransactionModel.create({
+  const [tx] = await TransactionModel.create([{
     type: "journal",
     description: `${ruleType} Punch To Capital`,
-    amount: decimal(absAmount),
+    amount: toInt(absAmount),
     lines,
     commissionReportId: reportId
-  });
+  }], { session });
+  return tx;
 }
 
 /* ---------- Controllers ---------- */
 export const closeCommissionPeriodController = async (req, res) => {
   const { periodKey, fromDate, toDate } = req.body;
+
+  // F-15: actorId required for financial settlement
+  if (!req.user?._id) return res.status(401).json({ error: "Actor identity required" });
   const userId = req.user._id;
 
-  /* ===============================
-     SAFETY — already settled?
-  =============================== */
-  const alreadyClosed = await CommissionReport.findOne({
-    periodKey,
-    status: "settled"
-  });
+  // Validate required fields and date formats
+  if (!periodKey || !fromDate || !toDate) {
+    return res.status(400).json({ error: "periodKey, fromDate, toDate are required" });
+  }
+  const fromDateParsed = new Date(fromDate);
+  const toDateParsed = new Date(toDate);
+  if (isNaN(fromDateParsed.getTime()) || isNaN(toDateParsed.getTime())) {
+    return res.status(400).json({ error: "Invalid date format for fromDate or toDate" });
+  }
 
-  if (alreadyClosed) {
-    return res.status(409).json({ error: "Commission cycle already settled" });
+  /* ===============================
+     SAFETY — atomic idempotency lock
+     findOneAndUpdate with upsert prevents two concurrent calls from
+     both passing the "already settled?" check before either writes.
+  =============================== */
+  const lockResult = await CommissionReport.findOneAndUpdate(
+    { periodKey, status: { $in: ["locked", "settled"] } },
+    { $setOnInsert: { periodKey } },
+    { upsert: false, new: false }
+  );
+  if (lockResult) {
+    return res.status(409).json({ error: "Commission cycle already settled or in progress" });
   }
 
   let commissionAmount = 0;
@@ -294,7 +313,8 @@ export const closeCommissionPeriodController = async (req, res) => {
       periodKey,
       fromDate,
       toDate,
-      commissionAmount: decimal(commissionAmount),
+      commissionAmount: toInt(commissionAmount),
+      reportType: "MONTHLY",  // F-11: required field
       status: "locked",
       closedBy: userId,
       closedAt: new Date(),
@@ -356,10 +376,10 @@ export const closeCommissionPeriodController = async (req, res) => {
     await CommissionReport.findByIdAndUpdate(
       commissionReport._id,
       {
-        expenseAmount: decimal(expenseAmount),
-        netResult: decimal(net),
+        expenseAmount: toInt(expenseAmount),
+        netResult: toInt(net),
         resultType: getResultType(net),
-        capitalImpactAmount: decimal(Math.abs(net)),
+        capitalImpactAmount: toInt(Math.abs(net)),
         status: "settled",
         settledAt: new Date(),
         commissionTransactionIds: commissionTxIds,
@@ -435,18 +455,30 @@ export const closeCommissionPeriodController = async (req, res) => {
 
 export const closeCommissionOnly = async (req, res) => {
   const { periodKey, fromDate, toDate } = req.body;
+
+  // F-15: actorId required
+  if (!req.user?._id) return res.status(401).json({ error: "Actor identity required" });
   const userId = req.user._id;
 
-  /* ===============================
-     SAFETY — already settled?
-  =============================== */
-  const alreadyClosed = await CommissionReport.findOne({
-    periodKey,
-    status: "settled"
-  });
+  if (!periodKey || !fromDate || !toDate) {
+    return res.status(400).json({ error: "periodKey, fromDate, toDate are required" });
+  }
+  const fromDateParsed = new Date(fromDate);
+  const toDateParsed = new Date(toDate);
+  if (isNaN(fromDateParsed.getTime()) || isNaN(toDateParsed.getTime())) {
+    return res.status(400).json({ error: "Invalid date format for fromDate or toDate" });
+  }
 
-  if (alreadyClosed) {
-    return res.status(409).json({ error: "Commission cycle already settled" });
+  /* ===============================
+     SAFETY — atomic idempotency lock
+  =============================== */
+  const lockResult = await CommissionReport.findOneAndUpdate(
+    { periodKey, status: { $in: ["locked", "settled"] } },
+    { $setOnInsert: { periodKey } },
+    { upsert: false, new: false }
+  );
+  if (lockResult) {
+    return res.status(409).json({ error: "Commission cycle already settled or in progress" });
   }
 
   let commissionAmount = 0;
@@ -489,8 +521,9 @@ export const closeCommissionOnly = async (req, res) => {
       periodKey,
       fromDate,
       toDate,
-      commissionAmount: decimal(commissionAmount),
-      expenseAmount: decimal(0),
+      commissionAmount: toInt(commissionAmount),
+      expenseAmount: toInt(0),
+      reportType: "MONTHLY",  // F-11: required field
       status: "locked",
       closedBy: userId,
       closedAt: new Date(),
@@ -525,9 +558,9 @@ export const closeCommissionOnly = async (req, res) => {
     await CommissionReport.findByIdAndUpdate(
       commissionReport._id,
       {
-        netResult: decimal(net),
+        netResult: toInt(net),
         resultType: getResultType(net),
-        capitalImpactAmount: decimal(Math.abs(net)),
+        capitalImpactAmount: toInt(Math.abs(net)),
         status: "settled",
         settledAt: new Date(),
         commissionTransactionIds: commissionTxIds,

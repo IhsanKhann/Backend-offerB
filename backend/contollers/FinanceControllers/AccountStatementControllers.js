@@ -39,10 +39,17 @@ export const updateAccountStatementStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+
+    // F-13: enum validation — reject unknown statuses before they reach DB
+    const VALID_STATUSES = ["pending", "sent", "paid"];
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ success: false, message: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}` });
+    }
+
     const updated = await AccountStatementSeller.findByIdAndUpdate(
       id,
       { status, updatedAt: new Date() },
-      { new: true }
+      { new: true, runValidators: true }
     );
     res.status(200).json({ success: true, data: updated });
   } catch (error) {
@@ -86,18 +93,14 @@ export const getAccountStatementsByStatus = async (req, res) => {
 export const receiveAccountStatements = async (req, res) => {
   try {
     const { accountStatements } = req.body;
-    console.log("Received account statements payload:", accountStatements);
 
     if (!accountStatements || !Array.isArray(accountStatements)) {
       return res.status(400).json({ message: "Invalid account statements format" });
     }
 
-    console.log("📦 Received Account Statements:");
-    console.log(JSON.stringify(accountStatements, null, 2));
-
     return res.status(200).json({ message: "Account statements received successfully!" });
   } catch (error) {
-    console.error("Error receiving account statements:", error);
+    console.error("Error receiving account statements:", error.message);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -206,30 +209,35 @@ export const createAccountStatementForSeller = async (req, res) => {
 
     const totalAmount = orders.reduce((sum, o) => sum + Number(o.sellerNetReceivable), 0);
 
-    const statement = new AccountStatementSeller({
-      businessSellerId,
-      sellerName: seller.name,
-      totalAmount,
-      periodStart: start,
-      periodEnd: end,
-      orderCount: orders.length,
-      paidOrders: 0,
-      pendingOrders: orders.length,
-      breakupIds: unpaidBreakups.map((b) => b._id),
-      orders,
-      status: "pending",
-      generatedAt: new Date(),
+    // F-14/F-08: wrap statement creation and breakup mutation atomically
+    const mongoSession = await mongoose.startSession();
+    let savedStatement;
+    await mongoSession.withTransaction(async () => {
+      [savedStatement] = await AccountStatementSeller.create([{
+        businessSellerId,
+        sellerName: seller.name,
+        totalAmount,
+        periodStart: start,
+        periodEnd: end,
+        orderCount: orders.length,
+        paidOrders: 0,
+        pendingOrders: orders.length,
+        breakupIds: unpaidBreakups.map((b) => b._id),
+        orders,
+        status: "pending",
+        generatedAt: new Date(),
+      }], { session: mongoSession });
+
+      // Mark only included breakups as processing
+      await BreakupFile.updateMany(
+        { _id: { $in: unpaidBreakups.map((b) => b._id) } },
+        { $set: { paymentStatus: "processing", linkedStatementId: savedStatement._id } },
+        { session: mongoSession }
+      );
     });
+    mongoSession.endSession();
 
-    await statement.save();
-
-    // Mark only included breakups as processing
-    await BreakupFile.updateMany(
-      { _id: { $in: unpaidBreakups.map((b) => b._id) } },
-      { $set: { paymentStatus: "processing", linkedStatementId: statement._id } }
-    );
-
-    return res.status(201).json({ success: true, data: statement });
+    return res.status(201).json({ success: true, data: savedStatement });
   } catch (err) {
     console.error("createAccountStatementForSeller error:", err);
     return res.status(500).json({ success: false, error: err.message });

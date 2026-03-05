@@ -323,21 +323,22 @@ export const createOrderWithTransaction = async (req, res) => {
             const defKey = String(split.definitionId);
             if (!appliedCommissionDefinitions.has(defKey)) {
               const pct = split.percentage || 0;
-              baseValue = Number(((orderAmount * pct) / 100).toFixed(2));
+              // F-01: integer minor units — no toFixed float
+              baseValue = Math.round((orderAmount * pct) / 100);
               commissionAmount += baseValue;
               appliedCommissionDefinitions.add(defKey);
             } else continue; // skip duplicate commission split
           } else {
-            baseValue = computeValue(orderAmount, split);
+            baseValue = Math.round(computeValue(orderAmount, split));
           }
 
           const mainInstance = await resolveOrCreateInstance(split, session);
 
-          // Commission metadata
+          // Commission metadata — F-01: integer Number, not Decimal128
           if (split.type === "commission") {
             commissionDetails.push({
               componentName: split.componentName,
-              amount: mongoose.Types.Decimal128.fromString(String(baseValue)),
+              amount: baseValue,
               instanceId: mainInstance._id,
               summaryId: split.summaryId,
               definitionId: split.definitionId,
@@ -389,16 +390,16 @@ export const createOrderWithTransaction = async (req, res) => {
         }
       }
 
-      // 7️⃣ Ledger Balance Check
+      // 7️⃣ Ledger Balance Check — F-05: exact integer equality, no float tolerance
       const totals = postingLines.reduce(
         (acc, l) => {
-          acc[l.debitOrCredit] += Number(l.amount);
+          acc[l.debitOrCredit] += Math.round(Number(l.amount));
           return acc;
         },
         { debit: 0, credit: 0 }
       );
-      if (Math.abs(totals.debit - totals.credit) > 0.01)
-        throw new Error("Ledger imbalance detected");
+      if (totals.debit !== totals.credit)
+        throw new Error(`Ledger imbalance detected: debit=${totals.debit} credit=${totals.credit}`);
 
       // 8️⃣ Create Breakup Files
       const realLines = allLines.filter(l => !l._isMirror);
@@ -436,25 +437,25 @@ export const createOrderWithTransaction = async (req, res) => {
         { session }
       );
 
-      // 9️⃣ Save Journal Transaction
+      // 9️⃣ Save Journal Transaction — F-01: integer Number throughout, no Decimal128
       await TransactionModel.create(
         [{
           description: `Journal for Order ${orderId}`,
           type: "journal",
-          totalDebits: mongoose.Types.Decimal128.fromString(String(totals.debit)),
-          totalCredits: mongoose.Types.Decimal128.fromString(String(totals.credit)),
-          amount: mongoose.Types.Decimal128.fromString(String(orderAmount)),
-          isBalanced: true,
+          totalDebits: totals.debit,
+          totalCredits: totals.credit,
+          amount: Math.round(Number(orderAmount)),
+          // isBalanced will be set by pre-save hook; don't hard-code true
           lines: allLines.map(l => ({
             instanceId: l.instanceId,
             summaryId: l.summaryId,
             definitionId: l.definitionId,
             debitOrCredit: l.debitOrCredit,
-            amount: mongoose.Types.Decimal128.fromString(String(l.amount)),
+            amount: Math.round(Number(l.amount)),
             description: l.componentName,
             isReflection: !!l.isReflectOnly
           })),
-          commissionAmount: mongoose.Types.Decimal128.fromString(commissionAmount.toFixed(2)),
+          commissionAmount: commissionAmount,
           commissionDetails,
           orderDetails: {
             orderId,
@@ -554,53 +555,66 @@ export const processReturnExpiryTransactions = async (forceProcess = false) => {
       const settlementLines = [];
       for (const rule of rules) {
         for (const split of rule.splits || []) {
-          let baseValue = computeValue(totalCommission, split);
+          let baseValue = Math.round(computeValue(totalCommission, split));
           baseValue = safeNumber(baseValue);
           if (baseValue <= 0) continue;
 
-          const instance = await resolveOrCreateInstance(split, session);
-          await updateBalance(instance, baseValue, split.debitOrCredit, session);
-          await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
-
-          settlementLines.push({
-            instanceId: instance._id,
-            summaryId: split.summaryId,
-            definitionId: split.definitionId,
-            debitOrCredit: split.debitOrCredit,
-            amount: mongoose.Types.Decimal128.fromString(baseValue.toFixed(2)),
-            description: split.componentName,
-            isReflection: false,
-          });
-
-          for (const mirror of split.mirrors || []) {
-            const mirrorInstance = await resolveOrCreateInstance(mirror, session);
-            await updateBalance(mirrorInstance, baseValue, mirror.debitOrCredit, session);
-            await updateSummaryBalance(mirror.summaryId, baseValue, mirror.debitOrCredit, session);
+          // F-03: only update balance for non-reflection lines
+          if (!split.isReflection) {
+            const instance = await resolveOrCreateInstance(split, session);
+            await updateBalance(instance, baseValue, split.debitOrCredit, session);
+            await updateSummaryBalance(split.summaryId, baseValue, split.debitOrCredit, session);
 
             settlementLines.push({
-              instanceId: mirrorInstance._id,
+              instanceId: instance._id,
+              summaryId: split.summaryId,
+              definitionId: split.definitionId,
+              debitOrCredit: split.debitOrCredit,
+              amount: baseValue,
+              description: split.componentName,
+              isReflection: false,
+            });
+          }
+
+          for (const mirror of split.mirrors || []) {
+            // F-03: reflection mirrors must not mutate balances
+            if (!mirror.isReflection) {
+              const mirrorInstance = await resolveOrCreateInstance(mirror, session);
+              await updateBalance(mirrorInstance, baseValue, mirror.debitOrCredit, session);
+              await updateSummaryBalance(mirror.summaryId, baseValue, mirror.debitOrCredit, session);
+            }
+
+            settlementLines.push({
+              instanceId: (await resolveOrCreateInstance(mirror, session))._id,
               summaryId: mirror.summaryId,
               definitionId: mirror.definitionId,
               debitOrCredit: mirror.debitOrCredit,
-              amount: mongoose.Types.Decimal128.fromString(baseValue.toFixed(2)),
+              amount: baseValue,
               description: `${split.componentName} (mirror)`,
-              isReflection: false,
+              isReflection: !!mirror.isReflection,
             });
           }
         }
       }
 
-      // 4️⃣ Create settlement journal
-      await TransactionModel.create([{
+      // 4️⃣ Create settlement journal — F-01: integer amounts
+      const [settlementTx] = await TransactionModel.create([{
         description: `Commission Confirmed Settlement`,
         type: "journal",
-        amount: mongoose.Types.Decimal128.fromString(totalCommission.toFixed(2)),
+        amount: totalCommission,
         status: "posted",
         lines: settlementLines,
-        metadata: { sourceOrders: sourceOrderIds, settlementType: "commission-confirmed" }
       }], { session });
 
-      console.log(`✅ [CRON] Commission settlement journal created for ${orderTxns.length} orders`);
+      // F-18: CRON must emit financial audit log
+      await AuditService.log({
+        eventType: "COMMISSION_SETTLED",
+        actorId: null,  // CRON — no human actor
+        entityId: settlementTx._id,
+        entityType: "Transaction",
+        currency: "PKR",
+        meta: { settlementType: "commission-confirmed", orderCount: orderTxns.length, totalCommission }
+      }, { type: "financial", session });
     });
 
   } catch (err) {

@@ -12,7 +12,7 @@ import RoleModel from "../models/HRModals/Role.model.js";
 import FinalizedEmployeeModel from "../models/HRModals/FinalizedEmployees.model.js";
 import {OrgUnitModel} from "../models/HRModals/OrgUnit.js";
 import { PermissionModel } from "../models/HRModals/Permissions.model.js";
-import CounterModel from "../models/HRModals/Counter.model.js";
+import Counter, { getNextSequence } from "../models/HRModals/Counter.model.js";
 import {BranchModel} from "../models/HRModals/BranchModel.js";
 import RoleAssignmentModel from "../models/HRModals/RoleAssignment.model.js";
 import PermissionAggregator from "../utilis/permissionAggregation.js";
@@ -67,13 +67,12 @@ Please keep this information secure.`,
   });
 };
 
-export const getNextOrganizationId = async () => {
-  const counter = await CounterModel.findOneAndUpdate(
-    { name: "employee" },
-    { $inc: { seq: 1 } },
-    { upsert: true, new: true }
-  );
-  return counter.seq;
+export const getNextOrganizationId = async (session = null) => {
+  // Uses the hardened getNextSequence helper which:
+  //   1. Validates the key is non-empty before any DB call (prevents name:null E11000)
+  //   2. Uses _id as the lookup key (atomic upsert, no race condition)
+  //   3. Accepts an optional session for transactional contexts
+  return getNextSequence("employee", session);
 };
 
 const generatePassword = () => Math.random().toString(36).slice(-8);
@@ -555,7 +554,7 @@ export const resolveOrgUnit = async (req, res) => {
 
           // 🔍 AUDIT LOG - OrgUnit auto-created
           await AuditService.log({
-            eventType: CONSTANTS.AUDIT_EVENTS.ORGUNIT_CREATED,
+            eventType: CONSTANTS?.AUDIT_EVENTS?.ORGUNIT_CREATED ?? "ORGUNIT_CREATED",
             actorId: req.user._id,
             targetId: orgUnit._id,
             ipAddress: req.ip,
@@ -726,7 +725,7 @@ export const RegisterEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_CREATED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_CREATED ?? "EMPLOYEE_CREATED",
       actorId,
       targetId: newEmployee._id,
       ipAddress: req.ip,
@@ -895,7 +894,7 @@ export const SubmitEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_SUBMITTED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_SUBMITTED ?? "EMPLOYEE_SUBMITTED",
       actorId: req.user._id,
       targetId: employee._id,
       ipAddress: req.ip,
@@ -1002,12 +1001,14 @@ export const ApproveEmployee = async (req, res) => {
     finalizedEmployee.emailSent = true;
     await finalizedEmployee.save({ session });
 
-    // 6. Audit Log
+    // 6. Audit Log — use string literal as primary value; CONSTANTS is a fallback
+    // guard against CONSTANTS being undefined at load time (circular import safety)
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_APPROVED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_APPROVED ?? "EMPLOYEE_APPROVED",
       actorId: req.user._id,
       targetId: finalizedEmployee._id,
       ipAddress: req.ip,
+      userAgent: req.headers?.["user-agent"],
       details: { UserId, email: finalizedEmployee.personalEmail }
     });
 
@@ -1128,7 +1129,7 @@ export const AssignEmployeePost = async (req, res) => {
 
     // ✅ Audit log
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.ROLE_ASSIGNED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.ROLE_ASSIGNED ?? "ROLE_ASSIGNED",
       actorId,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1270,7 +1271,7 @@ export const EditEmployee = async (req, res) => {
     // 🔍 AUDIT LOG
     if (Object.keys(changedFields).length > 0) {
       await AuditService.log({
-        eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_UPDATED,
+        eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_UPDATED ?? "EMPLOYEE_UPDATED",
         actorId: req.user._id,
         targetId: employeeId,
         ipAddress: req.ip,
@@ -1419,7 +1420,7 @@ export const updateEmployeePermissions = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.PERMISSION_MODIFIED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.PERMISSION_MODIFIED ?? "PERMISSION_MODIFIED",
       actorId,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1511,7 +1512,7 @@ export const suspendEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_SUSPENDED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_SUSPENDED ?? "EMPLOYEE_SUSPENDED",
       actorId: req.user._id,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1582,7 +1583,7 @@ export const restoreSuspendedEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_RESTORED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_RESTORED ?? "EMPLOYEE_RESTORED",
       actorId: req.user._id,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1652,7 +1653,7 @@ export const blockEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_BLOCKED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_BLOCKED ?? "EMPLOYEE_BLOCKED",
       actorId: req.user._id,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1725,7 +1726,7 @@ export const restoreBlockedEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_RESTORED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_RESTORED ?? "EMPLOYEE_RESTORED",
       actorId: req.user._id,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1796,7 +1797,7 @@ export const terminateEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_TERMINATED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_TERMINATED ?? "EMPLOYEE_TERMINATED",
       actorId: req.user._id,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1868,7 +1869,7 @@ export const restoreTerminatedEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_RESTORED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_RESTORED ?? "EMPLOYEE_RESTORED",
       actorId: req.user._id,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1942,7 +1943,7 @@ export const deleteEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_DELETED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_DELETED ?? "EMPLOYEE_DELETED",
       actorId: req.user._id,
       targetId: employeeId,
       ipAddress: req.ip,
@@ -1995,7 +1996,7 @@ export const RejectEmployee = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_REJECTED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_REJECTED ?? "EMPLOYEE_REJECTED",
       actorId: req.user._id,
       targetId: finalizedEmployeeId,
       ipAddress: req.ip,
@@ -2080,7 +2081,7 @@ export const deleteEmployeeAndFinalized = async (req, res) => {
 
     // 🔍 AUDIT LOG
     await AuditService.log({
-      eventType: CONSTANTS.AUDIT_EVENTS.EMPLOYEE_DELETED,
+      eventType: CONSTANTS?.AUDIT_EVENTS?.EMPLOYEE_DELETED ?? "EMPLOYEE_DELETED",
       actorId: req.user._id,
       targetId: finalizedEmployeeId,
       ipAddress: req.ip,
