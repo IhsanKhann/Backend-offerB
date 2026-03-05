@@ -1,9 +1,3 @@
-// config/constants.js
-
-/**
- * ✅ CENTRAL CONFIGURATION FOR RBAC SYSTEM
- * All enums and constants in one place for easy maintenance
- */
 
 export const CONSTANTS = {
   // ==================== DEPARTMENTS ====================
@@ -18,28 +12,28 @@ export const CONSTANTS = {
 
   // ==================== ORG UNIT TYPES ====================
   ORG_UNIT_TYPES: {
-    ORG_ROOT: 'ORG_ROOT',       // Level 0 - Chairman
-    BOARD: 'BOARD',             // Level 1 - Board of Directors
-    EXECUTIVE: 'EXECUTIVE',     // Level 2 - CEO
-    DIVISION: 'DIVISION',       // Level 3 - Finance Division, HR Division
-    DEPARTMENT: 'DEPARTMENT',   // Level 4 - Accounting Dept, Recruitment Dept
-    DESK: 'DESK',               // Level 5 - Payroll Desk, Training Desk
-    CELL: 'CELL'                // Level 6 - Individual contributor cells
+    ORG_ROOT: 'ORG_ROOT',
+    BOARD: 'BOARD',
+    EXECUTIVE: 'EXECUTIVE',
+    DIVISION: 'DIVISION',
+    DEPARTMENT: 'DEPARTMENT',
+    DESK: 'DESK',
+    CELL: 'CELL'
   },
 
   // ==================== HIERARCHY SCOPES ====================
   HIERARCHY_SCOPES: {
-    SELF: 'SELF',                     // Can only act on own data
-    DESCENDANT: 'DESCENDANT',         // Can act on subordinates
-    DEPARTMENT: 'DEPARTMENT',         // Can act within same department
-    ORGANIZATION: 'ORGANIZATION'      // Can act organization-wide
+    SELF: 'SELF',
+    DESCENDANT: 'DESCENDANT',
+    DEPARTMENT: 'DEPARTMENT',
+    ORGANIZATION: 'ORGANIZATION'
   },
 
   // ==================== ACTION TYPES ====================
   ACTION_TYPES: {
-    ADMINISTRATIVE: 'ADMINISTRATIVE',  // Requires hierarchy: approve, suspend, terminate
-    FUNCTIONAL: 'FUNCTIONAL',          // Department-scoped: generate report, process
-    INFORMATIONAL: 'INFORMATIONAL'     // Read-only: view dashboard, view list
+    ADMINISTRATIVE: 'ADMINISTRATIVE',
+    FUNCTIONAL: 'FUNCTIONAL',
+    INFORMATIONAL: 'INFORMATIONAL'
   },
 
   // ==================== RESOURCE TYPES ====================
@@ -57,38 +51,84 @@ export const CONSTANTS = {
   },
 
   // ==================== EXECUTIVE LEVELS ====================
-  // Users at or below these levels are considered "Executives"
   EXECUTIVE_LEVELS: [0, 1, 2], // Chairman, Board, CEO
 
   // ==================== POWER RANK THRESHOLDS ====================
   POWER_RANKS: {
-    SUPREME: 0,      // Chairman
-    EXECUTIVE: 1,    // Board
-    SENIOR: 2,       // CEO
-    MANAGEMENT: 3,   // Division Heads
-    SUPERVISORY: 4,  // Department Managers
-    OPERATIONAL: 5,  // Desk Supervisors
-    INDIVIDUAL: 6    // Cell workers
+    SUPREME: 0,
+    EXECUTIVE: 1,
+    SENIOR: 2,
+    MANAGEMENT: 3,
+    SUPERVISORY: 4,
+    OPERATIONAL: 5,
+    INDIVIDUAL: 6
   },
 
-  // ==================== AUDIT EVENT TYPES ====================
+  // ==================== AUDIT EVENTS ====================
   AUDIT_EVENTS: {
-    PERMISSION_CHECK: 'PERMISSION_CHECK',
-    PERMISSION_GRANTED: 'PERMISSION_GRANTED',
+    // HR events
+    EMPLOYEE_CREATED: 'EMPLOYEE_CREATED',
+    EMPLOYEE_SUBMITTED: 'EMPLOYEE_SUBMITTED',
+    EMPLOYEE_APPROVED: 'EMPLOYEE_APPROVED',
+    EMPLOYEE_REJECTED: 'EMPLOYEE_REJECTED',
+    EMPLOYEE_UPDATED: 'EMPLOYEE_UPDATED',
+    EMPLOYEE_DELETED: 'EMPLOYEE_DELETED',
+    EMPLOYEE_BLOCKED: 'EMPLOYEE_BLOCKED',
+    EMPLOYEE_SUSPENDED: 'EMPLOYEE_SUSPENDED',
+    EMPLOYEE_TERMINATED: 'EMPLOYEE_TERMINATED',
+    EMPLOYEE_RESTORED: 'EMPLOYEE_RESTORED',
+    DOCUMENT_UPLOADED: 'DOCUMENT_UPLOADED',
+    DOCUMENT_REVIEWED: 'DOCUMENT_REVIEWED',
+    DOCUMENT_DELETED: 'DOCUMENT_DELETED',
+    ROLE_CREATED: 'ROLE_CREATED',
+    ROLE_UPDATED: 'ROLE_UPDATED',
+    ROLE_DELETED: 'ROLE_DELETED',
+    ROLE_ASSIGNED: 'ROLE_ASSIGNED',
+    PERMISSION_MODIFIED: 'PERMISSION_MODIFIED',
     PERMISSION_DENIED: 'PERMISSION_DENIED',
+    ORGUNIT_CREATED: 'ORGUNIT_CREATED',
+    ORGUNIT_UPDATED: 'ORGUNIT_UPDATED',
+    ORGUNIT_DELETED: 'ORGUNIT_DELETED',
+    ORGUNIT_MOVED: 'ORGUNIT_MOVED',
+    LOGIN_SUCCESS: 'LOGIN_SUCCESS',
+    LOGIN_FAILED: 'LOGIN_FAILED',
+    LOGOUT: 'LOGOUT',
+    PASSWORD_RESET: 'PASSWORD_RESET',
+    TOKEN_REFRESHED: 'TOKEN_REFRESHED',
     HIERARCHY_VIOLATION: 'HIERARCHY_VIOLATION',
     DEPARTMENT_VIOLATION: 'DEPARTMENT_VIOLATION',
-    EMPLOYEE_CREATED: 'EMPLOYEE_CREATED',
-    EMPLOYEE_UPDATED: 'EMPLOYEE_UPDATED',
-    ROLE_ASSIGNED: 'ROLE_ASSIGNED',
-    PERMISSION_MODIFIED: 'PERMISSION_MODIFIED'
+
+    // Financial events
+    JOURNAL_POSTED: 'JOURNAL_POSTED',
+    BALANCE_UPDATED: 'BALANCE_UPDATED',
+    COMMISSION_REPORT_CREATED: 'COMMISSION_REPORT_CREATED',
+    COMMISSION_SETTLED: 'COMMISSION_SETTLED',
+    EXPENSE_REPORT_CREATED: 'EXPENSE_REPORT_CREATED',
+    EXPENSE_PAID: 'EXPENSE_PAID',
+    SALARY_BREAKUP_CREATED: 'SALARY_BREAKUP_CREATED',
   },
+
+  // ==================== HR & FINANCIAL EVENT ENUMS ====================
+  HR_AUDIT_EVENTS: [
+    "EMPLOYEE_CREATED", "EMPLOYEE_SUBMITTED", "EMPLOYEE_APPROVED", "EMPLOYEE_REJECTED",
+    "EMPLOYEE_UPDATED", "EMPLOYEE_DELETED", "EMPLOYEE_BLOCKED", "EMPLOYEE_SUSPENDED",
+    "EMPLOYEE_TERMINATED", "EMPLOYEE_RESTORED", "DOCUMENT_UPLOADED", "DOCUMENT_REVIEWED",
+    "DOCUMENT_DELETED", "ROLE_CREATED", "ROLE_UPDATED", "ROLE_DELETED", "ROLE_ASSIGNED",
+    "PERMISSION_MODIFIED", "PERMISSION_DENIED", "ORGUNIT_CREATED", "ORGUNIT_UPDATED",
+    "ORGUNIT_DELETED", "ORGUNIT_MOVED", "LOGIN_SUCCESS", "LOGIN_FAILED", "LOGOUT",
+    "PASSWORD_RESET", "TOKEN_REFRESHED", "HIERARCHY_VIOLATION", "DEPARTMENT_VIOLATION"
+  ],
+
+  FINANCIAL_AUDIT_EVENTS: [
+    "JOURNAL_POSTED", "BALANCE_UPDATED", "COMMISSION_REPORT_CREATED",
+    "COMMISSION_SETTLED", "EXPENSE_REPORT_CREATED", "EXPENSE_PAID", "SALARY_BREAKUP_CREATED"
+  ],
 
   // ==================== CACHE TTL ====================
   CACHE_TTL: {
-    PERMISSIONS: 300,      // 5 minutes
-    HIERARCHY: 600,        // 10 minutes
-    ORG_STRUCTURE: 1800    // 30 minutes
+    PERMISSIONS: 300,
+    HIERARCHY: 600,
+    ORG_STRUCTURE: 1800
   }
 };
 

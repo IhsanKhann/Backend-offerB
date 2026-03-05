@@ -1,8 +1,14 @@
+// models/FinanceModals/CounterModel.js
+// Addresses F-13 — atomic, sequential transactionId generation
 import mongoose from "mongoose";
 
-const counterSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true }, // e.g., "employee"
-  seq: { type: Number, default: 0 } // last assigned UserId
+const CounterSchema = new mongoose.Schema({
+  name : {type: String},
+  _id: { type: String },        // e.g. "transactionId"
+  seq: { type: Number, default: 0 }
 });
 
-export default mongoose.model("Counter", counterSchema);
+const Counter =
+  mongoose.models.Counter || mongoose.model("Counter", CounterSchema);
+
+export default Counter;

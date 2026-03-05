@@ -1,4 +1,3 @@
-// controllers/FinanceControllers/ExpenseAndCommissionControllers.js
 import mongoose from "mongoose";
 const { ObjectId } = mongoose.Types;
 
@@ -11,7 +10,9 @@ import BreakupFileModel from "../../models/FinanceModals/SalaryBreakupModel.js";
 import BreakupRuleModel from "../../models/FinanceModals/BreakupRules.js";
 import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.model.js";
 import RuleModel from "../../models/FinanceModals/TablesModel.js";
+import AuditService from "../../services/auditService.js";
 
+// import CONSTANTS from "../config/constants.js";
 // ----------------- Helpers -----------------
 
 const safeToObjectId = (id) => {
@@ -419,6 +420,15 @@ export const postExpenseTransaction = async ({
         }, session);
     }
 
+    await AuditService.log({
+      eventType: "JOURNAL_POSTED",
+      actorId: user?._id || null,
+      entityId: tx._id,
+      entityType: "Transaction",
+      currency: "PKR",
+      meta: { transactionType, amount: baseAmount }
+    }, { type: "financial", session });
+
     await session.commitTransaction();
     console.log("🎉 Transaction Committed Successfully");
 
@@ -470,6 +480,15 @@ export const CommissionTransactionController = async (req, res) => {
     ];
 
     const tx = await persistTransactionAndApply(accountingLines, description || "Commission Transaction", session);
+
+    await AuditService.log({
+      eventType: "JOURNAL_POSTED",
+      actorId: req.user?._id || null,
+      entityId: tx._id,
+      entityType: "Transaction",
+      currency: "PKR",
+      meta: { transactionType: "COMMISSION", amount: Number(amount) }
+    }, { type: "financial", session });
 
     await session.commitTransaction();
     session.endSession();
@@ -598,6 +617,15 @@ export const SalaryTransactionController = async (req, res) => {
     }
 
     const tx = await persistTransactionAndApply(accountingLines, description, session);
+
+    await AuditService.log({
+      eventType: "SALARY_BREAKUP_CREATED",
+      actorId: req.user?._id || null,
+      entityId: tx._id,
+      entityType: "Transaction",
+      currency: "PKR",
+      meta: { employeeId, netSalary, totalAllowances, totalDeductions }
+    }, { type: "financial", session });
 
     await session.commitTransaction();
     session.endSession();

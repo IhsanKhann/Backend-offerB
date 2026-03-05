@@ -12,6 +12,7 @@ import {
   buildLine,
   applyBalanceChange,
 } from "../../contollers/FinanceControllers/TransactionController.js";
+import AuditService from "../../services/auditService.js";
 
 /* ---------- Helper: mark expenses as PAID (cash flow) ---------- */
 async function updateExpenseFlags({
@@ -175,6 +176,15 @@ export const payExpensePeriodController = async (req, res) => {
 
     await tx.save({ session });
 
+    await AuditService.log({
+      eventType: "EXPENSE_PAID",
+      actorId: paidBy,
+      entityId: tx._id,
+      entityType: "Transaction",
+      currency: "PKR",
+      meta: { periodKey, totalPaid: baseAmount, transactionsCount: expenseTxs.length }
+    }, { type: "financial", session });
+
     /* ===============================
        UPDATE FLAGS
     =============================== */
@@ -271,6 +281,15 @@ export const generateExpenseReportByCycle = async (req, res) => {
     });
 
     console.log("✅ ExpenseReport created:", newReport._id.toString());
+
+    await AuditService.log({
+      eventType: "EXPENSE_REPORT_CREATED",
+      actorId: null,
+      entityId: newReport._id,
+      entityType: "ExpenseReport",
+      currency: "PKR",
+      meta: { periodKey, totalAmount, transactionsCount: transactions.length, method: "cycle" }
+    });
 
     /* ======================================================
      * 5️⃣ MARK TRANSACTIONS AS REPORTED
@@ -495,4 +514,3 @@ export const fetchExpenseTransactionsController = async (req, res) => {
     });
   }
 };
-

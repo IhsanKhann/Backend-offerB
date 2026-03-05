@@ -1,6 +1,7 @@
 import AccountStatementSeller from "../../models/FinanceModals/AccountStatementsSellerModel.js";
 import BreakupFile from "../../models/FinanceModals/BreakupFiles.js";
 import Seller from "../../models/FinanceModals/SellersModel.js";
+import AuditService from "../../services/auditService.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -474,6 +475,15 @@ export const sendAccountStatementsToBusiness = async (req, res) => {
           },
           { new: true }
         );
+
+        await AuditService.log({
+          eventType: "BALANCE_UPDATED",
+          actorId: req.user?._id || null,
+          entityId: st._id,
+          entityType: "AccountStatement",
+          currency: "PKR",
+          meta: { businessSellerId: st.businessSellerId, totalAmount: st.totalAmount, referenceId }
+        }, { type: "financial" });
 
         results.push({ id: st._id, businessSellerId: st.businessSellerId, sellerName: st.sellerName, status: "paid", referenceId });
       } catch (err) {

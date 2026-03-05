@@ -4,6 +4,7 @@ import FinalizedEmployeeModel from "../../models/HRModals/FinalizedEmployees.mod
 import BreakupFile from "../../models/FinanceModals/SalaryBreakupModel.js";
 import BreakupRulesModel from "../../models/FinanceModals/BreakupRules.js";
 import RoleAssignmentModel from "../../models/HRModals/RoleAssignment.model.js"; // ✅ Added
+import AuditService from "../../services/auditService.js";
 
 // ------------------------------------------------------------
 // UTILITY
@@ -239,8 +240,17 @@ export const createBreakupFile = async (req, res) => {
     );
 
     // -----------------------------
-    // 6️⃣ Return success
+    // 6️⃣ Audit + Return success
     // -----------------------------
+    await AuditService.log({
+      eventType: "SALARY_BREAKUP_CREATED",
+      actorId: loggedInEmployeeId || null,
+      entityId: breakupFile._id,
+      entityType: "SalaryBreakup",
+      currency: "PKR",
+      meta: { employeeId, roleId, month, year, netSalary, paidFor }
+    }, { type: "financial" });
+
     return res.status(201).json({
       success: true,
       message: `Salary breakup for ${paidFor} created successfully`,

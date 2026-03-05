@@ -12,7 +12,6 @@ import {
 
 import {
   createOrderWithTransaction,
-  returnOrderWithTransaction,
   
 } from "../../contollers/FinanceControllers/OrderControllers.js";
 
@@ -42,9 +41,5 @@ router.post("/init-capital-cash", summariesInitCapitalCash);
 
 // Create + process order with breakups & transaction
 router.post("/order-process",createOrderWithTransaction);
-
-// the transaction for - order return..
-router.post("/return-process",returnOrderWithTransaction);
-
 
 export default router;

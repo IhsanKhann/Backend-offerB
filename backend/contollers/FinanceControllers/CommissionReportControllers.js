@@ -14,6 +14,7 @@ import {
   buildLine,
   applyBalanceChange,
 } from "../../contollers/FinanceControllers/TransactionController.js";
+import AuditService from "../../services/auditService.js";
 // ------------------------------ HELPER FUNCTIONS ------------------------------------
 
 const decimal = (v) =>
@@ -298,6 +299,15 @@ export const closeCommissionPeriodController = async (req, res) => {
       closedBy: userId,
       closedAt: new Date(),
     }], { session: sessionA });
+
+    await AuditService.log({
+      eventType: "COMMISSION_REPORT_CREATED",
+      actorId: userId,
+      entityId: commissionReport._id,
+      entityType: "CommissionReport",
+      currency: "PKR",
+      meta: { periodKey, fromDate, toDate, commissionAmount }
+    }, { type: "financial", session: sessionA });
   });
   sessionA.endSession();
 
@@ -356,6 +366,15 @@ export const closeCommissionPeriodController = async (req, res) => {
       },
       { session: sessionC }
     );
+
+    await AuditService.log({
+      eventType: "COMMISSION_SETTLED",
+      actorId: userId,
+      entityId: commissionReport._id,
+      entityType: "CommissionReport",
+      currency: "PKR",
+      meta: { periodKey, commissionAmount, expenseAmount, net, resultType: getResultType(net) }
+    }, { type: "financial", session: sessionC });
 
     /* ===============================
        UPDATE COMMISSION TRANSACTIONS
@@ -644,4 +663,3 @@ export const fetchCommissionReportsByStatusController = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-

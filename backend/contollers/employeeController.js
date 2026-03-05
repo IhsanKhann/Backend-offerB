@@ -904,7 +904,7 @@ export const SubmitEmployee = async (req, res) => {
         employeeName: employee.individualName,
         OrganizationId,
         orgUnit: orgUnit.name,
-        roleName: roleDeclaration?.roleName
+        // roleName: roleDeclaration?.roleName
       }
     });
 

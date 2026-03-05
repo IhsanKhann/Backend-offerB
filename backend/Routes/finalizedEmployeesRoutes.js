@@ -56,9 +56,9 @@ router.get(
 // ✅ Hierarchy: Can only view subordinates
 router.get(
   "/getSingleFinalizedEmployee/:finalizedEmployeeId",
+  authorize("view_single_finalized_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("view_single_finalized_employee", { resourceType: 'EMPLOYEE' }),
   getSingleFinalizedEmployee
 );
 
@@ -82,9 +82,9 @@ router.get(
 // ✅ Power Gap: Must be superior in hierarchy
 router.patch(
   "/approve/:finalizedEmployeeId",
+  authorize("approve_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("approve_employee", { resourceType: 'EMPLOYEE' }),
   ApproveEmployee
 );
 
@@ -93,9 +93,10 @@ router.patch(
 // ✅ Hierarchy: Can only reject subordinates
 router.delete(
   "/reject/:finalizedEmployeeId",
+  authorize("reject_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("reject_employee", { resourceType: 'EMPLOYEE' }),
+
   RejectEmployee
 );
 
@@ -109,9 +110,9 @@ router.delete(
 // ✅ Power Gap: Actor must have higher power rank
 router.post(
   "/suspend/:employeeId",
+  authorize("suspend_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("suspend_employee", { resourceType: 'EMPLOYEE' }),
   suspendEmployee
 );
 
@@ -120,9 +121,9 @@ router.post(
 // ✅ Hierarchy: Can only restore subordinates
 router.patch(
   "/restore-suspension/:employeeId",
+  authorize("restore_suspended_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("restore_suspended_employee", { resourceType: 'EMPLOYEE' }),
   restoreSuspendedEmployee
 );
 
@@ -131,9 +132,9 @@ router.patch(
 // ✅ Hierarchy: Can only block subordinates
 router.post(
   "/block/:employeeId",
+  authorize("block_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("block_employee", { resourceType: 'EMPLOYEE' }),
   blockEmployee
 );
 
@@ -142,9 +143,9 @@ router.post(
 // ✅ Hierarchy: Can only restore subordinates
 router.patch(
   "/restore-block/:employeeId",
+  authorize("restore_blocked_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("restore_blocked_employee", { resourceType: 'EMPLOYEE' }),
   restoreBlockedEmployee
 );
 
@@ -153,9 +154,9 @@ router.patch(
 // ✅ Hierarchy: Can only terminate subordinates
 router.post(
   "/terminate/:employeeId",
+  authorize("terminate_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("terminate_employee", { resourceType: 'EMPLOYEE' }),
   terminateEmployee
 );
 
@@ -164,9 +165,9 @@ router.post(
 // ✅ Hierarchy: Can only restore subordinates
 router.patch(
   "/restore-terminate/:employeeId",
+  authorize("restore_terminate_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("restore_terminate_employee", { resourceType: 'EMPLOYEE' }),
   restoreTerminatedEmployee
 );
 
@@ -180,9 +181,9 @@ router.patch(
 // ✅ Department: Must be same department
 router.delete(
   "/delete/:finalizedEmployeeId",
+  authorize("delete_finalized_employee", { resourceType: 'EMPLOYEE' }),
   checkHierarchy(),
   checkDepartment(),
-  authorize("delete_finalized_employee", { resourceType: 'EMPLOYEE' }),
   deleteEmployeeAndFinalized
 );
 

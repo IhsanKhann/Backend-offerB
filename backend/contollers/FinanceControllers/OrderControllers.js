@@ -11,6 +11,7 @@ import SummaryFieldLineDefinition from "../../models/FinanceModals/FieldLineDefi
 import BreakupFileModel from "../../models/FinanceModals/BreakupFiles.js";
 import TransactionModel from "../../models/FinanceModals/TransactionModel.js";
 import Order from "../../models/FinanceModals/OrdersModel.js";
+import AuditService from "../../services/auditService.js";
 import Seller from "../../models/FinanceModals/SellersModel.js";
 import { ensureSellerExists } from "../../contollers/FinanceControllers/SellerController.js";
 
@@ -478,7 +479,16 @@ export const createOrderWithTransaction = async (req, res) => {
         session
       );
 
-      // 1️⃣1️⃣ Return Success
+      // 1️⃣1️⃣ Financial Audit + Return Success
+      await AuditService.log({
+        eventType: "JOURNAL_POSTED",
+        actorId: req.user?._id || null,
+        entityId: order._id,
+        entityType: "Order",
+        currency: "PKR",
+        meta: { orderId, businessSellerId, totalAmount: order.totalAmount || order.orderAmount }
+      }, { type: "financial", session });
+
       res.status(200).json({
         success: true,
         message: "Order processed successfully",
@@ -750,6 +760,15 @@ export const returnOrderWithTransaction = async (req, res) => {
         originalOrderId: orderId,
         returnDate: new Date(),
       }], { session });
+
+      await AuditService.log({
+        eventType: "BALANCE_UPDATED",
+        actorId: req.user?._id || null,
+        entityId: returnBreakup._id,
+        entityType: "ReturnBreakup",
+        currency: "PKR",
+        meta: { orderId, reason: "order_return" }
+      }, { type: "financial", session });
 
       res.json({ success: true, message: "Return processed successfully - balances fully reversed", returnBreakup });
     });

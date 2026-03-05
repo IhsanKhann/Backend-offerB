@@ -1,108 +1,66 @@
-// services/auditService.js
-
 import mongoose from "mongoose";
-import CONSTANTS from "../configs/constants.js";
+import CONSTANTS from "../configs/constants.js"
+import FinancialAuditLog from "../models/HRModals/FinancialAuditLogModel.js"
 
-/**
- * ✅ AUDIT SERVICE
- * Logs all security events for compliance and debugging
- */
+const AuditLogSchema = new mongoose.Schema(
+  {
+    eventType: {
+      type: String,
+      enum: CONSTANTS.HR_AUDIT_EVENTS,
+      required: true,
+      index: true
+    },
+    actorId: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee", default: null, index: true },
+    targetId: { type: mongoose.Schema.Types.ObjectId, ref: "FinalizedEmployee", default: null },
+    details: { type: mongoose.Schema.Types.Mixed, default: {} },
+    ipAddress: String,
+    userAgent: String,
+    timestamp: { type: Date, default: Date.now, index: true },
+  },
+  { timestamps: true, versionKey: false }
+);
 
-// Audit Log Schema
-const AuditLogSchema = new mongoose.Schema({
-  eventType: {
-    type: String,
-    enum: Object.values(CONSTANTS.AUDIT_EVENTS),
-    required: true,
-    index: true
-  },
-  
-  actorId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'FinalizedEmployee',
-    required: true,
-    index: true
-  },
-  
-  targetId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'FinalizedEmployee',
-    default: null
-  },
-  
-  details: {
-    type: mongoose.Schema.Types.Mixed,
-    default: {}
-  },
-  
-  ipAddress: String,
-  userAgent: String,
-  
-  timestamp: {
-    type: Date,
-    default: Date.now,
-    index: true
-  }
-}, {
-  timestamps: true
-});
-
-// Indexes for performance
 AuditLogSchema.index({ eventType: 1, timestamp: -1 });
 AuditLogSchema.index({ actorId: 1, timestamp: -1 });
 AuditLogSchema.index({ timestamp: -1 });
 
-const AuditLog = mongoose.model('AuditLog', AuditLogSchema);
+const AuditLog = mongoose.models.AuditLog || mongoose.model("AuditLog", AuditLogSchema);
 
 export class AuditService {
-  
-  /**
-   * Log an audit event
-   */
-  static async log(event) {
+  static async log(payload, options = {}) {
+    const { type = "normal", session = null } = options;
     try {
-      const auditEntry = new AuditLog(event);
-      await auditEntry.save();
-      
-      // Optional: Send to external logging service
-      // await this._sendToExternalLog(auditEntry);
-      
-      return auditEntry;
+      if (type === "financial") {
+        await FinancialAuditLog.create([payload], { session });
+        return;
+      }
+      await AuditLog.create(payload);
     } catch (error) {
-      console.error('❌ Audit log error:', error);
-      // Don't throw - audit failures shouldn't break the app
+      if (type === "financial") throw error;
+      console.error("❌ Audit log error:", error.message);
     }
   }
 
-  /**
-   * Get audit logs for a user
-   */
   static async getUserLogs(userId, limit = 100) {
-    return await AuditLog.find({ actorId: userId })
-      .sort({ timestamp: -1 })
-      .limit(limit)
-      .lean();
+    return AuditLog.find({ actorId: userId }).sort({ timestamp: -1 }).limit(limit).lean();
   }
 
-  /**
-   * Get security violations
-   */
   static async getViolations(days = 30) {
     const since = new Date();
     since.setDate(since.getDate() - days);
-
-    return await AuditLog.find({
-      eventType: {
-        $in: [
-          CONSTANTS.AUDIT_EVENTS.PERMISSION_DENIED,
-          CONSTANTS.AUDIT_EVENTS.HIERARCHY_VIOLATION,
-          CONSTANTS.AUDIT_EVENTS.DEPARTMENT_VIOLATION
-        ]
-      },
-      timestamp: { $gte: since }
+    return AuditLog.find({
+      eventType: { $in: ["PERMISSION_DENIED", "HIERARCHY_VIOLATION", "DEPARTMENT_VIOLATION"] },
+      timestamp: { $gte: since },
     })
-      .populate('actorId', 'individualName personalEmail')
+      .populate("actorId", "individualName personalEmail")
       .sort({ timestamp: -1 })
+      .lean();
+  }
+
+  static async getFinancialLogs(entityId, entityType, limit = 100) {
+    return FinancialAuditLog.find({ entityId, entityType })
+      .sort({ createdAt: -1 })
+      .limit(limit)
       .lean();
   }
 }
