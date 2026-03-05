@@ -1,24 +1,26 @@
 // models/FinanceModals/SalaryBreakupModel.js
-// Phase 2 Refactor — Addresses: F-16
+// Phase 2 Hardening — Findings addressed: F-16
 //
-// Changes from original:
-//   F-16 — All monetary Number fields documented as integer minor units (paise)
-//   F-16 — Added `currency` to SalaryRulesSchema and CalculatedBreakupSchema (PRD §I)
-//   F-16 — paymentStatus field added for lifecycle clarity
+// F-16 — All monetary Number fields documented as integer minor units (paise).
+// F-16 — `currency` added to SalaryRulesSchema and CalculatedBreakupSchema.
+// F-16 — `paymentStatus` lifecycle field added.
+// FIX  — `paidAt` no longer defaults at document creation; it is only set
+//         when paymentStatus transitions to "paid", so pending breakups do
+//         not falsely report a paid timestamp.
 import mongoose from "mongoose";
 
 /* ── Breakdown line ── */
 const BreakdownSchema = new mongoose.Schema(
   {
-    name:     { type: String, required: true },
+    name: { type: String, required: true },
     category: {
       type: String,
       enum: ["base", "allowance", "deduction", "terminal", "net"],
       required: true
     },
     // F-16: integer minor units (paise)
-    value:          { type: Number, required: true },
-    calculation:    { type: String, required: true },
+    value:             { type: Number, required: true },
+    calculation:       { type: String, required: true },
     excludeFromTotals: { type: Boolean, default: false }
   },
   { _id: false }
@@ -34,7 +36,7 @@ const CalculatedBreakupSchema = new mongoose.Schema(
     totalDeductions: { type: Number, default: 0 },
     netSalary:       { type: Number, default: 0 },
 
-    // F-16 / PRD §I
+    // F-16 / PRD §I: ISO currency code
     currency: { type: String, default: "PKR" }
   },
   { _id: false }
@@ -45,8 +47,8 @@ const ComponentSchema = new mongoose.Schema(
   {
     name:  { type: String, required: true },
     type:  { type: String, enum: ["fixed", "percentage"], required: true },
-    // F-16: stored as integer minor units when type === "fixed";
-    //       as a percentage integer (e.g. 10 = 10%) when type === "percentage"
+    // F-16: integer minor units when type === "fixed";
+    //       percentage integer (e.g. 10 = 10%) when type === "percentage"
     value: { type: Number, required: true }
   },
   { _id: false }
@@ -59,7 +61,7 @@ const SalaryRulesSchema = new mongoose.Schema(
     baseSalary:  { type: Number, required: true },
     salaryType:  { type: String, enum: ["monthly", "hourly"], default: "monthly" },
 
-    // F-16 / PRD §I
+    // F-16 / PRD §I: ISO currency code
     currency: { type: String, default: "PKR" },
 
     allowances:       { type: [ComponentSchema], default: [] },
@@ -91,15 +93,19 @@ const BreakupFileSchema = new mongoose.Schema(
 
     paidFor: String,   // human-readable label, e.g. "January 2025"
 
+    // F-16: lifecycle clarity — default is "pending"
     paymentStatus: {
       type: String,
       enum: ["pending", "paid"],
       default: "pending"
     },
 
-    paidAt: { type: Date, default: Date.now },
+    // FIX (audit C-05 / M-05): paidAt has NO default.
+    // It is set explicitly only when paymentStatus transitions to "paid".
+    // Pending breakups must never carry a false paid timestamp.
+    paidAt: { type: Date },
 
-    // Auto-populated in pre-save
+    // Auto-populated in pre-save — only when paidAt is present
     paidMonth: String,
     paidYear:  Number,
     paidTime:  String,
@@ -112,12 +118,14 @@ const BreakupFileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* ── Auto-fill formatted month/year/time ── */
+/* ── Auto-fill formatted month/year/time — only when paidAt is set ── */
 BreakupFileSchema.pre("save", function (next) {
-  const date = this.paidAt || new Date();
-  this.paidMonth = date.toLocaleString("en-US", { month: "long" });
-  this.paidYear  = date.getFullYear();
-  this.paidTime  = date.toLocaleTimeString("en-US");
+  if (this.paidAt) {
+    const date = this.paidAt;
+    this.paidMonth = date.toLocaleString("en-US", { month: "long" });
+    this.paidYear  = date.getFullYear();
+    this.paidTime  = date.toLocaleTimeString("en-US");
+  }
   next();
 });
 

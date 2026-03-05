@@ -1,21 +1,22 @@
 // models/FinanceModals/CommissionReports.js
-// Phase 2 Refactor — Addresses: F-10, F-11
+// Phase 2 Hardening — Findings addressed: F-10, F-11
 //
-// Changes from original:
-//   F-10 — All Decimal128 monetary fields → integer Number (minor units)
-//   F-10 — Added `currency` field (PRD §I)
-//   F-11 — Added `reportType` enum field (required, default: 'MONTHLY')
-//   F-11 — Enabled versionKey (optimistic locking) per PRD §G
+// F-10 — All Decimal128 monetary fields → integer Number (minor units / paise).
+// F-10 — `currency` field added (PRD §I).
+// F-11 — `reportType` enum field added (required, default: "MONTHLY").
+// F-11 — versionKey: true ENABLES __v for optimistic locking (PRD §G).
 import mongoose from "mongoose";
 
 const CommissionReportSchema = new mongoose.Schema(
   {
+    // Deterministic idempotency key — format: COMMISSION_YYYY-MM-DD_YYYY-MM-DD
+    // UNIQUE index ensures duplicate closes for the same period are rejected (409).
     periodKey: { type: String, unique: true },
 
-    fromDate:  Date,
-    toDate:    Date,
+    fromDate: Date,
+    toDate:   Date,
 
-    // F-10: integer minor units — NOT Decimal128
+    // F-10: integer minor units — NOT Decimal128, NOT float
     commissionAmount:    { type: Number },  // integer (paise/cents)
     expenseAmount:       { type: Number },  // integer
     netResult:           { type: Number },  // integer (can be negative)
@@ -24,9 +25,9 @@ const CommissionReportSchema = new mongoose.Schema(
     // F-10 / PRD §I: ISO currency code
     currency: { type: String, default: "PKR" },
 
-    // F-11: reportType is now required — idempotency key strategy
-    // 'MONTHLY'  — standard period close
-    // 'CLEANUP'  — ad-hoc / partial-period close
+    // F-11: reportType is required — used as idempotency classification
+    // "MONTHLY"  — standard period close
+    // "CLEANUP"  — ad-hoc / partial-period close
     reportType: {
       type: String,
       enum: ["MONTHLY", "CLEANUP"],
@@ -58,8 +59,8 @@ const CommissionReportSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now }
   },
   {
-    // F-11: versionKey: true ENABLES __v for optimistic locking (PRD §G)
-    // versionKey: false would DISABLE it — that is the bug being fixed here
+    // F-11: versionKey: true ENABLES __v for optimistic locking (PRD §G).
+    // Leaving it enabled (the default) — explicitly stated here for auditability.
     versionKey: true
   }
 );
